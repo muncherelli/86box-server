@@ -98,7 +98,7 @@ class VmsTest(unittest.TestCase):
             self.assertTrue(os.path.isdir(self.p("vms/test2", sub)))
         d = json.loads(rd(self.p("vmdefs/test2.json")))
         self.assertEqual((d["display"], d["allowed_groups"], d["autostart"]), (10, ["lab"], False))
-        self.assertEqual(rd(self.p("vmdefs/test2.env")), "B86_DISPLAY=10\nB86_VNC_PORT=5910\nDISPLAY=:10\n")
+        self.assertEqual(rd(self.p("vmdefs/test2.env")), "B86_DISPLAY=10\nB86_VNC_PORT=5910\nDISPLAY=:10\nB86_GEOMETRY=1024x768\n")
         self.assertEqual(rd(self.p("vnc-tokens/test2")), "test2: 127.0.0.1:5910\n")
         self.assertEqual(stat.S_IMODE(os.stat(self.p("vnc-tokens/test2")).st_mode), 0o600)
         self.assertEqual(self.auth.calls, [("set", "test2", ["bob"])])
@@ -175,6 +175,44 @@ class VmsTest(unittest.TestCase):
         with self.assertRaises(vms.VmError):
             vms.edit_vm("test2", [], False, [], cd="os.iso")
         vms.edit_vm("test2", [], False, [], cd=None)  # busy is fine when the CD is left alone
+
+    def test_parse_resolution(self):
+        for blank in ("", "auto", " AUTO "):
+            self.assertEqual(vms.parse_resolution(blank), "auto")
+        self.assertEqual(vms.parse_resolution("1280X800"), "1280x800")
+        self.assertEqual(vms.parse_resolution("640x400"), "640x400")
+        self.assertEqual(vms.parse_resolution("2560x1600"), "2560x1600")
+        for preset in vms.RESOLUTION_PRESETS:
+            self.assertEqual(vms.parse_resolution(preset), preset)
+        self.assertEqual(len(vms.RESOLUTION_PRESETS), 16)
+        for bad in ("639x400", "640x399", "2561x1600", "2560x1601", "1024", "1024x", "axb", "1024x768x2", "-1024x768"):
+            with self.assertRaises(vms.VmError):
+                vms.parse_resolution(bad)
+
+    def test_resolution_is_saved_and_written_to_the_env_file(self):
+        self.make("test2")
+        self.assertIn("B86_GEOMETRY=1024x768\n", rd(self.p("vmdefs/test2.env")))
+        vms.edit_vm("test2", [], False, [], resolution="1280x1024")
+        d = json.loads(rd(self.p("vmdefs/test2.json")))
+        env = rd(self.p("vmdefs/test2.env"))
+        self.assertEqual(d["resolution"], "1280x1024")
+        self.assertIn("B86_GEOMETRY=1280x1024\n", env)
+        self.assertIn("B86_DISPLAY=%d\n" % d["display"], env)
+        self.assertIn("resize=scale", vms.console_url("test2"))
+        vms.edit_vm("test2", [], False, [], resolution=None)          # left alone
+        self.assertEqual(json.loads(rd(self.p("vmdefs/test2.json")))["resolution"], "1280x1024")
+        vms.edit_vm("test2", [], False, [], resolution="auto")        # back to following the browser
+        self.assertIn("B86_GEOMETRY=1024x768\n", rd(self.p("vmdefs/test2.env")))
+        self.assertIn("resize=remote", vms.console_url("test2"))
+        before = rd(self.p("vmdefs/test2.env"))
+        with self.assertRaises(vms.VmError):
+            vms.edit_vm("test2", [], False, [], resolution="9999x9999")
+        self.assertEqual(rd(self.p("vmdefs/test2.env")), before)      # a refused size changes nothing
+
+    def test_console_url_defaults_to_following_the_browser(self):
+        url = vms.console_url("nope")
+        self.assertIn("resize=remote", url)
+        self.assertIn("path=%2Fwebsockify%3Ftoken%3Dnope", url)
 
     def test_actions_and_permissions(self):
         self.make("test2")

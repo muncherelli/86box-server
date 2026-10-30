@@ -30,7 +30,7 @@ def page(req, m):
     if not _allowed(req, name):
         return respond.text("not found", 404)
     q = respond.esc(name)
-    console = respond.esc(vms.CONSOLE % name)
+    console = respond.esc(vms.console_url(name))
     if units.is_active("vm@%s.service" % name):
         body = ('<p>This VM is running. Open the <a href="%s" target="_blank" rel="noopener">console</a>, then use the 86Box menu '
                 '<b>Tools &gt; Settings&hellip;</b>. Saving the settings resets the VM.</p>' % console)
@@ -53,7 +53,7 @@ def open_settings(req, m):
         ok, err = units.run("start", "vm-settings@%s.service" % name)
         if not ok:
             return respond.page(req, "Settings for " + name, '<p class="error">%s</p>' % respond.esc(err), 500)
-    return respond.redirect(vms.CONSOLE % name)
+    return respond.redirect(vms.console_url(name))
 
 
 ROUTES = [

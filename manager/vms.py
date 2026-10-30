@@ -22,11 +22,40 @@ RESERVED = {"new", "api", "trash"}
 MEDIA_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,120}")
 LOCK = threading.Lock()
 # noVNC resolves path against the page URL (/novnc/vnc.html), so it must start with "/" to reach /websockify.
-CONSOLE = "/novnc/vnc.html?path=%%2Fwebsockify%%3Ftoken%%3D%s&autoconnect=1&resize=scale&reconnect=1"
+# resize=remote makes the VM's display follow the browser window; resize=scale keeps a fixed display size.
+CONSOLE_FMT = "/novnc/vnc.html?path=%%2Fwebsockify%%3Ftoken%%3D%s&autoconnect=1&resize=%s&reconnect=1"
+DEFAULT_GEOMETRY = "1024x768"   # start size of every display; "auto" VMs then follow the browser
+RES_RE = re.compile(r"([0-9]{3,4})x([0-9]{3,4})")
+RESOLUTION_PRESETS = ["640x400", "640x480", "720x400", "800x600", "1024x768", "1152x864", "1280x1024", "1600x1200",
+                      "1280x720", "1366x768", "1440x900", "1600x900", "1680x1050", "1920x1080", "1920x1200", "2560x1440"]
 
 
 class VmError(Exception):
     pass
+
+
+def parse_resolution(value):
+    """'' or 'auto' -> 'auto'; 'WxH' between 640x400 and 2560x1600 -> 'WxH'; anything else is refused."""
+    v = (value or "").strip().lower().replace(" ", "")
+    if v in ("", "auto"):
+        return "auto"
+    m = RES_RE.fullmatch(v)
+    if not m or not (640 <= int(m.group(1)) <= 2560 and 400 <= int(m.group(2)) <= 1600):
+        raise VmError("Display size must be 'auto' or WxH between 640x400 and 2560x1600.")
+    return "%dx%d" % (int(m.group(1)), int(m.group(2)))
+
+
+def console_url(name):
+    """Console link for a VM: 'auto' (the default) follows the browser window, a fixed size is scaled to fit."""
+    data = store.read_json(_p("vmdefs", name + ".json"), {})
+    res = data.get("resolution", "auto") if isinstance(data, dict) else "auto"
+    return CONSOLE_FMT % (name, "remote" if res == "auto" else "scale")
+
+
+def _env_text(display, resolution):
+    geometry = DEFAULT_GEOMETRY if resolution == "auto" else resolution
+    return ("B86_DISPLAY=%d\nB86_VNC_PORT=%d\nDISPLAY=:%d\nB86_GEOMETRY=%s\n"
+            % (display, 5900 + display, display, geometry))
 
 
 def _auth():
@@ -205,8 +234,7 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
         os.chmod(disk, 0o660)
         _group(disk)
         os.rename(temp, final)
-        store.write_text(_p("vmdefs", name + ".env"),
-                         "B86_DISPLAY=%d\nB86_VNC_PORT=%d\nDISPLAY=:%d\n" % (display, 5900 + display, display), mode=0o644)
+        store.write_text(_p("vmdefs", name + ".env"), _env_text(display, "auto"), mode=0o644)
         store.write_json(_p("vmdefs", name + ".json"), {
             "name": name, "display": display, "allowed_groups": sorted(groups), "autostart": bool(autostart),
             "template": template, "created": _stamp()}, mode=0o644)
@@ -226,14 +254,16 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
     return name
 
 
-def edit_vm(name, groups, autostart, users, cd=None):
-    """cd=None leaves the CD image alone; '' removes it."""
+def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
+    """cd=None leaves the CD image alone; '' removes it. resolution=None leaves the display size alone;
+    '' or 'auto' follows the browser window; 'WxH' is a fixed size that applies at the next start."""
     with LOCK:
         path = _p("vmdefs", name + ".json")
         data = store.read_json(path)
         if not isinstance(data, dict):
             raise VmError("No such VM.")
         _check_common(groups, users)
+        res = None if resolution is None else parse_resolution(resolution)
         if cd is not None:
             if busy(name):
                 raise VmError("Use the Media menu in the console while the VM is running.")
@@ -251,6 +281,9 @@ def edit_vm(name, groups, autostart, users, cd=None):
             _write_cfg(p, cfg)
         data["allowed_groups"] = sorted(groups)
         data["autostart"] = bool(autostart)
+        if res is not None:
+            data["resolution"] = res
+            store.write_text(_p("vmdefs", name + ".env"), _env_text(data["display"], res), mode=0o644)
         store.write_json(path, data, mode=0o644)
         _auth().set_vm_users(name, users)
 

@@ -7,7 +7,7 @@ import config
 import respond
 import store
 import vms
-from vms import CONSOLE, VmError, _p, _read_cfg, all_defs, busy, create_vm, delete_vm, edit_vm
+from vms import VmError, _p, _read_cfg, all_defs, busy, console_url, create_vm, delete_vm, edit_vm
 from vms import empty_trash, list_isos, list_templates, status, trash_size, visible, do_action
 
 
@@ -26,7 +26,7 @@ def _list_page(req, msg=""):
         q = respond.esc(n)
         buttons = "".join('<button data-action="%s" data-vm="%s">%s</button> ' % (a, q, a.title())
                           for a in ("start", "stop", "reset"))
-        links = '<a href="%s" target="_blank" rel="noopener">Console</a> <a href="/manage/vms/%s/settings">Settings</a>' % (respond.esc(CONSOLE % n), q)
+        links = '<a href="%s" target="_blank" rel="noopener">Console</a> <a href="/manage/vms/%s/settings">Settings</a>' % (respond.esc(console_url(n)), q)
         if admin:
             links += ' <a href="/manage/vms/%s">Edit</a>' % q
         rows.append('<tr data-vm="%s"><td>%s</td><td data-state>%s</td><td data-nic>%s</td>'
@@ -88,12 +88,18 @@ def _edit_page(req, name, msg=""):
     body = ('<p class="error">%s</p>' % respond.esc(msg)) if msg else ""
     body += ('<form method="post" action="/manage/vms/%s">%s%s<p>Network groups %s</p><p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"%s> Start at boot</label></p>'
+             '<p><label>Display size <input name="resolution" value="%s" list="b86res" placeholder="auto" size="10"></label>'
+             '<datalist id="b86res"><option value="auto">%s</datalist>'
+             '<br><small><b>auto</b> makes the display follow your browser window, live. Or pick a preset or type your own '
+             'WxH (640x400 up to 2560x1600): a fixed size is scaled to fit the window and applies the next time the VM starts. '
+             '86Box stretches whatever the guest shows to fill this display.</small></p>'
              '<input type="submit" value="Save"></form>'
              '<h2>Delete</h2><form method="post" action="/manage/vms/%s/delete">%s'
              '<p>Type the name to confirm: <input name="confirm"> <input type="submit" value="Delete"></p></form>'
              % (q, _csrf(req), cd, _checks("group", sorted(config.CFG["netgroups"]), data.get("allowed_groups", []), "group"),
                 _checks("user", sorted(vms._auth().console_users()), users, "user"),
-                " checked" if data.get("autostart") else "", q, _csrf(req)))
+                " checked" if data.get("autostart") else "", respond.esc(data.get("resolution", "auto")),
+                "".join('<option value="%s">' % r for r in vms.RESOLUTION_PRESETS), q, _csrf(req)))
     for mod, fn in (("snapshots", "html_section"), ("media", "html_attach_section"),
                     ("clone", "html_section"), ("importexp", "html_section")):
         body += getattr(importlib.import_module(mod), fn)(req, name)
@@ -138,7 +144,8 @@ def h_edit_post(req, m):
     name, f = m.group(1), _multi(req)
     try:
         edit_vm(name, f.get("group", []), (f.get("autostart") or [""])[0] == "1", f.get("user", []),
-                cd=None if busy(name) else (f.get("cd") or [""])[0])
+                cd=None if busy(name) else (f.get("cd") or [""])[0],
+                resolution=(f.get("resolution") or [""])[0])
     except VmError as e:
         return _edit_page(req, name, str(e))
     store.audit(req.user["name"], req.ip, "vm.edit", name)
