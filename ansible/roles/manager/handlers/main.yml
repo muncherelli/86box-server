@@ -1,0 +1,9 @@
+---
+- name: Reload systemd for the manager
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart the manager
+  ansible.builtin.systemd:
+    name: 86box-manager
+    state: restarted

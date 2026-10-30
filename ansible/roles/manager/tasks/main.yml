@@ -1,3 +1,68 @@
 ---
 - name: Load settings for this Linux distribution
   ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Copy the manager code
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../manager/"
+    dest: /opt/86box-server/manager/
+    delete: true
+    rsync_opts:
+      - "--exclude=tests"
+      - "--exclude=__pycache__"
+      - "--chown=root:root"
+      - "--chmod=D755,F644"
+  notify: Restart the manager
+
+- name: Write the manager settings
+  ansible.builtin.template:
+    src: manager.json.j2
+    dest: /etc/86box-server/manager.json
+    owner: root
+    group: "{{ mgr_user }}"
+    mode: "0640"
+  notify: Restart the manager
+
+- name: Check whether the manager already has users
+  ansible.builtin.stat:
+    path: "{{ vm_data_root }}/manager/users.json"
+  register: users_file
+
+- name: Seed the first admin (the manager deletes the seed after reading it)
+  ansible.builtin.copy:
+    content: "{{ {'admin_user': 'admin', 'admin_password': vault_admin_password} | to_json }}"
+    dest: "{{ vm_data_root }}/manager/seed.json"
+    owner: "{{ mgr_user }}"
+    group: "{{ mgr_user }}"
+    mode: "0600"
+  when: not users_file.stat.exists
+  no_log: true
+  notify: Restart the manager
+
+- name: Allow the manager to start and stop VMs (polkit)
+  ansible.builtin.copy:
+    src: 50-86box.rules
+    dest: /etc/polkit-1/rules.d/50-86box.rules
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the manager unit
+  ansible.builtin.copy:
+    src: 86box-manager.service
+    dest: /etc/systemd/system/86box-manager.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd for the manager
+    - Restart the manager
+
+- name: Make systemd see the unit
+  ansible.builtin.meta: flush_handlers
+
+- name: Run the manager
+  ansible.builtin.systemd:
+    name: 86box-manager
+    enabled: true
+    state: started

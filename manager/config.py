@@ -13,6 +13,7 @@ def load():
         cfg = {}
     cfg.setdefault("data_root", "/var/lib/86box-server")
     cfg.setdefault("emu86box_tag", "")
+    cfg.setdefault("share_group", "86box-data")
     cfg.setdefault("netgroups", {})
     cfg.setdefault("edge_mode", "acme")
     cfg.setdefault("manager_host", "localhost")

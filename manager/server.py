@@ -12,7 +12,8 @@ import respond
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", "importexp"]
-STATIC = {"style.css": "text/css", "app.js": "application/javascript"}
+STATIC = {"style.css": "text/css", "app.js": "application/javascript",
+          "media.js": "application/javascript"}
 MAX_FORM = 1024 * 1024
 
 ROUTES = []  # (method, compiled regex, handler, role)
@@ -97,7 +98,7 @@ def dispatch(req):
         if origin and origin != "https://" + config.CFG["manager_host"]:
             return respond.text("bad origin", 403)
 
-    if role is not None:
+    if role not in (None, "login"):
         if auth is None:
             return respond.text("login is not installed", 503)
         user = auth.authenticate(req)
@@ -107,7 +108,7 @@ def dispatch(req):
             return respond.redirect("/manage/login?next=" + urllib.parse.quote(req.path))
         if role == "admin" and user["role"] != "admin":
             return respond.text("forbidden", 403)
-        if req.method in ("POST", "PUT") and role != "login" and not auth.csrf_ok(req):
+        if req.method in ("POST", "PUT") and not auth.csrf_ok(req):
             return respond.text("bad csrf token", 403)
     return handler(req, match)
 
@@ -142,6 +143,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     load_routes()
+    if auth is not None and hasattr(auth, "init"):
+        auth.init()
     port = int(os.environ.get("B86_PORT", "8686"))
     ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
 
