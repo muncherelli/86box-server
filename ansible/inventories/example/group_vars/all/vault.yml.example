@@ -2,6 +2,7 @@
 # Secrets. Placeholders only. Encrypt and edit with: ./update.sh vault-edit
 # Secrets are only ever named vault_*.
 vault_admin_password: change-me-to-12-or-more-characters
+vault_admin_password_hash: ''     # from: caddy hash-password (only until the manager login exists)
 vault_cf_api_token: ''
 vault_cf_account_id: ''
 vault_cf_tunnel_id: ''

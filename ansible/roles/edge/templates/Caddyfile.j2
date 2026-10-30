@@ -1,0 +1,38 @@
+{
+	admin unix//run/caddy/admin.sock
+{% if edge_mode == 'acme' %}
+	email {{ acme_email }}
+{% endif %}
+}
+
+(b86_edge) {
+{% if edge_mode == 'internal' %}
+	tls internal
+{% endif %}
+}
+
+(b86_auth) {
+	basic_auth {
+		admin {{ vault_admin_password_hash }}
+	}
+}
+
+{{ manager_host }} {
+	import b86_edge
+	handle /novnc/* {
+		import b86_auth
+		uri strip_prefix /novnc
+		root * /opt/86box-server/novnc/current
+		file_server
+	}
+	handle /websockify {
+		import b86_auth
+		reverse_proxy 127.0.0.1:6080
+	}
+	handle {
+		import b86_auth
+		respond "86box-server" 200
+	}
+}
+
+import /etc/caddy/sites.d/*.caddy

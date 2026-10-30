@@ -1,3 +1,62 @@
 ---
 - name: Load settings for this Linux distribution
   ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Create the folder for per-site files
+  ansible.builtin.file:
+    path: /etc/caddy/sites.d
+    state: directory
+    owner: "{{ mgr_user }}"
+    group: root
+    mode: "0755"
+
+- name: Install the snippets used to validate site files on their own
+  ansible.builtin.copy:
+    src: b86-validate-snippets.caddy
+    dest: /etc/caddy/b86-validate-snippets.caddy
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create the Caddy unit drop-in folder
+  ansible.builtin.file:
+    path: /etc/systemd/system/caddy.service.d
+    state: directory
+    mode: "0755"
+
+- name: Put Caddy's admin socket in a folder only caddy and root can reach
+  ansible.builtin.copy:
+    src: caddy-b86.conf
+    dest: /etc/systemd/system/caddy.service.d/b86.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for caddy
+
+- name: Write the Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: /etc/caddy/Caddyfile
+    owner: root
+    group: caddy
+    mode: "0640"
+    validate: caddy validate --adapter caddyfile --config %s
+  no_log: true
+  notify: Reload caddy
+
+- name: Open the web ports in the firewall
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: ["80", "443"]
+  when: b86_ufw | default(false)
+
+- name: Make systemd see the drop-in
+  ansible.builtin.meta: flush_handlers
+
+- name: Run Caddy
+  ansible.builtin.systemd:
+    name: caddy
+    enabled: true
+    state: started
