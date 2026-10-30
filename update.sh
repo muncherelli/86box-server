@@ -9,6 +9,8 @@ die() { echo "error: $*" >&2; exit 1; }
 
 # shellcheck source=lib/bootstrap.sh
 source "$REPO/lib/bootstrap.sh"
+# shellcheck source=lib/ui.sh
+source "$REPO/lib/ui.sh"
 # shellcheck source=lib/preflight.sh
 source "$REPO/lib/preflight.sh"
 # shellcheck source=lib/log.sh
@@ -16,11 +18,20 @@ source "$REPO/lib/log.sh"
 # shellcheck source=lib/vault.sh
 source "$REPO/lib/vault.sh"
 
+VERBOSE=0
+ARGS=()
+for a in "$@"; do
+  case "$a" in
+    --verbose) VERBOSE=1 ;;
+    *) ARGS+=("$a") ;;
+  esac
+done
+
 preflight_basic
 ensure_local_inventory
 ensure_ansible
 ensure_collections
-if [ "${1:-}" = vault-edit ]; then
+if [ "${ARGS[0]:-}" = vault-edit ]; then
   vault_edit
   exit 0
 fi
@@ -29,5 +40,4 @@ set_become_args
 setup_vault_password
 check_vault
 setup_log
-echo "not implemented yet"
-echo "log: $LOG"
+run_playbook "${ARGS[@]}"
