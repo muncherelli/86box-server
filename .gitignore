@@ -1,0 +1,7 @@
+ansible/inventories/local/
+ansible/collections/
+*.retry
+/*.iso
+/*.img
+.vault-pass*
+__pycache__/

@@ -1,0 +1,48 @@
+---
+- name: Preflight
+  hosts: all
+  gather_facts: true
+  roles:
+    - preflight
+
+- name: Base packages
+  hosts: all
+  gather_facts: true
+  roles:
+    - base
+
+- name: 86Box
+  hosts: all
+  gather_facts: true
+  roles:
+    - emu86box
+
+- name: Network groups
+  hosts: all
+  gather_facts: true
+  roles:
+    - netgroups
+
+- name: Virtual machine host
+  hosts: all
+  gather_facts: true
+  roles:
+    - vms
+
+- name: Consoles
+  hosts: all
+  gather_facts: true
+  roles:
+    - console
+
+- name: Web manager
+  hosts: all
+  gather_facts: true
+  roles:
+    - manager
+
+- name: Caddy
+  hosts: all
+  gather_facts: true
+  roles:
+    - edge
