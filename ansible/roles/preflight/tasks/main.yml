@@ -137,7 +137,7 @@
 
 - name: Check the network group settings
   ansible.builtin.command:
-    argv: [python3, "{{ role_path }}/files/check_netgroups.py"]
+    argv: [python3, "{{ role_path }}/files/check_netgroups.py", "{{ group_routes | default([]) | to_json }}"]
     stdin: "{{ netgroups | to_json }}"
   register: b86_netgroups
   changed_when: false

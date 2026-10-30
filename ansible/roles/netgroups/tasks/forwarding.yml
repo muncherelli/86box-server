@@ -1,0 +1,44 @@
+---
+# Packet forwarding for groups with internet access (egress: nat) and for
+# group-to-group routes (group_routes). The nft rules for both are already in
+# the b86box.nft.j2 template; this file turns on forwarding and, when ufw is
+# active, opens the matching ufw route rules (ufw's default forward policy is DROP).
+# Removing a group or a pair later does not delete its ufw rule: remove it by
+# hand with 'ufw route delete ...'.
+
+- name: Work out which groups use the internet and which pairs are routed
+  ansible.builtin.set_fact:
+    b86_nat_groups: "{{ netgroups.values() | selectattr('egress', 'defined') | selectattr('egress', 'equalto', 'nat') | list }}"
+    b86_route_pairs: "{{ group_routes | default([]) }}"
+
+- name: Turn on IPv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_file: /etc/sysctl.d/86box.conf
+    sysctl_set: true
+    reload: true
+    state: present
+  when: (b86_nat_groups | length > 0) or (b86_route_pairs | length > 0)
+
+- name: Let groups with internet access forward out through the host's uplink
+  community.general.ufw:
+    rule: allow
+    route: true
+    interface_in: "{{ item.bridge }}"
+    interface_out: "{{ ansible_facts['default_ipv4']['interface'] }}"
+  loop: "{{ b86_nat_groups }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  when: b86_ufw | bool
+
+- name: Let routed group pairs forward in both directions
+  community.general.ufw:
+    rule: allow
+    route: true
+    interface_in: "{{ netgroups[item.0[0]].bridge if item.1 == 'ab' else netgroups[item.0[1]].bridge }}"
+    interface_out: "{{ netgroups[item.0[1]].bridge if item.1 == 'ab' else netgroups[item.0[0]].bridge }}"
+  loop: "{{ b86_route_pairs | product(['ab', 'ba']) | list }}"
+  loop_control:
+    label: "{{ item.0[0] }} {{ '->' if item.1 == 'ab' else '<-' }} {{ item.0[1] }}"
+  when: b86_ufw | bool
