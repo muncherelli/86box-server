@@ -25,3 +25,15 @@ set_become_args() {
     BECOME_ARGS=(--ask-become-pass)
   fi
 }
+
+# First run: copy the example inventory to the git-ignored local one and stop.
+ensure_local_inventory() {
+  local src="$REPO/ansible/inventories/example"
+  local dst="$REPO/ansible/inventories/local"
+  [ -d "$dst" ] && return 0
+  cp -r "$src" "$dst"
+  mv "$dst/group_vars/all/vault.yml.example" "$dst/group_vars/all/vault.yml"
+  echo "Created ansible/inventories/local."
+  echo "Edit it, encrypt vault.yml (./update.sh vault-edit), then run ./update.sh again."
+  exit 0
+}

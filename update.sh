@@ -12,6 +12,7 @@ source "$REPO/lib/bootstrap.sh"
 # shellcheck source=lib/log.sh
 source "$REPO/lib/log.sh"
 
+ensure_local_inventory
 ensure_ansible
 ensure_collections
 set_become_args

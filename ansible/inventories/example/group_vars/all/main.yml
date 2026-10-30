@@ -1,1 +1,24 @@
 ---
+# Settings for this host. Copy of this folder lives in ansible/inventories/local/
+# (git-ignored). Edit the copy, never this example.
+
+vm_service_user: 86boxvm          # account the VMs run as
+vm_uid: 86                        # its UID/GID when free
+mgr_user: 86boxmgr                # account the web manager runs as
+vm_data_root: /var/lib/86box-server
+media_users: []                   # existing login users who may read/write the media library
+sftp_only_users: []               # [{name: x, ssh_key: 'ssh-ed25519 ...'}], SFTP-only accounts
+
+edge_mode: internal               # acme | tunnel | cf-origin | internal
+manager_host: lab-01.example.com  # public name of this host
+acme_email: admin@example.com     # used in acme mode
+public_ipv4: ''                   # this host's public IPv4 (DNS records in acme/cf-origin mode)
+publish_domains: []               # domains the manager may publish sites under
+
+netgroups: {}                     # example: lab: {bridge: br-lab, cidr: 10.86.0.0/24, egress: none, dhcp: false}
+group_routes: []                  # example: [[lab, web]]
+nat_dns: ['1.1.1.1']              # DNS handed to guests in nat groups
+port_forward_limits: []           # see the port-forward row on the sheet
+
+# Pinned versions live in the sibling file pins.yml; secrets in vault.yml.
+# When a later row needs a new variable, add it here.
