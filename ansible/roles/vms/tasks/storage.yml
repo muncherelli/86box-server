@@ -1,0 +1,23 @@
+---
+- name: Create the data folders
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ vm_data_root }}", owner: root, group: root, mode: "0755" }
+    - { path: "{{ vm_data_root }}/vmdefs", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0755" }
+    - { path: "{{ vm_data_root }}/vms", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "0755" }
+    - { path: "{{ vm_data_root }}/media", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
+    - { path: "{{ vm_data_root }}/media/isos", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
+    - { path: "{{ vm_data_root }}/media/floppies", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
+    - { path: "{{ vm_data_root }}/media/disks", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
+    - { path: "{{ vm_data_root }}/manager", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
+    - { path: "{{ vm_data_root }}/vnc-tokens", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
+    - { path: "{{ vm_data_root }}/trash", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
+    - { path: /etc/86box-server, owner: root, group: "{{ mgr_user }}", mode: "0750" }
+    - { path: /var/cache/86box-server, owner: root, group: root, mode: "0755" }
+    - { path: /opt/86box-server, owner: root, group: root, mode: "0755" }
+    - { path: /opt/86box-server/libexec, owner: root, group: root, mode: "0755" }
