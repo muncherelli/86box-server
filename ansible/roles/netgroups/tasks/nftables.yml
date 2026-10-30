@@ -1,0 +1,44 @@
+---
+# Our own nft table. It matches only our named bridges, so it cannot affect
+# SSH or any other traffic. Arch's nftables.service is never used: its config
+# starts with "flush ruleset", which would delete ufw's rules (preflight refuses
+# to run while it is enabled).
+
+- name: Write the firewall table
+  ansible.builtin.template:
+    src: b86box.nft.j2
+    dest: /etc/86box-server/b86box.nft
+    owner: root
+    group: root
+    mode: "0640"
+    trim_blocks: true
+    lstrip_blocks: true
+    validate: nft -c -f %s
+  register: b86_nft_file
+
+- name: Install the firewall table unit
+  ansible.builtin.copy:
+    src: 86box-nft.service
+    dest: /etc/systemd/system/86box-nft.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for the network groups
+
+- name: Make systemd see the firewall table unit
+  ansible.builtin.meta: flush_handlers
+
+- name: Load the firewall table at boot and now
+  ansible.builtin.systemd:
+    name: 86box-nft
+    enabled: true
+    state: started
+  register: b86_nft_started
+
+- name: Reload the table when its rules changed (a reload leaves no gap)
+  ansible.builtin.systemd:
+    name: 86box-nft
+    state: reloaded
+  when:
+    - not b86_nft_started.changed
+    - b86_nft_file.changed

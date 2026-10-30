@@ -7,4 +7,5 @@ base_packages:
   - polkit
   - openssl
   - rsync
+  - nftables
   - ttf-dejavu

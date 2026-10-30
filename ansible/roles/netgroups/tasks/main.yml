@@ -22,3 +22,7 @@
 - name: Set up the bridges
   ansible.builtin.import_tasks: bridges.yml
   when: netgroups | length > 0
+
+- name: Set up the firewall table for the bridges
+  ansible.builtin.import_tasks: nftables.yml
+  when: netgroups | length > 0

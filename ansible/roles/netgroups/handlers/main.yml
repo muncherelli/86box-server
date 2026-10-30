@@ -7,8 +7,3 @@
   ansible.builtin.systemd:
     name: NetworkManager
     state: reloaded
-
-- name: Reload the firewall table
-  ansible.builtin.systemd:
-    name: 86box-nft
-    state: reloaded
