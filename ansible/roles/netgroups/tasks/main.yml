@@ -26,3 +26,7 @@
 - name: Set up the firewall table for the bridges
   ansible.builtin.import_tasks: nftables.yml
   when: netgroups | length > 0
+
+- name: Set up forwarding for internet access and group routes
+  ansible.builtin.import_tasks: forwarding.yml
+  when: netgroups | length > 0

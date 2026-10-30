@@ -24,6 +24,19 @@ def main():
         if net.version != 4 or not 16 <= net.prefixlen <= 29:
             problems.append(f"{name}: cidr {net} must be IPv4 with a prefix from /16 to /29")
         nets[name] = net
+        egress = g.get("egress", "none")
+        if egress not in ("none", "nat"):
+            problems.append(f"{name}: egress '{egress}' must be none or nat")
+        allow = g.get("egress_allow", [])
+        if not isinstance(allow, list):
+            problems.append(f"{name}: egress_allow must be a list of IPv4 addresses or networks")
+            allow = []
+        for dest in allow:
+            try:
+                if ipaddress.ip_network(str(dest), strict=False).version != 4:
+                    raise ValueError
+            except ValueError:
+                problems.append(f"{name}: egress_allow entry '{dest}' is not an IPv4 address or network")
     names = list(nets)
     for i, a in enumerate(names):
         for b in names[i + 1:]:
