@@ -1,3 +1,48 @@
 ---
 - name: Load settings for this Linux distribution
   ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Install base packages
+  community.general.pacman:
+    name: "{{ base_packages }}"
+    state: present
+
+- name: Create the shared data group
+  ansible.builtin.group:
+    name: "{{ vm_share_group }}"
+    system: true
+
+- name: Create the VM account group
+  ansible.builtin.group:
+    name: "{{ vm_service_user }}"
+    gid: "{{ vm_uid if vm_uid_free | default(false) else omit }}"
+    system: true
+
+- name: Create the VM account
+  ansible.builtin.user:
+    name: "{{ vm_service_user }}"
+    uid: "{{ vm_uid if vm_uid_free | default(false) else omit }}"
+    group: "{{ vm_service_user }}"
+    groups: ["{{ vm_share_group }}"]
+    append: true
+    system: true
+    shell: /usr/bin/nologin
+    home: "{{ vm_data_root }}"
+    create_home: false
+
+- name: Create the web manager account
+  ansible.builtin.user:
+    name: "{{ mgr_user }}"
+    groups: ["{{ vm_share_group }}"]
+    append: true
+    system: true
+    shell: /usr/bin/nologin
+    home: "{{ vm_data_root }}/manager"
+    create_home: false
+
+- name: Let media users read and write the shared data group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: ["{{ vm_share_group }}"]
+    append: true
+  loop: "{{ media_users }}"
