@@ -1,0 +1,110 @@
+#!/usr/bin/python3
+# After a VM starts: check that every tap NIC in 86box.cfg got a tap that joined its bridge.
+# Usage: tap-check <name>   (run as root from vm@.service: ExecStartPost=+)
+# 86Box without CAP_NET_ADMIN runs with a dead NIC and no error, so this makes it an error.
+import configparser
+import datetime
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+ROOT = "/var/lib/86box-server"
+OUT = "/run/86box-server/nic"
+WAIT = 20.0  # 86Box needs ~13 s to reach the NIC on a 1 vCPU host; a failed start must stay under the manager's 30 s call limit
+
+
+def fail(msg):
+    print(msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def expected_bridges(name):
+    cfg = "%s/vms/%s/86box.cfg" % (ROOT, name)
+    try:
+        fd = os.open(cfg, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as f:
+            text = f.read().decode("utf-8")
+    except FileNotFoundError:
+        return []
+    except (OSError, UnicodeDecodeError) as e:
+        fail("cannot read 86box.cfg: %s" % e)
+    p = configparser.ConfigParser(interpolation=None, strict=False)
+    p.optionxform = str
+    try:
+        p.read_string(text)
+    except configparser.Error as e:
+        fail("cannot parse 86box.cfg: %s" % e)
+    bridges = []
+    if p.has_section("Network"):
+        for key, value in p.items("Network"):
+            m = re.fullmatch(r"net_(\d\d)_net_type", key)
+            if m and value.strip() == "tap":
+                bridges.append(p.get("Network", "net_%s_host_device" % m.group(1), fallback="").strip())
+    return bridges
+
+
+def vm_taps(name):
+    """tap name -> bridge name, for every tap held open by the VM's processes."""
+    found = {}
+    try:
+        cg = subprocess.run(["systemctl", "show", "-p", "ControlGroup", "--value", "vm@%s.service" % name],
+                            capture_output=True, text=True, timeout=10).stdout.strip()
+        with open("/sys/fs/cgroup%s/cgroup.procs" % cg) as f:
+            pids = f.read().split()
+    except (OSError, subprocess.SubprocessError):
+        return found
+    for pid in pids:
+        try:
+            fds = os.listdir("/proc/%s/fdinfo" % pid)
+        except OSError:
+            continue
+        for fd in fds:
+            try:
+                with open("/proc/%s/fdinfo/%s" % (pid, fd)) as f:
+                    lines = f.read().splitlines()
+            except OSError:
+                continue
+            for line in lines:
+                if line.startswith("iff:"):
+                    tap = line.split(None, 1)[1].strip()
+                    try:
+                        found[tap] = os.path.basename(os.readlink("/sys/class/net/%s/master" % tap))
+                    except OSError:
+                        found[tap] = None
+    return found
+
+
+def main():
+    if len(sys.argv) != 2 or not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", sys.argv[1]):
+        print("usage: tap-check <name>", file=sys.stderr)
+        sys.exit(2)
+    name = sys.argv[1]
+    wanted = expected_bridges(name)
+    deadline = time.monotonic() + WAIT
+    nics = []
+    while True:
+        taps = vm_taps(name)
+        free = dict(taps)
+        nics = []
+        for bridge in wanted:
+            tap = next((t for t, b in free.items() if b == bridge), None)
+            if tap:
+                del free[tap]
+            nics.append({"bridge": bridge, "tap": tap, "ok": tap is not None})
+        if all(n["ok"] for n in nics) or time.monotonic() >= deadline:
+            break
+        time.sleep(0.5)
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    os.makedirs(OUT, exist_ok=True)
+    with open("%s/%s.json" % (OUT, name), "w") as f:
+        json.dump({"checked": now, "nics": nics}, f)
+    bad = [n for n in nics if not n["ok"]]
+    for n in bad:
+        print("%s: no tap attached to %s" % (name, n["bridge"]), file=sys.stderr)
+    sys.exit(1 if bad else 0)
+
+
+main()
