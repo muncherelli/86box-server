@@ -3,6 +3,11 @@
   ansible.builtin.systemd:
     daemon_reload: true
 
+- name: Restart dnsmasq for guests
+  ansible.builtin.systemd:
+    name: 86box-dnsmasq
+    state: restarted
+
 - name: Reload NetworkManager
   ansible.builtin.systemd:
     name: NetworkManager

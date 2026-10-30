@@ -29,4 +29,7 @@
 
 - name: Set up forwarding for internet access and group routes
   ansible.builtin.import_tasks: forwarding.yml
+
+- name: Set up DHCP for the groups that want it
+  ansible.builtin.import_tasks: dhcp.yml
   when: netgroups | length > 0

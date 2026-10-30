@@ -1,0 +1,23 @@
+# managed by 86box-server: do not edit
+# DHCP only (no DNS server). One range per group that has dhcp: true.
+port=0
+bind-interfaces
+dhcp-leasefile={{ vm_data_root }}/dnsmasq.leases
+{% for name, g in netgroups.items() if g.dhcp | default(false) %}
+{% set pool = g.cidr | b86_dhcp_pool %}
+{% set nat = g.egress | default('none') == 'nat' %}
+
+# {{ name }}
+interface={{ g.bridge }}
+dhcp-range=set:{{ g.bridge }},{{ pool.first }},{{ pool.last }},{{ pool.netmask }},12h
+{% if nat or name in group_routes | default([]) | flatten %}
+dhcp-option=tag:{{ g.bridge }},option:router,{{ pool.router }}
+{% else %}
+dhcp-option=tag:{{ g.bridge }},option:router
+{% endif %}
+{% if nat %}
+dhcp-option=tag:{{ g.bridge }},option:dns-server,{{ nat_dns | default(['1.1.1.1']) | join(',') }}
+{% else %}
+dhcp-option=tag:{{ g.bridge }},option:dns-server
+{% endif %}
+{% endfor %}
