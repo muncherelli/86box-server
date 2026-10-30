@@ -1,0 +1,10 @@
+[Unit]
+Description=86box-server guest DHCP (dnsmasq)
+After=86box-bridges.service
+
+[Service]
+ExecStart=/usr/bin/dnsmasq -k --conf-file=/etc/86box-server/dnsmasq.conf
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

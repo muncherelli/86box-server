@@ -26,3 +26,7 @@
 - name: Set up the firewall table for the bridges
   ansible.builtin.import_tasks: nftables.yml
   when: netgroups | length > 0
+
+- name: Set up DHCP for the groups that want it
+  ansible.builtin.import_tasks: dhcp.yml
+  when: netgroups | length > 0
