@@ -1,7 +1,8 @@
 [Unit]
 Description=86Box VM %i
 Requires=vnc@%i.service
-After=vnc@%i.service 86box-bridges.service
+Wants=wm@%i.service
+After=vnc@%i.service wm@%i.service 86box-bridges.service
 
 [Service]
 User={{ vm_service_user }}
@@ -12,6 +13,7 @@ EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
 Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
 ExecStartPre=/bin/sh -c '! systemctl is-active --quiet vm-settings@%i.service'
 ExecStartPre=+/opt/86box-server/libexec/cfg-guard %i
+ExecStartPre=/opt/86box-server/libexec/ensure-resize %i
 ExecStartPre=/opt/86box-server/libexec/wait-x %i
 ExecStart=/opt/86box-server/86box/current/AppRun -N -P {{ vm_data_root }}/vms/%i/ -R /opt/86box-server/roms/current -L {{ vm_data_root }}/vms/%i/86box.log
 ExecStartPost=+/opt/86box-server/libexec/tap-check %i

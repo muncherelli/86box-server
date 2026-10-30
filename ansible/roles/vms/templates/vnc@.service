@@ -5,8 +5,9 @@ PartOf=vm@%i.service vm-settings@%i.service
 [Service]
 User={{ vm_service_user }}
 Group={{ vm_service_user }}
+Environment=B86_GEOMETRY=1024x768
 EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
-ExecStart=/usr/bin/Xvnc :${B86_DISPLAY} -rfbport ${B86_VNC_PORT} -localhost -SecurityTypes None -geometry 1024x768 -depth 24 -AlwaysShared -nolisten tcp
+ExecStart=/usr/bin/Xvnc :${B86_DISPLAY} -rfbport ${B86_VNC_PORT} -localhost -SecurityTypes None -geometry ${B86_GEOMETRY} -depth 24 -AlwaysShared -nolisten tcp
 Restart=on-failure
 NoNewPrivileges=yes
 ProtectSystem=strict

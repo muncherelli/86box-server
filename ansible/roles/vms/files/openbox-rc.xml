@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Window manager settings for VM displays: the main 86Box window always fills the display
+     (and follows it when the browser resizes it). Dialogs, such as 86Box's Settings, stay normal windows. -->
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+  <focus><focusNew>yes</focusNew><followMouse>no</followMouse></focus>
+  <desktops><number>1</number></desktops>
+  <applications>
+    <application class="86Box" type="normal">
+      <decor>no</decor>
+      <maximized>yes</maximized>
+    </application>
+  </applications>
+</openbox_config>

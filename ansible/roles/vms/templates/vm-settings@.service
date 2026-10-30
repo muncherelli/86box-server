@@ -2,7 +2,8 @@
 Description=86Box settings window for VM %i
 
 Requires=vnc@%i.service
-After=vnc@%i.service
+Wants=wm@%i.service
+After=vnc@%i.service wm@%i.service
 
 [Service]
 ExecStartPre=/bin/sh -c '! systemctl is-active --quiet vm@%i.service'

@@ -1,0 +1,29 @@
+#!/usr/bin/python3
+# Make 86Box's window resizable (vid_resize = 1) when the VM's cfg has no opinion yet, so the
+# window manager can make it fill the display. Runs as the VM user, before 86Box starts.
+# A value 86Box already saved (for example 0, chosen in its Settings) is never changed.
+# Usage: ensure-resize <name>
+import configparser
+import os
+import re
+import sys
+
+name = sys.argv[1] if len(sys.argv) > 1 else ""
+if not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", name):
+    sys.exit("usage: ensure-resize <name>")
+cfg = "/var/lib/86box-server/vms/%s/86box.cfg" % name
+p = configparser.ConfigParser(interpolation=None, strict=False)
+p.optionxform = str
+try:
+    with open(cfg, encoding="utf-8") as f:
+        p.read_file(f)
+except FileNotFoundError:
+    sys.exit(0)  # first start: the template (or 86Box) creates it
+except (OSError, UnicodeDecodeError, configparser.Error) as e:
+    sys.exit("cannot read 86box.cfg: %s" % e)
+if not p.has_option("General", "vid_resize"):
+    if not p.has_section("General"):
+        p.add_section("General")
+    p.set("General", "vid_resize", "1")
+    with open(cfg, "w", encoding="utf-8") as f:
+        p.write(f)

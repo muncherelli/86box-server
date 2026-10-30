@@ -2,6 +2,7 @@
 # ttf-dejavu: the Qt build inside the 86Box AppImage needs at least one font.
 base_packages:
   - tigervnc
+  - openbox
   - caddy
   - python
   - polkit

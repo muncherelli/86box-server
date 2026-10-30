@@ -16,7 +16,7 @@
     owner: root
     group: root
     mode: "0755"
-  loop: [wait-x, cfg-guard, tap-check, guard-loop, autostart]
+  loop: [wait-x, cfg-guard, ensure-resize, tap-check, guard-loop, autostart]
 
 - name: Install the templated systemd units
   ansible.builtin.template:
@@ -25,8 +25,16 @@
     owner: root
     group: root
     mode: "0644"
-  loop: ["vnc@.service", "vm@.service", "vm-settings@.service"]
+  loop: ["vnc@.service", "wm@.service", "vm@.service", "vm-settings@.service"]
   notify: Reload systemd
+
+- name: Install the window manager settings (the 86Box window fills the display)
+  ansible.builtin.copy:
+    src: openbox-rc.xml
+    dest: /opt/86box-server/openbox-rc.xml
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: Install the fixed systemd units
   ansible.builtin.copy:
