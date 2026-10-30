@@ -1,0 +1,9 @@
+#!/bin/sh
+# ExecStopPost of vm@ and vm-settings@: stop the VNC display when 86Box ended on its own.
+# When someone ran stop or restart, systemd already handles vnc@ (it is PartOf the VM), and
+# stopping it again here would cancel the restart's own start job and leave everything down.
+# $1 is the VM name; $2 is the unit prefix (vm or vm-settings).
+if systemctl list-jobs --no-legend | grep -q "^ *[0-9]* $2@$1\.service"; then
+  exit 0
+fi
+exec systemctl stop --no-block "vnc@$1.service"

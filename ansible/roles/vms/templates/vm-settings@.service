@@ -15,7 +15,7 @@ EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
 Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
 ExecStartPre=/opt/86box-server/libexec/wait-x %i
 ExecStart=/opt/86box-server/86box/current/AppRun -S -N -P {{ vm_data_root }}/vms/%i/ -R /opt/86box-server/roms/current
-ExecStopPost=+/usr/bin/systemctl stop --no-block vnc@%i.service
+ExecStopPost=+/opt/86box-server/libexec/stop-display %i vm-settings
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes

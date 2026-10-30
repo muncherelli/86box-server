@@ -16,7 +16,7 @@
     owner: root
     group: root
     mode: "0755"
-  loop: [wait-x, cfg-guard, ensure-resize, tap-check, guard-loop, autostart]
+  loop: [wait-x, cfg-guard, ensure-resize, tap-check, stop-display, guard-loop, autostart]
 
 - name: Install the templated systemd units
   ansible.builtin.template:
