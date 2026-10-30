@@ -2,3 +2,8 @@
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
+
+- name: Reload sshd
+  ansible.builtin.systemd:
+    name: "{{ b86_sshd_service }}"
+    state: reloaded

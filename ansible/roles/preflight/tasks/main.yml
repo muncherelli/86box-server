@@ -151,6 +151,18 @@
     - netgroups | length > 0
     - b86_netgroups.rc != 0
 
+- name: Check the SFTP-only account settings
+  ansible.builtin.assert:
+    that:
+      - item.name is defined and item.name is match('^[a-z][a-z0-9_-]{1,31}$')
+      - item.name not in [vm_service_user, mgr_user]
+      - item.ssh_key is defined and item.ssh_key is match('^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp[0-9]+|sk-ssh-ed25519@openssh.com) [A-Za-z0-9+/=]+( [^\n]*)?$')
+    fail_msg: "sftp_only_users entry {{ item.name | default('?') }}: needs name (a-z, 0-9, _ -) and a one-line ssh_key"
+    quiet: true
+  loop: "{{ sftp_only_users }}"
+  loop_control:
+    label: "{{ item.name | default('?') }}"
+
 - name: Fail on request (test hook)
   ansible.builtin.fail:
     msg: Forced failure for testing

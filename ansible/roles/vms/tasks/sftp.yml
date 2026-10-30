@@ -1,0 +1,71 @@
+---
+# Optional SFTP-only accounts (inventory sftp_only_users). They are chrooted to
+# /srv/86box-sftp and see only the media library. Normal SSH users in media_users
+# need none of this: they are in the shared group already.
+
+- name: Create the SFTP-only group
+  ansible.builtin.group:
+    name: 86box-sftp
+    system: true
+
+- name: Create the SFTP-only accounts
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: ["{{ vm_share_group }}", 86box-sftp]
+    append: true
+    shell: /usr/bin/nologin
+    home: /
+    create_home: false
+  loop: "{{ sftp_only_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create the folder that holds the SFTP keys
+  ansible.builtin.file:
+    path: /etc/ssh/sftp-keys
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the SFTP keys (root-owned, so the accounts cannot change them)
+  ansible.builtin.copy:
+    content: "{{ item.ssh_key }}\n"
+    dest: "/etc/ssh/sftp-keys/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ sftp_only_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Create the chroot folder (must be root-owned and not writable by others)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [/srv/86box-sftp, /srv/86box-sftp/media]
+
+- name: Bind the media library into the chroot
+  ansible.posix.mount:
+    src: "{{ vm_data_root }}/media"
+    path: /srv/86box-sftp/media
+    fstype: none
+    opts: bind
+    state: mounted
+
+- name: Write the SFTP-only SSH settings
+  ansible.builtin.template:
+    src: 60-86box-sftp.conf.j2
+    dest: /etc/ssh/sshd_config.d/60-86box-sftp.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: sshd -t -f %s
+  notify: Reload sshd
+
+- name: Check the full SSH config
+  ansible.builtin.command: sshd -t
+  changed_when: false

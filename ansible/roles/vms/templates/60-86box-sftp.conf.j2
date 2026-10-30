@@ -1,0 +1,10 @@
+# managed by 86box-server: do not edit
+Match Group 86box-sftp
+    ChrootDirectory /srv/86box-sftp
+    ForceCommand internal-sftp -u 0002 -d /media
+    AuthorizedKeysFile /etc/ssh/sftp-keys/%u
+    PasswordAuthentication no
+    AllowTcpForwarding no
+    X11Forwarding no
+    PermitTunnel no
+Match all

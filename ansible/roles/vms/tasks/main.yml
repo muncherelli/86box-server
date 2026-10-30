@@ -5,6 +5,10 @@
 - name: Set up the storage layout
   ansible.builtin.import_tasks: storage.yml
 
+- name: Set up SFTP-only accounts for the media library
+  ansible.builtin.import_tasks: sftp.yml
+  when: sftp_only_users | length > 0
+
 - name: Install the helper scripts
   ansible.builtin.copy:
     src: "{{ item }}"
