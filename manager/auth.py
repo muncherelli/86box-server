@@ -481,16 +481,25 @@ def users_post(req, m):
 
 def auth_check(req, m):
     """Caddy forward_auth for /websockify: 200 only if the user may open the console named in ?token=."""
+    status, body = _auth_check(req)
+    # One line per console connection attempt, so "can't connect" can be traced. No secrets.
+    print("auth-check %d %s ip=%s method=%s cookie=%s" % (
+        status, body.decode(), getattr(req, "ip", "-"), req.headers.get("X-Forwarded-Method", "-"),
+        "yes" if _cookie_token(req) else "no"), file=sys.stderr, flush=True)
+    return status, {"Content-Type": "text/plain"}, body
+
+
+def _auth_check(req):
     parts = urllib.parse.urlsplit(req.headers.get("X-Forwarded-Uri", ""))
     tokens = urllib.parse.parse_qs(parts.query).get("token", [])
     if parts.path != "/websockify" or len(tokens) != 1 or not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", tokens[0]):
-        return 403, {"Content-Type": "text/plain"}, b"forbidden"
+        return 403, b"forbidden (bad uri)"
     user = authenticate(req)
     if user is None:
-        return 401, {"Content-Type": "text/plain"}, b"login required"
+        return 401, b"login required"
     if not can_use_vm(user, tokens[0]):
-        return 403, {"Content-Type": "text/plain"}, b"forbidden"
-    return 200, {"Content-Type": "text/plain"}, b"ok"
+        return 403, b"forbidden (vm)"
+    return 200, b"ok"
 
 
 ROUTES = [
