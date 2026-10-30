@@ -43,6 +43,8 @@ esac
 preflight_basic
 ensure_local_inventory
 ensure_ansible
+ensure_nano
+export EDITOR=nano
 ensure_collections
 if [ "${ARGS[0]:-}" = vault-edit ]; then
   vault_edit

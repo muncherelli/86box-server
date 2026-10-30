@@ -11,6 +11,13 @@ ensure_ansible() {
   sudo pacman -S --needed --noconfirm ansible-core python
 }
 
+# nano is the editor used by ./update.sh vault-edit.
+ensure_nano() {
+  command -v nano >/dev/null 2>&1 && return 0
+  echo "Installing nano ..."
+  sudo pacman -S --needed --noconfirm nano
+}
+
 ensure_collections() {
   ansible-galaxy collection install \
     -r "$REPO/ansible/requirements.yml" \
