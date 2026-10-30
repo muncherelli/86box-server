@@ -1,0 +1,91 @@
+#!/usr/bin/python3
+# Check a VM's 86box.cfg: network cards may only be tap NICs on the VM's allowed bridges.
+# Usage: cfg-guard <name> [--enforce]
+# Trust: vmdefs/<name>.json is trusted; everything in vms/<name>/ is not.
+# This is a check, not a sandbox. The unit's ReadWritePaths is the real boundary.
+import configparser
+import datetime
+import json
+import os
+import re
+import subprocess
+import sys
+
+ROOT = "/var/lib/86box-server"
+NETGROUPS = "/etc/86box-server/netgroups.json"
+OUT = "/run/86box-server/guard"
+
+
+def fail(msg):
+    print(msg, file=sys.stderr)
+    sys.exit(1)
+
+
+def read_json(path):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError) as e:
+        fail("cannot read %s: %s" % (path, e))
+
+
+def check(name):
+    vmdef = read_json("%s/vmdefs/%s.json" % (ROOT, name))
+    groups = read_json(NETGROUPS)
+    allowed = [groups[g]["bridge"] for g in vmdef.get("allowed_groups", []) if g in groups]
+
+    cfg = "%s/vms/%s/86box.cfg" % (ROOT, name)
+    try:
+        fd = os.open(cfg, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd, "rb") as f:
+            text = f.read().decode("utf-8")
+    except FileNotFoundError:
+        return []  # 86Box creates it on first start
+    except (OSError, UnicodeDecodeError) as e:
+        fail("cannot read 86box.cfg: %s" % e)
+
+    p = configparser.ConfigParser(interpolation=None, strict=False)
+    p.optionxform = str
+    try:
+        p.read_string(text)
+    except configparser.Error as e:
+        fail("cannot parse 86box.cfg: %s" % e)
+
+    problems = []
+    if p.has_section("Network"):
+        for key, value in p.items("Network"):
+            m = re.fullmatch(r"net_(\d\d)_net_type", key)
+            if not m:
+                continue
+            nn, kind = m.group(1), value.strip()
+            if kind in ("", "none"):
+                continue
+            if kind != "tap":
+                problems.append("NIC %s uses network type %s (only tap is allowed)" % (nn, kind))
+                continue
+            bridge = p.get("Network", "net_%s_host_device" % nn, fallback="").strip()
+            if bridge not in allowed:
+                problems.append("NIC %s uses bridge '%s' which this VM may not use" % (nn, bridge))
+    return problems
+
+
+def main():
+    args = [a for a in sys.argv[1:] if a != "--enforce"]
+    enforce = "--enforce" in sys.argv[1:]
+    if len(args) != 1 or not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", args[0]):
+        print("usage: cfg-guard <name> [--enforce]", file=sys.stderr)
+        sys.exit(2)
+    name = args[0]
+    problems = check(name)
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    os.makedirs(OUT, exist_ok=True)
+    with open("%s/%s.json" % (OUT, name), "w") as f:
+        json.dump({"ok": not problems, "problems": problems, "checked": now}, f)
+    for line in problems:
+        print(line, file=sys.stderr)
+    if problems and enforce:
+        subprocess.run(["systemctl", "stop", "vm@%s" % name], check=False)
+    sys.exit(1 if problems else 0)
+
+
+main()

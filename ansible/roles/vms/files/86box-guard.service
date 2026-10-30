@@ -1,0 +1,10 @@
+[Unit]
+Description=86Box config guard
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/86box-server/libexec/guard-loop
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

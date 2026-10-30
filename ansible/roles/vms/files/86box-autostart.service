@@ -1,0 +1,10 @@
+[Unit]
+Description=Start 86Box VMs marked autostart
+After=86box-bridges.service 86box-nft.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/86box-server/libexec/autostart
+
+[Install]
+WantedBy=multi-user.target

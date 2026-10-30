@@ -1,0 +1,27 @@
+[Unit]
+Description=86Box VM %i
+Requires=vnc@%i.service
+After=vnc@%i.service 86box-bridges.service
+
+[Service]
+User={{ vm_service_user }}
+Group={{ vm_service_user }}
+SupplementaryGroups={{ vm_share_group }}
+UMask=0007
+EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
+Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
+ExecStartPre=+/opt/86box-server/libexec/cfg-guard %i
+ExecStartPre=/opt/86box-server/libexec/wait-x %i
+ExecStart=/opt/86box-server/86box/current/AppRun -N -P {{ vm_data_root }}/vms/%i/ -R /opt/86box-server/roms/current -L {{ vm_data_root }}/vms/%i/86box.log
+ExecStopPost=+/usr/bin/systemctl stop --no-block vnc@%i.service
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths={{ vm_data_root }}/vms/%i -/tmp/.X11-unix
+ReadOnlyPaths={{ vm_data_root }}/media
+InaccessiblePaths={{ vm_data_root }}/manager
+KillSignal=SIGHUP
+TimeoutStopSec=10
+Restart=no

@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+# Wait until the X display for this VM exists (it is made by vnc@<name>).
+import os
+import re
+import stat
+import sys
+import time
+
+display = os.environ.get("B86_DISPLAY", "")
+if not re.fullmatch(r"[0-9]+", display):
+    print("B86_DISPLAY is not set", file=sys.stderr)
+    sys.exit(1)
+
+path = "/tmp/.X11-unix/X" + display
+for _ in range(50):
+    try:
+        if stat.S_ISSOCK(os.stat(path).st_mode):
+            sys.exit(0)
+    except OSError:
+        pass
+    time.sleep(0.1)
+print("X display :%s not ready" % display, file=sys.stderr)
+sys.exit(1)

@@ -4,3 +4,60 @@
 
 - name: Set up the storage layout
   ansible.builtin.import_tasks: storage.yml
+
+- name: Install the helper scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/86box-server/libexec/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [wait-x, cfg-guard, guard-loop, autostart]
+
+- name: Install the templated systemd units
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: ["vnc@.service", "vm@.service"]
+  notify: Reload systemd
+
+- name: Install the fixed systemd units
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [86box-guard.service, 86box-autostart.service]
+  notify: Reload systemd
+
+- name: Install the runtime folders list
+  ansible.builtin.copy:
+    src: 86box-server.tmpfiles.conf
+    dest: /etc/tmpfiles.d/86box-server.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: tmpfiles
+
+- name: Create the runtime folders now
+  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/86box-server.conf
+  when: tmpfiles.changed
+  changed_when: true
+
+- name: Make systemd see the new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Run the config guard
+  ansible.builtin.systemd:
+    name: 86box-guard
+    enabled: true
+    state: started
+
+- name: Start VMs marked autostart at boot (not started on every run)
+  ansible.builtin.systemd:
+    name: 86box-autostart
+    enabled: true

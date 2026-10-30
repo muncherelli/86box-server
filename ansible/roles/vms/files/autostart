@@ -1,0 +1,19 @@
+#!/usr/bin/python3
+# Start every VM whose record says "autostart": true.
+import glob
+import json
+import os
+import re
+import subprocess
+
+for path in sorted(glob.glob("/var/lib/86box-server/vmdefs/*.json")):
+    name = os.path.basename(path)[:-5]
+    if not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", name):
+        continue
+    try:
+        with open(path) as f:
+            wanted = json.load(f).get("autostart") is True
+    except (OSError, ValueError):
+        continue
+    if wanted:
+        subprocess.run(["systemctl", "start", "--no-block", "vm@" + name])

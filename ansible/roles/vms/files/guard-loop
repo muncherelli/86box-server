@@ -1,0 +1,35 @@
+#!/usr/bin/python3
+# Re-check the config of every running VM whenever its 86box.cfg or record changes.
+import glob
+import os
+import re
+import subprocess
+import time
+import traceback
+
+ROOT = "/var/lib/86box-server"
+seen = {}
+
+
+def mtime(path):
+    try:
+        return os.stat(path, follow_symlinks=False).st_mtime
+    except OSError:
+        return 0
+
+
+while True:
+    for path in sorted(glob.glob(ROOT + "/vmdefs/*.json")):
+        name = os.path.basename(path)[:-5]
+        if not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", name):
+            continue
+        try:
+            if subprocess.run(["systemctl", "is-active", "--quiet", "vm@" + name]).returncode:
+                continue
+            state = (mtime("%s/vms/%s/86box.cfg" % (ROOT, name)), mtime(path))
+            if seen.get(name) != state:
+                seen[name] = state
+                subprocess.run(["/opt/86box-server/libexec/cfg-guard", name, "--enforce"])
+        except Exception:
+            traceback.print_exc()
+    time.sleep(3)
