@@ -17,6 +17,8 @@ source "$REPO/lib/preflight.sh"
 source "$REPO/lib/log.sh"
 # shellcheck source=lib/vault.sh
 source "$REPO/lib/vault.sh"
+# shellcheck source=lib/status.sh
+source "$REPO/lib/status.sh"
 
 VERBOSE=0
 ARGS=()
@@ -26,6 +28,17 @@ for a in "$@"; do
     *) ARGS+=("$a") ;;
   esac
 done
+
+case "${ARGS[0]:-}" in
+  vm)
+    sudo -u 86boxmgr python3 /opt/86box-server/manager/cli.py "${ARGS[@]:1}"
+    exit $?
+    ;;
+  status)
+    show_status
+    exit 0
+    ;;
+esac
 
 preflight_basic
 ensure_local_inventory

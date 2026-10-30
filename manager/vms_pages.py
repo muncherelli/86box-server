@@ -94,7 +94,8 @@ def _edit_page(req, name, msg=""):
              % (q, _csrf(req), cd, _checks("group", sorted(config.CFG["netgroups"]), data.get("allowed_groups", []), "group"),
                 _checks("user", sorted(vms._auth().console_users()), users, "user"),
                 " checked" if data.get("autostart") else "", q, _csrf(req)))
-    for mod, fn in (("snapshots", "html_section"), ("media", "html_attach_section")):
+    for mod, fn in (("snapshots", "html_section"), ("media", "html_attach_section"),
+                    ("clone", "html_section"), ("importexp", "html_section")):
         body += getattr(importlib.import_module(mod), fn)(req, name)
     return respond.page(req, "VM " + name, body)
 

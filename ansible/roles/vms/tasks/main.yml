@@ -21,7 +21,7 @@
     owner: root
     group: root
     mode: "0644"
-  loop: ["vnc@.service", "vm@.service"]
+  loop: ["vnc@.service", "vm@.service", "vm-settings@.service"]
   notify: Reload systemd
 
 - name: Install the fixed systemd units

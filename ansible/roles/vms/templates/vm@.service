@@ -10,6 +10,7 @@ SupplementaryGroups={{ vm_share_group }}
 UMask=0007
 EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
 Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
+ExecStartPre=/bin/sh -c '! systemctl is-active --quiet vm-settings@%i.service'
 ExecStartPre=+/opt/86box-server/libexec/cfg-guard %i
 ExecStartPre=/opt/86box-server/libexec/wait-x %i
 ExecStart=/opt/86box-server/86box/current/AppRun -N -P {{ vm_data_root }}/vms/%i/ -R /opt/86box-server/roms/current -L {{ vm_data_root }}/vms/%i/86box.log
