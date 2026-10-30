@@ -19,6 +19,8 @@ source "$REPO/lib/log.sh"
 source "$REPO/lib/vault.sh"
 # shellcheck source=lib/status.sh
 source "$REPO/lib/status.sh"
+# shellcheck source=lib/dev.sh
+source "$REPO/lib/dev.sh"
 
 VERBOSE=0
 ARGS=()
@@ -36,6 +38,10 @@ case "${ARGS[0]:-}" in
     ;;
   status)
     show_status
+    exit 0
+    ;;
+  dev)
+    run_dev
     exit 0
     ;;
 esac

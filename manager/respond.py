@@ -5,6 +5,12 @@ import os
 import string
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
+# ./update.sh dev creates this file; the normal deploy (rsync --delete) removes it.
+DEV_MARKER = os.path.join(_DIR, ".dev")
+
+
+def dev_mode():
+    return os.path.exists(DEV_MARKER)
 
 
 def text(body, status=200, ctype="text/plain; charset=utf-8"):
@@ -29,5 +35,6 @@ def page(req, title, body_html, status=200):
         tpl = string.Template(f.read())
     user = req.user["name"] if req.user else ""
     csrf = req.session["csrf"] if req.session else ""
-    out = tpl.substitute(title=esc(title), body=body_html, user=esc(user), csrf=esc(csrf))
+    dev = '<meta name="dev-reload" content="1">' if dev_mode() else ""
+    out = tpl.substitute(title=esc(title), body=body_html, user=esc(user), csrf=esc(csrf), dev=dev)
     return status, {"Content-Type": "text/html; charset=utf-8"}, out.encode()

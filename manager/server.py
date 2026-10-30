@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -15,6 +16,7 @@ MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", 
 STATIC = {"style.css": "text/css", "app.js": "application/javascript",
           "media.js": "application/javascript"}
 MAX_FORM = 1024 * 1024
+BOOT_ID = str(time.time())  # changes on every restart; the dev page reload watches it
 
 ROUTES = []  # (method, compiled regex, handler, role)
 auth = None
@@ -24,18 +26,26 @@ def health(req, m):
     return respond.text("ok")
 
 
+def dev_id(req, m):
+    if not respond.dev_mode():
+        return respond.text("not found", 404)
+    return respond.text(BOOT_ID)
+
+
 def static_file(req, m):
     name = m.group(1)
     if name not in STATIC:
         return respond.text("not found", 404)
     with open(os.path.join(HERE, "static", name), "rb") as f:
-        return 200, {"Content-Type": STATIC[name], "Cache-Control": "max-age=300"}, f.read()
+        cache = "no-store" if respond.dev_mode() else "max-age=300"
+        return 200, {"Content-Type": STATIC[name], "Cache-Control": cache}, f.read()
 
 
 def load_routes():
     global auth
     ROUTES.clear()
     ROUTES.append(("GET", re.compile(r"/manage/health"), health, None))
+    ROUTES.append(("GET", re.compile(r"/manage/dev-id"), dev_id, None))
     ROUTES.append(("GET", re.compile(r"/manage/static/([a-z.]+)"), static_file, None))
     for name in MODULES:
         try:

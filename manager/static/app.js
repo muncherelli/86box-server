@@ -47,3 +47,19 @@ function csrfToken() {
   document.getElementById("confirm-no").onclick = function () { dlg.close(); };
   setInterval(poll, 5000);
 })();
+
+// Dev mode only (./update.sh dev): reload the page after the manager restarts.
+(function () {
+  if (!document.querySelector('meta[name="dev-reload"]')) return;
+  var seen = null;
+  setInterval(function () {
+    fetch("/manage/dev-id", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (id) {
+        if (!id) return;
+        if (seen === null) seen = id;
+        else if (id !== seen) location.reload();
+      })
+      .catch(function () {});
+  }, 1000);
+})();
