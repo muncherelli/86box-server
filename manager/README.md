@@ -5,7 +5,7 @@ Runs as the `86boxmgr` user on `127.0.0.1:8686`; Caddy is the only thing that ta
 
 ## Module contract
 
-`server.py` loads these optional modules from this folder, if they exist: `auth vms media snapshots stats sites secrets_ui importexp`.
+`server.py` loads these optional modules from this folder, if they exist: `auth vms media snapshots stats sites secrets_ui importexp clone settings`.
 Each module may define `ROUTES = [(method, regex, handler, role), ...]`.
 
 - `method`: `GET`, `POST` or `PUT` (there is no DELETE: deletes are `POST .../delete`).

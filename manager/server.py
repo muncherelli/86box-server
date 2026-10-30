@@ -11,7 +11,7 @@ import config
 import respond
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", "importexp"]
+MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", "importexp", "clone", "settings"]
 STATIC = {"style.css": "text/css", "app.js": "application/javascript",
           "media.js": "application/javascript"}
 MAX_FORM = 1024 * 1024
