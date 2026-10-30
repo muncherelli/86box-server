@@ -11,27 +11,33 @@
 {% endif %}
 }
 
-(b86_auth) {
-	basic_auth {
-		admin {{ vault_admin_password_hash }}
-	}
-}
-
 {{ manager_host }} {
 	import b86_edge
+	handle /manage/* {
+		reverse_proxy 127.0.0.1:8686 {
+			header_up X-B86-Client-IP {client_ip}
+		}
+	}
+	handle /auth/* {
+		respond 404
+	}
 	handle /novnc/* {
-		import b86_auth
 		uri strip_prefix /novnc
 		root * /opt/86box-server/novnc/current
 		file_server
 	}
 	handle /websockify {
-		import b86_auth
+		forward_auth 127.0.0.1:8686 {
+			uri /auth/check
+			transport http {
+				dial_timeout 2s
+				response_header_timeout 5s
+			}
+		}
 		reverse_proxy 127.0.0.1:6080
 	}
 	handle {
-		import b86_auth
-		respond "86box-server" 200
+		redir /manage/ 302
 	}
 }
 

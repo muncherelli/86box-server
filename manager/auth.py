@@ -441,7 +441,22 @@ def users_post(req, m):
     return respond.redirect("/manage/users")
 
 
+def auth_check(req, m):
+    """Caddy forward_auth for /websockify: 200 only if the user may open the console named in ?token=."""
+    parts = urllib.parse.urlsplit(req.headers.get("X-Forwarded-Uri", ""))
+    tokens = urllib.parse.parse_qs(parts.query).get("token", [])
+    if parts.path != "/websockify" or len(tokens) != 1 or not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", tokens[0]):
+        return 403, {"Content-Type": "text/plain"}, b"forbidden"
+    user = authenticate(req)
+    if user is None:
+        return 401, {"Content-Type": "text/plain"}, b"login required"
+    if not can_use_vm(user, tokens[0]):
+        return 403, {"Content-Type": "text/plain"}, b"forbidden"
+    return 200, {"Content-Type": "text/plain"}, b"ok"
+
+
 ROUTES = [
+    ("GET", r"/auth/check", auth_check, None),
     ("GET", r"/manage/login", login_get, None),
     ("POST", r"/manage/login", login_post, "login"),
     ("POST", r"/manage/logout", logout_post, "any"),

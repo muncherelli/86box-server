@@ -170,5 +170,19 @@ class AuthTest(unittest.TestCase):
         self.assertNotIn("SECRET-WRONG-PASSWORD", text)
 
 
+    def test_forward_auth_check(self):
+        def check(user, pw, token):
+            tok = auth.login("1.2.3.4", user, pw)[1] if user else None
+            h = {"X-Forwarded-Uri": "/websockify?token=" + token}
+            return auth.auth_check(FakeReq(cookie=tok, headers=h), None)[0]
+        self.assertEqual(check(None, None, "vm-a"), 401)
+        self.assertEqual(check("bob", "another long password", "vm-a"), 200)
+        self.assertEqual(check("bob", "another long password", "vm-b"), 403)
+        self.assertEqual(check("admin", "correct horse battery", "vm-b"), 200)
+        self.assertEqual(check("admin", "correct horse battery", "Bad_Name"), 403)
+        bad = FakeReq(headers={"X-Forwarded-Uri": "/other?token=vm-a"})
+        self.assertEqual(auth.auth_check(bad, None)[0], 403)
+
+
 if __name__ == "__main__":
     unittest.main()
