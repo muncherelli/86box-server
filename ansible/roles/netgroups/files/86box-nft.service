@@ -1,0 +1,13 @@
+[Unit]
+Description=86box-server firewall table
+After=ufw.service 86box-bridges.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/nft -f /etc/86box-server/b86box.nft
+ExecReload=/usr/bin/nft -f /etc/86box-server/b86box.nft
+ExecStop=-/usr/bin/nft delete table inet b86box
+
+[Install]
+WantedBy=multi-user.target

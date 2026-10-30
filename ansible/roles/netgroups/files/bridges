@@ -1,0 +1,41 @@
+#!/usr/bin/python3
+"""Creates one Linux bridge per network group and gives it the group's .1 address.
+
+Reads /etc/86box-server/netgroups.json. Never deletes a bridge and never adds the
+host's uplink to one. A name that is already used by a non-bridge is an error.
+"""
+import ipaddress
+import json
+import os
+import subprocess
+import sys
+
+GROUPS = "/etc/86box-server/netgroups.json"
+
+
+def ip(*args):
+    subprocess.run(["ip", *args], check=True)
+
+
+def main():
+    with open(GROUPS) as f:
+        groups = json.load(f)
+    for name, g in groups.items():
+        br = g["bridge"]
+        net = ipaddress.ip_network(g["cidr"])
+        sysdir = "/sys/class/net/" + br
+        if os.path.exists(sysdir) and not os.path.exists(sysdir + "/bridge"):
+            print("error: %s (group %s) exists but is not a bridge" % (br, name), file=sys.stderr)
+            return 1
+        if not os.path.exists(sysdir):
+            ip("link", "add", br, "type", "bridge")
+        ip("link", "set", br, "up")
+        ip("addr", "replace", "%s/%d" % (next(net.hosts()), net.prefixlen), "dev", br)
+        v6 = "/proc/sys/net/ipv6/conf/%s/disable_ipv6" % br
+        if os.path.exists(v6):
+            with open(v6, "w") as f:
+                f.write("1")
+    return 0
+
+
+sys.exit(main())

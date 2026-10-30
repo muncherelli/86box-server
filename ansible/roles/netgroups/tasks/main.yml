@@ -17,3 +17,8 @@
     owner: root
     group: "{{ mgr_user }}"
     mode: "0640"
+  register: b86_groups_json
+
+- name: Set up the bridges
+  ansible.builtin.import_tasks: bridges.yml
+  when: netgroups | length > 0
