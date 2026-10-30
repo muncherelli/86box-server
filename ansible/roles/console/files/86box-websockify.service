@@ -1,0 +1,16 @@
+[Unit]
+Description=websockify for 86Box consoles
+
+[Service]
+User=86boxmgr
+Group=86boxmgr
+Environment=PYTHONPATH=/opt/86box-server/websockify/current
+ExecStart=/usr/bin/python3 -m websockify --token-plugin TokenFile --token-source /var/lib/86box-server/vnc-tokens 127.0.0.1:6080
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

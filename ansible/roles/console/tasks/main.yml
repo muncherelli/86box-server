@@ -1,3 +1,63 @@
 ---
 - name: Load settings for this Linux distribution
   ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Download noVNC and websockify
+  ansible.builtin.get_url:
+    url: "{{ item.url }}"
+    dest: "/var/cache/86box-server/{{ item.name }}-{{ item.tag }}.tar.gz"
+    checksum: "sha256:{{ item.sha256 }}"
+    mode: "0644"
+  loop:
+    - "{{ pins.novnc | combine({'name': 'novnc'}) }}"
+    - "{{ pins.websockify | combine({'name': 'websockify'}) }}"
+
+- name: Create the noVNC and websockify folders
+  ansible.builtin.file:
+    path: "/opt/86box-server/{{ item.name }}/{{ item.tag }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ pins.novnc | combine({'name': 'novnc'}) }}"
+    - "{{ pins.websockify | combine({'name': 'websockify'}) }}"
+
+- name: Unpack noVNC and websockify
+  ansible.builtin.unarchive:
+    src: "/var/cache/86box-server/{{ item.name }}-{{ item.tag }}.tar.gz"
+    dest: "/opt/86box-server/{{ item.name }}/{{ item.tag }}"
+    remote_src: true
+    extra_opts: ["--strip-components=1"]
+    creates: "/opt/86box-server/{{ item.name }}/{{ item.tag }}/{{ item.marker }}"
+  loop:
+    - "{{ pins.novnc | combine({'name': 'novnc', 'marker': 'vnc.html'}) }}"
+    - "{{ pins.websockify | combine({'name': 'websockify', 'marker': 'websockify/__main__.py'}) }}"
+
+- name: Point 'current' at these versions
+  ansible.builtin.file:
+    src: "{{ item.tag }}"
+    dest: "/opt/86box-server/{{ item.name }}/current"
+    state: link
+    force: true
+  loop:
+    - "{{ pins.novnc | combine({'name': 'novnc'}) }}"
+    - "{{ pins.websockify | combine({'name': 'websockify'}) }}"
+
+- name: Install the websockify unit
+  ansible.builtin.copy:
+    src: 86box-websockify.service
+    dest: /etc/systemd/system/86box-websockify.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd for consoles
+
+- name: Make systemd see the unit
+  ansible.builtin.meta: flush_handlers
+
+- name: Run websockify
+  ansible.builtin.systemd:
+    name: 86box-websockify
+    enabled: true
+    state: started

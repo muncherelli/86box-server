@@ -9,3 +9,11 @@ pins:
     tag: v6.0
     url: https://github.com/86Box/roms/archive/refs/tags/v6.0.tar.gz
     sha256: 38fccaf4a7b48e581ccdfee2dc3cc0545e7d3a778bc25611e902a117eec571e6
+  novnc:
+    tag: v1.7.0
+    url: https://github.com/novnc/noVNC/archive/refs/tags/v1.7.0.tar.gz
+    sha256: b1003a11b6e6e8d8f7f5e5586daae7f8ca651d8aee0aa155ff9ac841c48f52c6
+  websockify:
+    tag: v0.13.0
+    url: https://github.com/novnc/websockify/archive/refs/tags/v0.13.0.tar.gz
+    sha256: b6413e364efd04f3c92ec8c17747e3c4adc20157c2ef1c5d019a26d944a46df8
