@@ -42,6 +42,12 @@ def main():
         for b in names[i + 1:]:
             if nets[a].overlaps(nets[b]):
                 problems.append(f"{a} and {b}: their networks overlap")
+    # Optional argument 1: group_routes as JSON, e.g. [["lab","web"]].
+    routes = json.loads(sys.argv[1]) if len(sys.argv) > 1 else []
+    for pair in routes:
+        if not (isinstance(pair, list) and len(pair) == 2 and pair[0] != pair[1]
+                and all(p in groups for p in pair)):
+            problems.append(f"group_routes entry {pair}: needs two different group names from netgroups")
     if problems:
         print("\n".join(problems))
         return 1

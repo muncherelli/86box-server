@@ -27,9 +27,20 @@ netgroups:
 
 Result: guests in the same group talk to each other. They cannot reach the host (except DHCP, when enabled), other groups, or the internet.
 
+## Group-to-group routes
+
+Groups cannot see each other unless you list a pair. Pairs work in both directions:
+
+```yaml
+group_routes:
+  - [lab, web]
+```
+
+Both groups must exist in `netgroups`. Guests in a routed pair need the host as gateway (see below), and their traffic is still blocked from reaching the host itself.
+
 ## Internet access and ufw
 
-`egress: nat` turns on IPv4 forwarding (`/etc/sysctl.d/86box.conf`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rule, because ufw's default forward policy is DROP. Removing a group later does not delete its ufw rule; remove it by hand (`sudo ufw status numbered`, then `sudo ufw delete <n>`).
+`egress: nat` and `group_routes` turn on IPv4 forwarding (`/etc/sysctl.d/86box.conf`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rules, because ufw's default forward policy is DROP. Removing a group or a pair later does not delete its ufw rule; remove it by hand (`sudo ufw status numbered`, then `sudo ufw delete <n>`).
 
 ## Static addresses inside a guest
 

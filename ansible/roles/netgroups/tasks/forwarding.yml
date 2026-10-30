@@ -31,3 +31,14 @@
   loop_control:
     label: "{{ item.bridge }}"
   when: b86_ufw | bool
+
+- name: Let routed group pairs forward in both directions
+  community.general.ufw:
+    rule: allow
+    route: true
+    interface_in: "{{ netgroups[item.0[0]].bridge if item.1 == 'ab' else netgroups[item.0[1]].bridge }}"
+    interface_out: "{{ netgroups[item.0[1]].bridge if item.1 == 'ab' else netgroups[item.0[0]].bridge }}"
+  loop: "{{ b86_route_pairs | product(['ab', 'ba']) | list }}"
+  loop_control:
+    label: "{{ item.0[0] }} {{ '->' if item.1 == 'ab' else '<-' }} {{ item.0[1] }}"
+  when: b86_ufw | bool
