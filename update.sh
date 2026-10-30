@@ -9,11 +9,14 @@ die() { echo "error: $*" >&2; exit 1; }
 
 # shellcheck source=lib/bootstrap.sh
 source "$REPO/lib/bootstrap.sh"
+# shellcheck source=lib/preflight.sh
+source "$REPO/lib/preflight.sh"
 # shellcheck source=lib/log.sh
 source "$REPO/lib/log.sh"
 # shellcheck source=lib/vault.sh
 source "$REPO/lib/vault.sh"
 
+preflight_basic
 ensure_local_inventory
 ensure_ansible
 ensure_collections

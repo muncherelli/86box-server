@@ -1,3 +1,157 @@
 ---
 - name: Load settings for this Linux distribution
-  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Check that this is Arch Linux
+  ansible.builtin.fail:
+    msg: Only Arch Linux is supported for now.
+  when: ansible_facts['os_family'] != 'Archlinux'
+
+- name: Look for the running kernel's modules
+  ansible.builtin.stat:
+    path: "/usr/lib/modules/{{ b86_kernel_override | default(ansible_facts['kernel']) }}"
+  register: b86_modules
+
+- name: Check that the machine was rebooted after a kernel upgrade
+  ansible.builtin.fail:
+    msg: The kernel was upgraded but this machine was not rebooted. Reboot, then run ./update.sh again.
+  when: not b86_modules.stat.exists
+
+- name: Read free disk space under /var/lib
+  ansible.builtin.shell: set -o pipefail; df --output=avail -BG /var/lib | tail -n 1 | tr -dc 0-9
+  args:
+    executable: /bin/bash
+  register: b86_df
+  changed_when: false
+
+- name: Check that there is enough disk space
+  ansible.builtin.fail:
+    msg: "Only {{ b86_df.stdout }} GB free under /var/lib; at least 5 GB is needed."
+  when: b86_df.stdout | int < 5
+
+- name: Warn when disk space is low
+  ansible.builtin.debug:
+    msg: "Only {{ b86_df.stdout }} GB free under /var/lib. VM disks need room; 20 GB or more is comfortable."
+  when: b86_df.stdout | int < 20
+
+- name: Look for programs using ports 80 and 443
+  ansible.builtin.command:
+    argv: [ss, -ltnpH, "( sport = :80 or sport = :443 )"]
+  register: b86_ports
+  changed_when: false
+  when: edge_mode in ['acme', 'cf-origin']
+
+- name: Check that ports 80 and 443 are free for Caddy
+  ansible.builtin.fail:
+    msg: "Something other than Caddy is using port 80 or 443: {{ b86_ports.stdout }}"
+  when:
+    - edge_mode in ['acme', 'cf-origin']
+    - b86_ports.stdout | length > 0
+    - "'caddy' not in b86_ports.stdout"
+
+- name: Look for an existing user with ID 86
+  ansible.builtin.command: getent passwd 86
+  register: b86_uid
+  changed_when: false
+  failed_when: false
+
+- name: Look for an existing group with ID 86
+  ansible.builtin.command: getent group 86
+  register: b86_gid
+  changed_when: false
+  failed_when: false
+
+- name: Work out whether ID 86 can be used for the VM account
+  ansible.builtin.set_fact:
+    vm_uid_free: >-
+      {{ (b86_uid.rc != 0 or b86_uid.stdout.split(':')[0] == vm_service_user)
+         and (b86_gid.rc != 0 or b86_gid.stdout.split(':')[0] == vm_service_user) }}
+
+- name: Warn when ID 86 is taken
+  ansible.builtin.debug:
+    msg: "UID or GID 86 is used by another account; the system will pick IDs for {{ vm_service_user }}."
+  when: not vm_uid_free
+
+- name: Check whether ufw is active
+  ansible.builtin.command: systemctl is-active ufw
+  register: b86_ufw_state
+  changed_when: false
+  failed_when: false
+
+- name: Remember whether ufw is active
+  ansible.builtin.set_fact:
+    b86_ufw: "{{ b86_ufw_state.stdout == 'active' }}"
+
+- name: Check whether firewalld is active
+  ansible.builtin.command: systemctl is-active firewalld
+  register: b86_firewalld
+  changed_when: false
+  failed_when: false
+
+- name: Check that firewalld is not in use
+  ansible.builtin.fail:
+    msg: firewalld is not supported yet.
+  when: b86_firewalld.stdout == 'active'
+
+- name: Check whether the Arch nftables service is enabled
+  ansible.builtin.command: systemctl is-enabled nftables
+  register: b86_nft_enabled
+  changed_when: false
+  failed_when: false
+
+- name: Check that the Arch nftables service is off
+  ansible.builtin.fail:
+    msg: Arch nftables.service flushes all firewall rules on start; disable it first.
+  when: b86_nft_enabled.stdout == 'enabled'
+
+- name: Check whether the system dnsmasq service is active
+  ansible.builtin.command: systemctl is-active dnsmasq
+  register: b86_dnsmasq
+  changed_when: false
+  failed_when: false
+
+- name: Check that the system dnsmasq service is off
+  ansible.builtin.fail:
+    msg: dnsmasq.service is active and would clash with 86box-dnsmasq. Stop and disable it first.
+  when: b86_dnsmasq.stdout == 'active'
+
+- name: Check whether NetworkManager is active
+  ansible.builtin.command: systemctl is-active NetworkManager
+  register: b86_nm_state
+  changed_when: false
+  failed_when: false
+
+- name: Remember whether NetworkManager is active
+  ansible.builtin.set_fact:
+    b86_nm: "{{ b86_nm_state.stdout == 'active' }}"
+
+- name: Look at loaded kernel modules
+  ansible.builtin.command: lsmod
+  register: b86_lsmod
+  changed_when: false
+
+- name: Check that br_netfilter is not loaded
+  ansible.builtin.fail:
+    msg: br_netfilter is loaded (Docker?); not supported yet.
+  when: "'br_netfilter' in b86_lsmod.stdout"
+
+- name: Check the network group settings
+  ansible.builtin.command:
+    argv: [python3, "{{ role_path }}/files/check_netgroups.py"]
+    stdin: "{{ netgroups | to_json }}"
+  register: b86_netgroups
+  changed_when: false
+  failed_when: false
+  when: netgroups | length > 0
+
+- name: Stop on network group problems
+  ansible.builtin.fail:
+    msg: "{{ b86_netgroups.stdout }}"
+  when:
+    - netgroups | length > 0
+    - b86_netgroups.rc != 0
+
+- name: Fail on request (test hook)
+  ansible.builtin.fail:
+    msg: Forced failure for testing
+  when: b86_force_fail | default(false) | bool
