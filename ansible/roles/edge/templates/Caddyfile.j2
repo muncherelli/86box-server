@@ -37,7 +37,7 @@
 		reverse_proxy 127.0.0.1:6080
 	}
 	handle {
-		redir /manage/ 302
+		redir * /manage/ 302
 	}
 }
 
