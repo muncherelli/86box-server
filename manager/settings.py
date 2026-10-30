@@ -32,10 +32,10 @@ def page(req, m):
     q = respond.esc(name)
     console = respond.esc(vms.CONSOLE % name)
     if units.is_active("vm@%s.service" % name):
-        body = ('<p>This VM is running. Open the <a href="%s">console</a>, then use the 86Box menu '
+        body = ('<p>This VM is running. Open the <a href="%s" target="_blank" rel="noopener">console</a>, then use the 86Box menu '
                 '<b>Tools &gt; Settings&hellip;</b>. Saving the settings resets the VM.</p>' % console)
     elif units.is_active("vm-settings@%s.service" % name):
-        body = '<p>The settings window is open in the <a href="%s">console</a>. Close it to finish.</p>' % console
+        body = '<p>The settings window is open in the <a href="%s" target="_blank" rel="noopener">console</a>. Close it to finish.</p>' % console
     else:
         body = ('<p>This VM is stopped. The Settings window opens on its own in the console; closing it ends the session.</p>'
                 '<form method="post" action="/manage/vms/%s/settings/open"><input type="hidden" name="csrf" value="%s">'

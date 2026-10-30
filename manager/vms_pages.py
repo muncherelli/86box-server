@@ -26,7 +26,7 @@ def _list_page(req, msg=""):
         q = respond.esc(n)
         buttons = "".join('<button data-action="%s" data-vm="%s">%s</button> ' % (a, q, a.title())
                           for a in ("start", "stop", "reset"))
-        links = '<a href="%s">Console</a> <a href="/manage/vms/%s/settings">Settings</a>' % (respond.esc(CONSOLE % n), q)
+        links = '<a href="%s" target="_blank" rel="noopener">Console</a> <a href="/manage/vms/%s/settings">Settings</a>' % (respond.esc(CONSOLE % n), q)
         if admin:
             links += ' <a href="/manage/vms/%s">Edit</a>' % q
         rows.append('<tr data-vm="%s"><td>%s</td><td data-state>%s</td><td data-nic>%s</td>'
