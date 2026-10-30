@@ -1,1 +1,11 @@
 ---
+# Pinned versions. Bumping a version is a deliberate edit of this file.
+pins:
+  emu86box:
+    tag: v6.0
+    url: https://github.com/86Box/86Box/releases/download/v6.0/86Box-Linux-x86_64-b9001.AppImage
+    sha256: 535d3c329f8c32b601103970c86d80aa80298f345452c3524ea2f433624727a4
+  roms:
+    tag: v6.0
+    url: https://github.com/86Box/roms/archive/refs/tags/v6.0.tar.gz
+    sha256: 38fccaf4a7b48e581ccdfee2dc3cc0545e7d3a778bc25611e902a117eec571e6
