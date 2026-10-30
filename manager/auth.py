@@ -1,7 +1,9 @@
 """Login for the manager: scrypt passwords, in-memory sessions, CSRF, per-IP rate limit.
 
 Users live in <data_root>/manager/users.json (mode 0600). Sessions are in memory only,
-so a manager restart logs everyone out. See README.md for the API other modules use.
+so a manager restart logs everyone out. The one exception is dev mode (./update.sh dev),
+which keeps them in sessions.json so a restart on every save doesn't log you out.
+See README.md for the API other modules use.
 """
 import collections
 import hashlib
@@ -160,6 +162,7 @@ def seed_if_needed():
 
 def init():
     seed_if_needed()
+    _load_sessions()
 
 
 # ---------- API for other modules ----------
@@ -211,12 +214,44 @@ def can_use_vm(user, vm):
 
 # ---------- sessions, rate limit ----------
 
+_saved_at = 0.0
+
+
+def _save_sessions(now, force=True):
+    """Dev mode only. The caller holds _sess_lock. Idle refreshes are saved at most once a minute."""
+    global _saved_at
+    if not respond.dev_mode() or (not force and now - _saved_at < 60):
+        return
+    _saved_at = now
+    try:
+        store.write_json(os.path.join(config.CFG["data_root"], "manager", "sessions.json"), SESSIONS, mode=0o600)
+    except OSError as e:
+        print("sessions.json not saved: %s" % e, file=sys.stderr, flush=True)
+
+
+def _load_sessions():
+    """Dev mode: reload saved sessions. Otherwise remove a leftover file so no tokens stay on disk."""
+    path = os.path.join(config.CFG["data_root"], "manager", "sessions.json")
+    if not respond.dev_mode():
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+        return
+    saved = store.read_json(path, {})
+    with _sess_lock:
+        for t, s in (saved.items() if isinstance(saved, dict) else []):
+            if isinstance(s, dict) and all(k in s for k in ("token", "user", "csrf", "created", "last")):
+                SESSIONS[t] = s
+
+
 def create_session(username, now=None):
     now = time.time() if now is None else now
     token = secrets.token_urlsafe(32)
     with _sess_lock:
         SESSIONS[token] = {"token": token, "user": username, "csrf": secrets.token_urlsafe(16),
                            "created": now, "last": now}
+        _save_sessions(now)
     return token
 
 
@@ -229,18 +264,21 @@ def lookup_session(token, now=None):
         s = SESSIONS.get(token)
         if s:
             s["last"] = now
+            _save_sessions(now, force=False)
         return s
 
 
 def delete_session(token):
     with _sess_lock:
         SESSIONS.pop(token, None)
+        _save_sessions(time.time())
 
 
 def delete_user_sessions(username):
     with _sess_lock:
         for t in [t for t, s in SESSIONS.items() if s["user"] == username]:
             del SESSIONS[t]
+        _save_sessions(time.time())
 
 
 def rate_blocked(ip, now=None):

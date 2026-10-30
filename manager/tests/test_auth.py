@@ -6,6 +6,7 @@ import unittest
 
 import auth
 import config
+import respond
 import server
 import store
 
@@ -182,6 +183,47 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(check("admin", "correct horse battery", "Bad_Name"), 403)
         bad = FakeReq(headers={"X-Forwarded-Uri": "/other?token=vm-a"})
         self.assertEqual(auth.auth_check(bad, None)[0], 403)
+
+
+class DevSessionsTest(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        config.CFG["data_root"] = self.dir.name
+        os.makedirs(os.path.join(self.dir.name, "manager"))
+        auth.SESSIONS.clear()
+        self.marker = os.path.join(self.dir.name, ".dev")
+        self.old = respond.DEV_MARKER
+        respond.DEV_MARKER = self.marker
+        self.path = os.path.join(self.dir.name, "manager", "sessions.json")
+
+    def tearDown(self):
+        respond.DEV_MARKER = self.old
+        auth.SESSIONS.clear()
+        self.dir.cleanup()
+
+    def test_sessions_survive_a_restart_in_dev_mode(self):
+        open(self.marker, "w").close()
+        tok = auth.create_session("admin")
+        self.assertEqual(oct(os.stat(self.path).st_mode & 0o777), "0o600")
+        auth.SESSIONS.clear()  # the restart
+        auth._load_sessions()
+        self.assertEqual(auth.lookup_session(tok)["user"], "admin")
+        auth.delete_session(tok)
+        auth.SESSIONS.clear()
+        auth._load_sessions()
+        self.assertIsNone(auth.lookup_session(tok))
+
+    def test_nothing_on_disk_outside_dev_mode(self):
+        tok = auth.create_session("admin")
+        self.assertFalse(os.path.exists(self.path))
+        auth.SESSIONS.clear()
+        auth._load_sessions()
+        self.assertIsNone(auth.lookup_session(tok))
+
+    def test_leftover_file_removed_when_dev_mode_is_off(self):
+        open(self.path, "w").write("{}")
+        auth._load_sessions()
+        self.assertFalse(os.path.exists(self.path))
 
 
 if __name__ == "__main__":
