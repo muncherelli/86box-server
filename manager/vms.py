@@ -21,7 +21,8 @@ NAME_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
 RESERVED = {"new", "api", "trash"}
 MEDIA_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,120}")
 LOCK = threading.Lock()
-CONSOLE = "/novnc/vnc.html?path=websockify%%3Ftoken%%3D%s&autoconnect=1&resize=scale&reconnect=1"
+# noVNC resolves path against the page URL (/novnc/vnc.html), so it must start with "/" to reach /websockify.
+CONSOLE = "/novnc/vnc.html?path=%%2Fwebsockify%%3Ftoken%%3D%s&autoconnect=1&resize=scale&reconnect=1"
 
 
 class VmError(Exception):
