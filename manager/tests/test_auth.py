@@ -97,7 +97,7 @@ class AuthTest(unittest.TestCase):
     def test_login_flow_and_csrf(self):
         tok = self.login_via_handler()
         self.assertEqual(server.dispatch(FakeReq(path="/manage/users", cookie=tok))[0], 200)
-        csrf = auth.SESSIONS[tok]["csrf"]
+        csrf = auth.SESSIONS[auth._key(tok)]["csrf"]
         no_csrf = server.dispatch(FakeReq("POST", "/manage/logout", cookie=tok))
         self.assertEqual(no_csrf[0], 403)
         bad = server.dispatch(FakeReq("POST", "/manage/logout", {"csrf": "x"}, cookie=tok))
@@ -185,45 +185,51 @@ class AuthTest(unittest.TestCase):
         self.assertEqual(auth.auth_check(bad, None)[0], 403)
 
 
-class DevSessionsTest(unittest.TestCase):
+class SavedSessionsTest(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()
         config.CFG["data_root"] = self.dir.name
         os.makedirs(os.path.join(self.dir.name, "manager"))
         auth.SESSIONS.clear()
-        self.marker = os.path.join(self.dir.name, ".dev")
-        self.old = respond.DEV_MARKER
-        respond.DEV_MARKER = self.marker
         self.path = os.path.join(self.dir.name, "manager", "sessions.json")
 
     def tearDown(self):
-        respond.DEV_MARKER = self.old
         auth.SESSIONS.clear()
         self.dir.cleanup()
 
-    def test_sessions_survive_a_restart_in_dev_mode(self):
-        open(self.marker, "w").close()
+    def restart(self):
+        auth.SESSIONS.clear()
+        auth._load_sessions()
+
+    def test_sessions_survive_a_restart(self):
         tok = auth.create_session("admin")
         self.assertEqual(oct(os.stat(self.path).st_mode & 0o777), "0o600")
-        auth.SESSIONS.clear()  # the restart
-        auth._load_sessions()
+        self.restart()
         self.assertEqual(auth.lookup_session(tok)["user"], "admin")
-        auth.delete_session(tok)
-        auth.SESSIONS.clear()
-        auth._load_sessions()
-        self.assertIsNone(auth.lookup_session(tok))
 
-    def test_nothing_on_disk_outside_dev_mode(self):
+    def test_the_file_holds_no_usable_token(self):
         tok = auth.create_session("admin")
-        self.assertFalse(os.path.exists(self.path))
-        auth.SESSIONS.clear()
-        auth._load_sessions()
-        self.assertIsNone(auth.lookup_session(tok))
+        text = open(self.path).read()
+        self.assertNotIn(tok, text)
+        self.assertIn(auth._key(tok), text)
 
-    def test_leftover_file_removed_when_dev_mode_is_off(self):
-        open(self.path, "w").write("{}")
+    def test_logout_and_user_changes_end_saved_sessions(self):
+        a, b = auth.create_session("admin"), auth.create_session("bob")
+        auth.delete_session(a)
+        auth.delete_user_sessions("bob")
+        self.restart()
+        self.assertIsNone(auth.lookup_session(a))
+        self.assertIsNone(auth.lookup_session(b))
+
+    def test_expired_saved_sessions_are_dropped(self):
+        tok = auth.create_session("admin", now=1000)
+        self.restart()
+        self.assertIsNone(auth.lookup_session(tok, now=1000 + 13 * 3600))
+
+    def test_a_damaged_file_means_login_again_not_a_crash(self):
+        open(self.path, "w").write("not json")
         auth._load_sessions()
-        self.assertFalse(os.path.exists(self.path))
+        self.assertEqual(auth.SESSIONS, {})
 
 
 if __name__ == "__main__":

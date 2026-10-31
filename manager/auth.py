@@ -1,8 +1,7 @@
 """Login for the manager: scrypt passwords, in-memory sessions, CSRF, per-IP rate limit.
 
-Users live in <data_root>/manager/users.json (mode 0600). Sessions are in memory only,
-so a manager restart logs everyone out. The one exception is dev mode (./update.sh dev),
-which keeps them in sessions.json so a restart on every save doesn't log you out.
+Users live in <data_root>/manager/users.json (mode 0600). Sessions are kept in memory and also saved to
+sessions.json (mode 0600) under a hash of the cookie token, so a restart or a deploy does not log anyone out.
 See README.md for the API other modules use.
 """
 import collections
@@ -31,7 +30,7 @@ SCRYPT_N, SCRYPT_R, SCRYPT_P = 16384, 8, 1
 
 _users_lock = threading.Lock()    # guards every read-modify-write of users.json
 _sess_lock = threading.Lock()     # guards SESSIONS and FAILS
-SESSIONS = {}                     # token -> {token, user, csrf, created, last}
+SESSIONS = {}                     # sha256(token) -> {user, csrf, created, last}; saved to sessions.json
 FAILS = {}                        # ip -> deque of failure times
 _dummy = None
 
@@ -217,40 +216,42 @@ def can_use_vm(user, vm):
 _saved_at = 0.0
 
 
+def _key(token):
+    """Sessions are stored under a hash of the cookie token, so sessions.json holds nothing a thief can log in with."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _sessions_path():
+    return os.path.join(config.CFG["data_root"], "manager", "sessions.json")
+
+
 def _save_sessions(now, force=True):
-    """Dev mode only. The caller holds _sess_lock. Idle refreshes are saved at most once a minute."""
+    """The caller holds _sess_lock. Idle refreshes are saved at most once a minute."""
     global _saved_at
-    if not respond.dev_mode() or (not force and now - _saved_at < 60):
+    if not force and now - _saved_at < 60:
         return
     _saved_at = now
     try:
-        store.write_json(os.path.join(config.CFG["data_root"], "manager", "sessions.json"), SESSIONS, mode=0o600)
+        store.write_json(_sessions_path(), SESSIONS, mode=0o600)
     except OSError as e:
         print("sessions.json not saved: %s" % e, file=sys.stderr, flush=True)
 
 
 def _load_sessions():
-    """Dev mode: reload saved sessions. Otherwise remove a leftover file so no tokens stay on disk."""
-    path = os.path.join(config.CFG["data_root"], "manager", "sessions.json")
-    if not respond.dev_mode():
-        try:
-            os.unlink(path)
-        except OSError:
-            pass
-        return
-    saved = store.read_json(path, {})
+    """Reload the saved sessions at start, so a restart or a deploy does not log anyone out."""
+    saved = store.read_json(_sessions_path(), {})
     with _sess_lock:
-        for t, s in (saved.items() if isinstance(saved, dict) else []):
-            if isinstance(s, dict) and all(k in s for k in ("token", "user", "csrf", "created", "last")):
-                SESSIONS[t] = s
+        for k, s in (saved.items() if isinstance(saved, dict) else []):
+            if isinstance(s, dict) and all(f in s for f in ("user", "csrf", "created", "last")):
+                SESSIONS[k] = s
 
 
 def create_session(username, now=None):
     now = time.time() if now is None else now
     token = secrets.token_urlsafe(32)
     with _sess_lock:
-        SESSIONS[token] = {"token": token, "user": username, "csrf": secrets.token_urlsafe(16),
-                           "created": now, "last": now}
+        SESSIONS[_key(token)] = {"user": username, "csrf": secrets.token_urlsafe(16),
+                                 "created": now, "last": now}
         _save_sessions(now)
     return token
 
@@ -258,10 +259,10 @@ def create_session(username, now=None):
 def lookup_session(token, now=None):
     now = time.time() if now is None else now
     with _sess_lock:
-        for t in [t for t, s in SESSIONS.items()
+        for k in [k for k, s in SESSIONS.items()
                   if now - s["last"] > IDLE_SECONDS or now - s["created"] > ABSOLUTE_SECONDS]:
-            del SESSIONS[t]
-        s = SESSIONS.get(token)
+            del SESSIONS[k]
+        s = SESSIONS.get(_key(token))
         if s:
             s["last"] = now
             _save_sessions(now, force=False)
@@ -270,7 +271,7 @@ def lookup_session(token, now=None):
 
 def delete_session(token):
     with _sess_lock:
-        SESSIONS.pop(token, None)
+        SESSIONS.pop(_key(token), None)
         _save_sessions(time.time())
 
 
@@ -334,7 +335,7 @@ def authenticate(req):
         return None
     u = _load()["users"].get(sess["user"])
     if u is None:
-        delete_session(sess["token"])
+        delete_session(token)
         return None
     req.session = sess
     req.user = {"name": sess["user"], "role": u["role"], "vms": u["vms"]}
@@ -392,7 +393,7 @@ def login_post(req, m):
 
 def logout_post(req, m):
     store.audit(req.user["name"], req.ip, "logout")
-    delete_session(req.session["token"])
+    delete_session(_cookie_token(req))
     status, headers, body = respond.redirect("/manage/login")
     headers["Set-Cookie"] = "%s=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0" % COOKIE
     return status, headers, body
