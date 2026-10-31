@@ -1,0 +1,5 @@
+# managed by 86box-server: do not edit
+# DHCP only (no DNS server). One range per group that has dhcp: true.
+port=0
+bind-interfaces
+dhcp-leasefile=/var/lib/86box-server/dnsmasq.leases

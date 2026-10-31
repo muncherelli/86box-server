@@ -1,6 +1,7 @@
 [Unit]
 Description=86box-server firewall table
 After=ufw.service 86box-bridges.service
+ConditionPathExists=/etc/86box-server/b86box.nft
 
 [Service]
 Type=oneshot

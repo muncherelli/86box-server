@@ -1,3 +1,0 @@
-# managed by 86box-server: do not edit
-[keyfile]
-unmanaged-devices={% for name, g in netgroups.items() %}interface-name:{{ g.bridge }};{% endfor %}interface-name:tap*

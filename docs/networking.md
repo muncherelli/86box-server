@@ -12,22 +12,39 @@ A group is a private virtual switch. On the VM's edit page you choose which grou
 
 So a VM with no groups still works. It just has no network. Guests in the same group can talk to each other; reaching the host, other groups or the internet is up to the group's settings below.
 
-## Defining groups
+## Defining and changing groups
 
-In your inventory (`group_vars/all/main.yml`):
+> **After the first `./update.sh`, groups are managed in the web manager** (the Network groups page), not in the
+> inventory. The `netgroups`, `group_routes` and `nat_dns` settings in `group_vars/all/main.yml` are only the
+> starting point: `./update.sh` reads them once, on a host that has no saved network settings yet, and ignores
+> them after that. Changing them later does nothing.
+
+The first-time settings look like this:
 
 ```yaml
 netgroups:
-  lab: {bridge: br-lab, cidr: 10.86.0.0/24, egress: none, dhcp: false}
-  web: {bridge: br-web, cidr: 10.86.1.0/24, egress: none, dhcp: false}
+  lab: {cidr: 10.86.0.0/24, egress: none, dhcp: false}
+  web: {cidr: 10.86.1.0/24, egress: none, dhcp: false}
 ```
 
-- `bridge`: `br-` plus up to 12 of `a-z0-9`.
-- `cidr`: IPv4, prefix `/16` to `/29`. Groups must not overlap.
+- Group name: 1-12 characters, `a-z` and `0-9`, starting with a letter.
+- `bridge`: optional; the default is `br-` plus the group name. `br-` plus up to 12 of `a-z0-9`.
+- `cidr`: a private IPv4 network (`10.x`, `172.16-31.x` or `192.168.x`), prefix `/16` to `/29`. Groups must not overlap each other, and a group may not use a network that is already in use on the host (its own network card, Docker and so on).
 - `egress`: `none` (default) or `nat`. With `nat`, guests reach the internet through the host (masquerade). Optional `egress_allow: [1.1.1.1, 8.8.8.0/24]` limits a nat group to those destinations.
 - `dhcp`: see the DHCP section; the default is no DHCP.
+- At most 32 groups.
 
-`./update.sh` checks these before it changes anything.
+### How a change is applied
+
+The web manager never changes the network itself. It writes a request file, and a root helper
+(`/opt/86box-server/libexec/netgroups-apply`, started by `86box-netapply.path`) checks every part of it and then
+makes the host match. A request that fails any check is refused as a whole and nothing changes. The answer, with
+any warnings, is in `/run/86box-server/netapply.json`. The saved groups are in `/etc/86box-server/netgroups.json`
+and `netpolicy.json`.
+
+- **Deleting a group** removes its firewall rules, DHCP range and bridge. If a VM is still plugged into the bridge, the bridge is kept without an address and a warning says so; stop the VM and apply again.
+- **Changing a network** gives the bridge the new `.1` address; guests need new addresses.
+- The host's own network card, its addresses and its routes are never touched.
 
 ## What the host does
 
@@ -39,18 +56,13 @@ Result: guests in the same group talk to each other. They cannot reach the host 
 
 ## Group-to-group routes
 
-Groups cannot see each other unless you list a pair. Pairs work in both directions:
+Groups cannot see each other unless you list a pair. Pairs work in both directions (first-time setting: `group_routes: [[lab, web]]`).
 
-```yaml
-group_routes:
-  - [lab, web]
-```
-
-Both groups must exist in `netgroups`. Guests in a routed pair need the host as gateway (see below), and their traffic is still blocked from reaching the host itself.
+Both groups must exist. Guests in a routed pair need the host as gateway (see below), and their traffic is still blocked from reaching the host itself.
 
 ## Internet access and ufw
 
-`egress: nat` and `group_routes` turn on IPv4 forwarding (`/etc/sysctl.d/86box.conf`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rules, because ufw's default forward policy is DROP. Removing a group or a pair later does not delete its ufw rule; remove it by hand (`sudo ufw status numbered`, then `sudo ufw delete <n>`).
+`egress: nat` and `group_routes` turn on IPv4 forwarding (`/etc/sysctl.d/86box.conf`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rules, because ufw's default forward policy is DROP. Removing a group or a pair removes its ufw rules again.
 
 ## DHCP (optional)
 

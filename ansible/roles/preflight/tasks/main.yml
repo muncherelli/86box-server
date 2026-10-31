@@ -135,20 +135,27 @@
     msg: br_netfilter is loaded (Docker?); not supported yet.
   when: "'br_netfilter' in b86_lsmod.stdout"
 
-- name: Check the network group settings
+- name: Look for saved network group settings
+  ansible.builtin.stat:
+    path: /etc/86box-server/netpolicy.json
+  register: b86_netpolicy_saved
+
+- name: Check the network group settings in the inventory (only used the first time)
   ansible.builtin.command:
-    argv: [python3, "{{ role_path }}/files/check_netgroups.py", "{{ group_routes | default([]) | to_json }}"]
-    stdin: "{{ netgroups | to_json }}"
+    argv: [python3, "{{ role_path }}/../netgroups/files/netgroups-apply", --check, "-"]
+    stdin: >-
+      {{ {'netgroups': netgroups, 'group_routes': group_routes | default([]),
+          'nat_dns': nat_dns | default(['1.1.1.1'])} | to_json }}
   register: b86_netgroups
   changed_when: false
   failed_when: false
-  when: netgroups | length > 0
+  when: not b86_netpolicy_saved.stat.exists
 
 - name: Stop on network group problems
   ansible.builtin.fail:
     msg: "{{ b86_netgroups.stdout }}"
   when:
-    - netgroups | length > 0
+    - not b86_netpolicy_saved.stat.exists
     - b86_netgroups.rc != 0
 
 - name: Check the SFTP-only account settings

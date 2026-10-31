@@ -1,0 +1,46 @@
+{
+ "netgroups": {
+  "dmz": {
+   "bridge": "br-dmz",
+   "cidr": "192.168.50.0/26",
+   "egress": "nat",
+   "egress_allow": [
+    "1.1.1.1",
+    "8.8.8.0/24"
+   ],
+   "dhcp": true
+  },
+  "iso": {
+   "bridge": "br-iso",
+   "cidr": "172.20.0.0/28",
+   "egress": "none",
+   "dhcp": true
+  },
+  "lab": {
+   "bridge": "br-lab",
+   "cidr": "10.86.0.0/24",
+   "egress": "none",
+   "dhcp": true
+  },
+  "web": {
+   "bridge": "br-web",
+   "cidr": "10.86.1.0/24",
+   "egress": "nat",
+   "dhcp": true
+  }
+ },
+ "group_routes": [
+  [
+   "lab",
+   "web"
+  ],
+  [
+   "web",
+   "dmz"
+  ]
+ ],
+ "nat_dns": [
+  "9.9.9.9",
+  "1.1.1.1"
+ ]
+}

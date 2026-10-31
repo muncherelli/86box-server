@@ -1,0 +1,36 @@
+# managed by 86box-server: do not edit
+# The first two lines make loading atomic: the table is replaced in one step.
+table inet b86box
+delete table inet b86box
+table inet b86box {
+  set ourbr {
+    type ifname
+    elements = { "br-dmz", "br-iso", "br-lab", "br-web" }
+  }
+  chain input {
+    type filter hook input priority filter - 5; policy accept;
+    iifname @ourbr ct state established,related accept
+    iifname "br-dmz" udp dport 67 accept
+    iifname "br-iso" udp dport 67 accept
+    iifname "br-lab" udp dport 67 accept
+    iifname "br-web" udp dport 67 accept
+    iifname @ourbr drop
+  }
+  chain forward {
+    type filter hook forward priority filter - 5; policy accept;
+    ct state established,related accept
+    iifname "br-lab" oifname "br-web" accept
+    iifname "br-web" oifname "br-lab" accept
+    iifname "br-web" oifname "br-dmz" accept
+    iifname "br-dmz" oifname "br-web" accept
+    iifname "br-dmz" oifname != @ourbr ip daddr { 1.1.1.1, 8.8.8.0/24 } accept
+    iifname "br-web" oifname != @ourbr accept
+    iifname @ourbr drop
+    oifname @ourbr drop
+  }
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+    ip saddr 192.168.50.0/26 oifname != @ourbr masquerade
+    ip saddr 10.86.1.0/24 oifname != @ourbr masquerade
+  }
+}

@@ -16,7 +16,10 @@ acme_email: admin@example.com     # used in acme mode
 public_ipv4: ''                   # this host's public IPv4 (DNS records in acme/cf-origin mode)
 publish_domains: []               # domains the manager may publish sites under
 
-netgroups: {}                     # example: lab: {bridge: br-lab, cidr: 10.86.0.0/24, egress: none, dhcp: false}
+# Network groups: ONLY THE STARTING POINT. ./update.sh reads these three settings the first time it runs on a
+# host. After that the groups live on the host and are managed in the web manager (Network groups page);
+# changing these lines later does nothing. Private ranges only (10.x, 172.16-31.x, 192.168.x), /16 to /29.
+netgroups: {}                     # example: lab: {cidr: 10.86.0.0/24, egress: none, dhcp: false}
 group_routes: []                  # example: [[lab, web]]
 nat_dns: ['1.1.1.1']              # DNS handed to guests in nat groups
 port_forward_limits: []           # see the port-forward row on the sheet

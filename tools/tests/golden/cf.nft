@@ -1,0 +1,37 @@
+# managed by 86box-server: do not edit
+# The first two lines make loading atomic: the table is replaced in one step.
+table inet b86box
+delete table inet b86box
+table inet b86box {
+  set ourbr {
+    type ifname
+    elements = { "br-lab" }
+  }
+  set cf4 {
+    type ipv4_addr
+    flags interval
+    elements = { 173.245.48.0/20, 103.21.244.0/22 }
+  }
+  set cf6 {
+    type ipv6_addr
+    flags interval
+    elements = { 2400:cb00::/32 }
+  }
+  chain input {
+    type filter hook input priority filter - 5; policy accept;
+    iifname "lo" accept
+    tcp dport { 80, 443 } ip saddr != @cf4 drop
+    tcp dport { 80, 443 } ip6 saddr != @cf6 drop
+    iifname @ourbr ct state established,related accept
+    iifname @ourbr drop
+  }
+  chain forward {
+    type filter hook forward priority filter - 5; policy accept;
+    ct state established,related accept
+    iifname @ourbr drop
+    oifname @ourbr drop
+  }
+  chain postrouting {
+    type nat hook postrouting priority srcnat; policy accept;
+  }
+}

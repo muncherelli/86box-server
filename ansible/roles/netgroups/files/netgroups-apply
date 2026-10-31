@@ -1,0 +1,397 @@
+#!/usr/bin/python3
+"""Makes the host match the network groups. Root only; the one place that changes bridges and firewall rules.
+
+  netgroups-apply --request FILE   a request from the web manager (untrusted; checked before anything changes)
+  netgroups-apply --seed FILE|-    first-time setup from Ansible; does nothing once netpolicy.json exists
+  netgroups-apply --check FILE|-   only check a settings file (Ansible preflight); prints the problems
+  netgroups-apply --bridges        at boot: bring the saved groups' bridges up again
+
+Files it writes: /etc/86box-server/{netgroups.json,netpolicy.json,b86box.nft,dnsmasq.conf},
+/run/86box-server/netapply.json (the result), NetworkManager and sysctl drop-ins.
+It never touches the host's own interface, its addresses or its routes.
+"""
+import argparse
+import datetime
+import fcntl
+import grp
+import json
+import os
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import netgroups_core as core  # noqa: E402
+
+CONF = "/etc/86box-server"
+RUN = "/run/86box-server"
+NM_CONF = "/etc/NetworkManager/conf.d/86box.conf"
+SYSCTL_CONF = "/etc/sysctl.d/86box.conf"
+MAX_REQUEST = 64 * 1024
+ENV = dict(os.environ, PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin", LC_ALL="C")
+
+
+class ApplyError(Exception):
+    pass
+
+
+class Ctx:
+    def __init__(self, data_root, mgr_group):
+        self.data_root = data_root
+        self.mgr_group = mgr_group
+        self.changed = []
+        self.warnings = []
+
+    def note(self, what):
+        if what not in self.changed:
+            self.changed.append(what)
+
+
+def run(args, check=True):
+    r = subprocess.run(args, capture_output=True, text=True, timeout=60, env=ENV)
+    if check and r.returncode:
+        raise ApplyError("%s failed: %s" % (" ".join(args[:3]), (r.stderr or r.stdout).strip()[:300]))
+    return r
+
+
+def now():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def write_file(path, text, mode, group=None):
+    """Atomic write; returns True when the content or mode changed."""
+    try:
+        st = os.stat(path)
+        with open(path) as f:
+            if f.read() == text and (st.st_mode & 0o7777) == mode:
+                return False
+    except OSError:
+        pass
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".new"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.chmod(tmp, mode)
+    os.chown(tmp, 0, grp.getgrnam(group).gr_gid if group else 0)
+    os.replace(tmp, path)
+    return True
+
+
+def read_json(path, default):
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return default
+
+
+def dump(data):
+    return json.dumps(data, indent=4, sort_keys=True) + "\n"
+
+
+def load_state():
+    groups = {}
+    for name, g in read_json(CONF + "/netgroups.json", {}).items():
+        groups[name] = {"bridge": g["bridge"], "cidr": g["cidr"], "egress": g.get("egress", "none"),
+                        "egress_allow": list(g.get("egress_allow", [])), "dhcp": bool(g.get("dhcp", False))}
+    policy = read_json(CONF + "/netpolicy.json", {})
+    applied = read_json(CONF + "/netapply-state.json", {})
+    return {"groups": groups, "routes": policy.get("group_routes", []), "dns": policy.get("nat_dns", core.DEFAULT_NAT_DNS),
+            "edge": policy.get("edge", {}), "ufw": applied.get("ufw", []), "orphans": applied.get("orphans", [])}
+
+
+def host_info(managed):
+    addr = json.loads(run(["ip", "-j", "addr"]).stdout)
+    routes = json.loads(run(["ip", "-j", "route"]).stdout)
+    names = os.listdir("/sys/class/net")
+    uplink = next((r.get("dev") for r in routes if r.get("dst") == "default"), None)
+    return {"nets": core.host_nets(addr, routes, managed), "uplink": uplink, "managed": set(managed),
+            "devices": {n: os.path.isdir("/sys/class/net/%s/bridge" % n) for n in names}}
+
+
+# ---- the steps that change the host; each one makes the host match and notes what it changed
+
+def unit_active(unit):
+    return run(["systemctl", "is-active", unit], check=False).stdout.strip() == "active"
+
+
+def step_networkmanager(ctx, bridges):
+    if not unit_active("NetworkManager"):
+        return
+    if bridges:
+        changed = write_file(NM_CONF, core.render_nm(bridges), 0o644)
+    else:
+        changed = os.path.exists(NM_CONF)
+        if changed:
+            os.unlink(NM_CONF)
+    if changed:
+        run(["systemctl", "reload", "NetworkManager"], check=False)
+        ctx.note("networkmanager")
+
+
+def ipv4_addresses(bridge):
+    out = json.loads(run(["ip", "-j", "-4", "addr", "show", "dev", bridge]).stdout)
+    return ["%s/%d" % (a["local"], a["prefixlen"]) for i in out for a in i.get("addr_info", [])]
+
+
+def ensure_bridge(ctx, g):
+    br, sysdir = g["bridge"], "/sys/class/net/" + g["bridge"]
+    if os.path.exists(sysdir) and not os.path.isdir(sysdir + "/bridge"):
+        raise ApplyError("%s exists but is not a bridge" % br)
+    if not os.path.exists(sysdir):
+        run(["ip", "link", "add", br, "type", "bridge"])
+        ctx.note("bridge " + br)
+    run(["ip", "link", "set", br, "up"])
+    want = core.host_address(g["cidr"])
+    have = ipv4_addresses(br)
+    for a in have:
+        if a != want:
+            run(["ip", "addr", "del", a, "dev", br])
+            ctx.note("address " + br)
+    if want not in have:
+        run(["ip", "addr", "add", want, "dev", br])
+        ctx.note("address " + br)
+    v6 = "/proc/sys/net/ipv6/conf/%s/disable_ipv6" % br
+    if os.path.exists(v6):
+        with open(v6, "w") as f:
+            f.write("1")
+
+
+def remove_bridge(ctx, br):
+    """Delete a bridge nobody uses. Returns True when it had to be kept because a VM is still plugged in."""
+    sysdir = "/sys/class/net/" + br
+    if not os.path.isdir(sysdir + "/bridge"):
+        return False  # gone already, or not a bridge: never touch it
+    if os.listdir(sysdir + "/brif"):
+        run(["ip", "-4", "addr", "flush", "dev", br], check=False)
+        ctx.warnings.append("%s is still in use by a VM, so it was kept without an address. "
+                            "Stop the VM and apply again to remove it." % br)
+        return True
+    run(["ip", "link", "del", br])
+    ctx.note("removed " + br)
+    return False
+
+
+def bridge_in_use(br):
+    sysdir = "/sys/class/net/" + br
+    return os.path.isdir(sysdir + "/bridge") and bool(os.listdir(sysdir + "/brif"))
+
+
+def bridges_to_go(groups, prev, orphans):
+    keep = {g["bridge"] for g in groups.values()}
+    return sorted(({g["bridge"] for g in prev.values()} | set(orphans)) - keep)
+
+
+def step_bridges(ctx, groups, gone):
+    """Remove the bridges that are no longer wanted and bring up the others.
+    Returns the unwanted bridges kept only because a VM is still plugged in (tried again next time)."""
+    kept = [br for br in gone if remove_bridge(ctx, br)]
+    for g in groups.values():
+        ensure_bridge(ctx, g)
+    return kept
+
+
+def step_nft(ctx, groups, text):
+    path = CONF + "/b86box.nft"
+    if not groups:
+        if run(["nft", "list", "table", "inet", "b86box"], check=False).returncode == 0:
+            run(["nft", "delete", "table", "inet", "b86box"])
+            ctx.note("nft")
+        run(["systemctl", "disable", "86box-nft"], check=False)
+        if os.path.exists(path):
+            os.unlink(path)
+        return
+    changed = write_file(path, text, 0o640)
+    run(["systemctl", "enable", "86box-nft"], check=False)
+    loaded = run(["nft", "list", "table", "inet", "b86box"], check=False).returncode == 0
+    if changed or not loaded:
+        run(["systemctl", "reload" if unit_active("86box-nft") else "start", "86box-nft"])
+        ctx.note("nft")
+
+
+def step_forwarding(ctx, groups, routes):
+    if core.needs_forwarding(groups, routes):
+        if write_file(SYSCTL_CONF, "# managed by 86box-server: do not edit\nnet.ipv4.ip_forward = 1\n", 0o644):
+            ctx.note("sysctl")
+        with open("/proc/sys/net/ipv4/ip_forward") as f:
+            on = f.read().strip() == "1"
+        if not on:
+            with open("/proc/sys/net/ipv4/ip_forward", "w") as f:
+                f.write("1")
+            ctx.note("forwarding")
+    elif os.path.exists(SYSCTL_CONF):
+        os.unlink(SYSCTL_CONF)  # the running value is left alone: something else may need it
+        ctx.note("sysctl")
+
+
+def step_ufw(ctx, groups, routes, uplink, old):
+    """Returns the rule list now in force (the old list when ufw is off)."""
+    if not unit_active("ufw"):
+        if old or any(g["dhcp"] or g["egress"] == "nat" for g in groups.values()) or routes:
+            ctx.warnings.append("ufw is not active, so no firewall rules were added for the groups.")
+        return old
+    if uplink is None and any(g["egress"] == "nat" for g in groups.values()):
+        ctx.warnings.append("This host has no default route, so internet access rules were not added.")
+    want = core.desired_ufw(groups, routes, uplink)
+    add, delete = core.ufw_diff(old, want)
+    for rule in add:
+        run(["ufw"] + rule)
+        ctx.note("ufw")
+    for rule in delete:
+        r = run(["ufw"] + core.ufw_delete_args(rule), check=False)
+        if r.returncode:
+            ctx.warnings.append("Could not remove a firewall rule: %s" % " ".join(rule))
+        ctx.note("ufw")
+    return want
+
+
+def step_dhcp(ctx, groups, text):
+    path = CONF + "/dnsmasq.conf"
+    if text is None:
+        if os.path.exists(path):
+            os.unlink(path)
+        if unit_active("86box-dnsmasq") or run(["systemctl", "is-enabled", "86box-dnsmasq"], check=False).returncode == 0:
+            run(["systemctl", "disable", "--now", "86box-dnsmasq"], check=False)
+            ctx.note("dhcp off")
+        return
+    changed = write_file(path, text, 0o644)
+    run(["systemctl", "enable", "86box-dnsmasq"], check=False)
+    if changed or not unit_active("86box-dnsmasq"):
+        run(["systemctl", "restart", "86box-dnsmasq"])
+        ctx.note("dhcp")
+
+
+# ---- putting it together
+
+def apply_all(ctx, norm, cur, host):
+    groups, routes, dns = norm["netgroups"], norm["group_routes"], norm["nat_dns"]
+    edge = norm["edge"] if "edge" in norm else cur["edge"]
+    nft_text = core.render_nft(groups, routes, edge) if groups else None
+    dhcp_text = core.render_dnsmasq(groups, routes, dns, ctx.data_root + "/dnsmasq.leases") \
+        if any(g["dhcp"] for g in groups.values()) else None
+    # Check what we can before changing anything.
+    scratch = RUN + "/netapply.check"
+    os.makedirs(RUN, exist_ok=True)
+    for text, cmd in ((nft_text, ["nft", "-c", "-f", scratch]), (dhcp_text, ["dnsmasq", "--test", "--conf-file=" + scratch])):
+        if text is not None:
+            with open(scratch, "w") as f:
+                f.write(text)
+            try:
+                run(cmd)
+            finally:
+                os.unlink(scratch)
+    if dhcp_text is not None and not os.path.exists("/etc/systemd/system/86box-dnsmasq.service"):
+        raise ApplyError("the DHCP unit is not installed; run ./update.sh once")
+
+    gone = bridges_to_go(groups, cur["groups"], cur["orphans"])
+    # NetworkManager must keep ignoring a bridge until it is really gone, or it takes over the VM's port.
+    step_networkmanager(ctx, [g["bridge"] for g in groups.values()] + [br for br in gone if bridge_in_use(br)])
+    orphans = step_bridges(ctx, groups, gone)
+    step_nft(ctx, groups, nft_text)
+    step_forwarding(ctx, groups, routes)
+    ufw = step_ufw(ctx, groups, routes, host["uplink"], cur["ufw"])
+    step_dhcp(ctx, groups, dhcp_text)
+
+    policy = {"group_routes": routes, "nat_dns": dns}
+    if edge:
+        policy["edge"] = edge
+    for name, text, mode, group in ((CONF + "/netgroups.json", dump(groups), 0o640, ctx.mgr_group),
+                                    (CONF + "/netpolicy.json", dump(policy), 0o640, ctx.mgr_group),
+                                    (CONF + "/netapply-state.json", dump({"ufw": ufw, "orphans": orphans}), 0o600, None)):
+        if write_file(name, text, mode, group):
+            ctx.note(os.path.basename(name))
+
+
+def write_result(rid, ok, message, warnings):
+    os.makedirs(RUN, exist_ok=True)
+    data = {"id": rid, "ok": ok, "message": message, "warnings": warnings, "ts": now()}
+    write_file(RUN + "/netapply.json", dump(data), 0o644)
+
+
+def read_input(path):
+    if path == "-":
+        raw = sys.stdin.read(MAX_REQUEST + 1)
+    else:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(fd) as f:
+            raw = f.read(MAX_REQUEST + 1)
+    if len(raw) > MAX_REQUEST:
+        raise ValueError("the request is too large")
+    return json.loads(raw)
+
+
+def process(ctx, data, seed):
+    """Check and apply one request. Returns (ok, message)."""
+    cur = load_state()
+    ours = {g["bridge"] for g in cur["groups"].values()} | set(cur["orphans"])
+    if seed and isinstance(data, dict) and isinstance(data.get("netgroups"), dict):
+        # The first run may adopt bridges an older version of this role already made.
+        ours |= {g.get("bridge", "br-" + str(n)) for n, g in data["netgroups"].items() if isinstance(g, dict)}
+    host = host_info(ours)
+    problems, norm = core.validate(data, host, seed)
+    if problems:
+        return False, "Refused, nothing was changed: " + "; ".join(problems[:6])
+    try:
+        apply_all(ctx, norm, cur, host)
+    except (ApplyError, OSError, subprocess.TimeoutExpired) as e:
+        return False, "Could not apply: %s" % e
+    n = len(norm["netgroups"])
+    what = ("Applied %d network group%s." % (n, "" if n == 1 else "s")) if ctx.changed else "Nothing to change."
+    return True, what
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    mode = ap.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--request")
+    mode.add_argument("--seed")
+    mode.add_argument("--check")
+    mode.add_argument("--bridges", action="store_true")
+    ap.add_argument("--data-root", default="/var/lib/86box-server")
+    ap.add_argument("--mgr-group", default="86boxmgr")
+    args = ap.parse_args()
+    ctx = Ctx(args.data_root, args.mgr_group)
+
+    if args.check:
+        data = read_input(args.check)
+        state = load_state()
+        ours = {g["bridge"] for g in state["groups"].values()} | set(state["orphans"])
+        if isinstance(data, dict) and isinstance(data.get("netgroups"), dict):
+            ours |= {g.get("bridge", "br-" + str(n)) for n, g in data["netgroups"].items() if isinstance(g, dict)}
+        problems, _ = core.validate(data, host_info(ours), seed=True)
+        print("\n".join(problems))
+        return 1 if problems else 0
+
+    os.makedirs(RUN, exist_ok=True)
+    with open(RUN + "/netapply.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if args.bridges:
+            for g in load_state()["groups"].values():
+                ensure_bridge(ctx, g)
+            return 0
+        if args.seed:
+            if os.path.exists(CONF + "/netpolicy.json"):
+                print("already set up; network groups are managed in the web manager")
+                return 0
+            rid, seed, path = "seed", True, args.seed
+        else:
+            rid, seed, path = None, False, args.request
+        try:
+            data = read_input(path)
+            rid = rid or (data.get("id") if isinstance(data, dict) and isinstance(data.get("id"), str) else None)
+            ok, message = process(ctx, data, seed)
+        except (OSError, ValueError) as e:
+            ok, message = False, "Refused, nothing was changed: cannot read the request (%s)" % e
+        except Exception as e:  # never leave the manager waiting for an answer
+            ok, message = False, "Internal error: %r" % e
+        write_result(rid, ok, message, ctx.warnings)
+        print(("applied: " + ", ".join(ctx.changed)) if ok and ctx.changed else message)
+        for w in ctx.warnings:
+            print("warning: " + w)
+        return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

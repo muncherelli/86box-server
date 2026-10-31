@@ -1,0 +1,29 @@
+# managed by 86box-server: do not edit
+# DHCP only (no DNS server). One range per group that has dhcp: true.
+port=0
+bind-interfaces
+dhcp-leasefile=/var/lib/86box-server/dnsmasq.leases
+
+# dmz
+interface=br-dmz
+dhcp-range=set:br-dmz,192.168.50.32,192.168.50.62,255.255.255.192,12h
+dhcp-option=tag:br-dmz,option:router,192.168.50.1
+dhcp-option=tag:br-dmz,option:dns-server,9.9.9.9,1.1.1.1
+
+# iso
+interface=br-iso
+dhcp-range=set:br-iso,172.20.0.8,172.20.0.14,255.255.255.240,12h
+dhcp-option=tag:br-iso,option:router
+dhcp-option=tag:br-iso,option:dns-server
+
+# lab
+interface=br-lab
+dhcp-range=set:br-lab,10.86.0.100,10.86.0.199,255.255.255.0,12h
+dhcp-option=tag:br-lab,option:router,10.86.0.1
+dhcp-option=tag:br-lab,option:dns-server
+
+# web
+interface=br-web
+dhcp-range=set:br-web,10.86.1.100,10.86.1.199,255.255.255.0,12h
+dhcp-option=tag:br-web,option:router,10.86.1.1
+dhcp-option=tag:br-web,option:dns-server,9.9.9.9,1.1.1.1

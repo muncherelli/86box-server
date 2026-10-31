@@ -1,0 +1,11 @@
+[Unit]
+Description=Watch for network group requests from the web manager
+StartLimitIntervalSec=0
+
+[Path]
+PathChanged={{ vm_data_root }}/manager/netgroups-request.json
+Unit=86box-netapply.service
+TriggerLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Apply network group changes asked for in the web manager
+# Requests can come in bursts; the default limit (5 starts in 10 s) would jam this unit until reset-failed.
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/86box-server/libexec/netgroups-apply --request {{ vm_data_root }}/manager/netgroups-request.json --data-root {{ vm_data_root }} --mgr-group {{ mgr_user }}
+# Exit status 1 means the request was refused; the reason is in the result file.
+SuccessExitStatus=1
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
