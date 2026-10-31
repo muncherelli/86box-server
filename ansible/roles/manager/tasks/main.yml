@@ -39,7 +39,7 @@
   no_log: true
   notify: Restart the manager
 
-- name: Allow the manager to start and stop VMs (polkit)
+- name: Allow the manager to start and stop boxes (polkit)
   ansible.builtin.copy:
     src: 50-86box.rules
     dest: /etc/polkit-1/rules.d/50-86box.rules

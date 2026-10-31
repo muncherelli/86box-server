@@ -1,5 +1,5 @@
 [Unit]
-Description=86Box VM %i
+Description=86Box box %i
 Requires=vnc@%i.service
 Wants=wm@%i.service
 After=vnc@%i.service wm@%i.service 86box-bridges.service
@@ -11,7 +11,7 @@ SupplementaryGroups={{ vm_share_group }}
 UMask=0007
 EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
 Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
-# Keep Qt's font cache out of the VM folder: the manager could not delete or copy what 86Box wrote there.
+# Keep Qt's font cache out of the box folder: the manager could not delete or copy what 86Box wrote there.
 CacheDirectory=86box-vm
 Environment=XDG_CACHE_HOME=/var/cache/86box-vm
 ExecStartPre=/bin/sh -c '! systemctl is-active --quiet vm-settings@%i.service'

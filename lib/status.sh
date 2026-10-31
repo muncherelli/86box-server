@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# './update.sh status': services, VMs and bridges. No Ansible run.
+# './update.sh status': services, boxes and bridges. No Ansible run.
 
 show_status() {
   local unit state
@@ -13,7 +13,7 @@ show_status() {
     printf '%-24s %s\n' "$unit" "$state"
   done
   echo
-  sudo -u 86boxmgr python3 /opt/86box-server/manager/cli.py list || echo "(VM list unavailable)"
+  sudo -u 86boxmgr python3 /opt/86box-server/manager/cli.py list || echo "(Box list unavailable)"
   echo
   echo "Bridges:"
   ip -br link show type bridge || true

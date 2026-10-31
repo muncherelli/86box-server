@@ -23,7 +23,7 @@
   roles:
     - netgroups
 
-- name: Virtual machine host
+- name: Boxes
   hosts: all
   gather_facts: true
   roles:

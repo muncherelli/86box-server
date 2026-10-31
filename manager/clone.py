@@ -1,4 +1,4 @@
-"""Clone a stopped VM under a new name, with new MAC addresses."""
+"""Clone a stopped box under a new name, with new MAC addresses."""
 import os
 import random
 import shutil
@@ -30,14 +30,14 @@ def clone_vm(src, new):
     with vms.LOCK:
         defs = vms.all_defs()
         if src not in defs:
-            raise VmError("No such VM.")
+            raise VmError("No such box.")
         if not NAME_RE.fullmatch(new or "") or new in RESERVED:
             raise VmError("Name must be 2-31 characters: a-z, 0-9 and '-', starting with a letter.")
         if vms.busy(src):
-            raise VmError("Stop the VM first.")
+            raise VmError("Stop the box first.")
         final, temp = vms._p("vms", new), vms._p("vms", ".new-" + new)
         if any(os.path.lexists(x) for x in (final, temp, vms._p("vmdefs", new + ".json"))):
-            raise VmError("A VM called %s already exists." % new)
+            raise VmError("A box called %s already exists." % new)
         display = vms._free_display(defs)
         auth = vms._auth()
         users = [u for u, v in auth.console_users().items() if src in v.get("vms", [])]
@@ -73,13 +73,13 @@ def clone_vm(src, new):
                 shutil.rmtree(path, ignore_errors=True)
             if users_set:
                 auth.remove_vm(new)
-            raise VmError("Could not clone the VM: %s" % e)
+            raise VmError("Could not clone the box: %s" % e)
     return new
 
 
 def html_section(req, name):
-    """Fragment for the VM edit page."""
-    return ('<h2>Clone</h2><p>The VM must be stopped. The copy gets new network card addresses and no snapshots. '
+    """Fragment for the box edit page."""
+    return ('<h2>Clone</h2><p>The box must be stopped. The copy gets new network card addresses and no snapshots. '
             'Windows NT clones share the same machine SID; fix that inside the guest if it matters.</p>'
             '<form method="post" action="/manage/vms/%s/clone"><input type="hidden" name="csrf" value="%s">'
             'New name: <input name="newname"> <input type="submit" value="Clone"></form>'

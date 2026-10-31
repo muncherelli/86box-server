@@ -241,7 +241,7 @@ class PagesTest(Base):
         out = ui.h_edit(Req(), re.fullmatch(ui.NAME, "lab"))[2].decode()
         self.assertIn("nt4 use this group", out)
         self.assertIn("cannot be renamed", out)
-        self.assertIn("cannot be deleted while VMs use it", out)
+        self.assertIn("cannot be deleted while boxes use it", out)
         self.assertEqual(ui.h_edit(Req(), re.fullmatch(ui.NAME, "nope"))[0], 404)
 
     def test_create(self):

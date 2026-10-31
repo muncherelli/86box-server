@@ -23,7 +23,7 @@ function csrfToken() {
   return m ? m.content : "";
 }
 
-// VM list: 5 s status poll and Start/Stop/Reset buttons.
+// box list: 5 s status poll and Start/Stop/Reset buttons.
 (function () {
   var table = document.getElementById("vm-table");
   if (!table) return;

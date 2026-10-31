@@ -73,11 +73,11 @@ def _netgroups():
 
 def _vm_groups(vm):
     if not re.fullmatch(VM_RE, vm):
-        raise ValueError("bad VM name")
+        raise ValueError("bad box name")
     path = os.path.join(config.CFG["data_root"], "vmdefs", vm + ".json")
     rec = store.read_json(path)
     if rec is None:
-        raise ValueError("unknown VM '%s'" % vm)
+        raise ValueError("unknown box '%s'" % vm)
     return rec.get("allowed_groups", [])
 
 
@@ -118,7 +118,7 @@ def check_site(site):
         if ip in net and ip not in (net.network_address, net.broadcast_address, next(net.hosts())):
             break
     else:
-        raise ValueError("guest IP is not inside one of the VM's network groups")
+        raise ValueError("guest IP is not inside one of the box's network groups")
 
     port = site.get("port")
     if not isinstance(port, int) or isinstance(port, bool) or not 1 <= port <= 65535:

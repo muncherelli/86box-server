@@ -1,4 +1,4 @@
-"""The Network groups page (admin only): list, create, edit and delete private networks for VMs."""
+"""The Network groups page (admin only): list, create, edit and delete private networks for boxes."""
 import urllib.parse
 
 import config
@@ -8,7 +8,7 @@ import store
 from netgroups_store import NetError
 
 NAME = r"([a-z][a-z0-9]{0,11})"
-EXPLAIN = ("A network group is a private virtual switch. VMs in the same group can talk to each other and to "
+EXPLAIN = ("A network group is a private virtual switch. Boxes in the same group can talk to each other and to "
            "nothing else, unless you allow more below.")
 
 
@@ -63,10 +63,10 @@ def _list_page(req, msg="", done=False, code=200):
                "ready" if ns.bridge_present(g["bridge"]) else "not created yet", q, q))
     if rows:
         body += ("<table><tr><th>Name</th><th>Network</th><th>Host address (guest gateway)</th><th>Internet</th>"
-                 "<th>Automatic addresses (DHCP)</th><th>Can also reach</th><th>VMs using it</th><th>Status</th>"
+                 "<th>Automatic addresses (DHCP)</th><th>Can also reach</th><th>Boxes using it</th><th>Status</th>"
                  "<th></th></tr>%s</table>" % "".join(rows))
     else:
-        body += "<p>No network groups yet. VMs without a group have no network.</p>"
+        body += "<p>No network groups yet. Boxes without a group have no network.</p>"
     body += '<p><a href="/manage/netgroups/new">New network group</a></p>'
     return respond.page(req, "Network groups", body, code)
 
@@ -117,9 +117,9 @@ def _form_page(req, name="", values=None, msg="", code=200):
              '<p>Network <select name="choice">%s</select> <input name="custom" value="%s" placeholder="10.86.5.0/24"> '
              '<span class="hint">Pick one, or choose Custom and type a private network such as 10.86.5.0/24 '
              '(sizes /16 to /29).</span></p>'
-             '<p><label><input type="checkbox" name="nat" value="1"%s> Let VMs in this group reach the internet through '
+             '<p><label><input type="checkbox" name="nat" value="1"%s> Let boxes in this group reach the internet through '
              'this host</label><br><span class="hint">Off by default. Guests then use the host as their gateway.</span></p>'
-             '<p><label><input type="checkbox" name="dhcp" value="1"%s> Give VMs addresses automatically (DHCP)</label>'
+             '<p><label><input type="checkbox" name="dhcp" value="1"%s> Give boxes addresses automatically (DHCP)</label>'
              '<br><span class="hint">Otherwise type a fixed address inside each guest.</span></p>'
              '<p>Also let this group talk to: %s</p>'
              '<h3>Inside the guest</h3><p class="hint">For %s: address, for example <b>%s</b>; subnet mask <b>%s</b>; '
@@ -132,7 +132,7 @@ def _form_page(req, name="", values=None, msg="", code=200):
     if editing:
         body += ('<h2 id="delete">Delete</h2>')
         if users:
-            body += '<p>This group cannot be deleted while VMs use it: %s. Remove it from their settings first.</p>' \
+            body += '<p>This group cannot be deleted while boxes use it: %s. Remove it from their settings first.</p>' \
                 % respond.esc(", ".join(users))
         else:
             body += ('<form method="post" action="/manage/netgroups/delete/%s">%s'
@@ -197,7 +197,7 @@ def h_delete(req, m):
     try:
         users = ns.vms_using(name)
         if users:
-            raise NetError("These VMs still use the group: %s." % ", ".join(users))
+            raise NetError("These boxes still use the group: %s." % ", ".join(users))
         ns.submit(ns.desired(groups, name, {}, [], remove=True))
     except NetError as e:
         return _form_page(req, name, None, str(e), 400)

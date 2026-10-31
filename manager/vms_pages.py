@@ -1,4 +1,4 @@
-"""Pages and handlers for the VM list, new/edit forms and the status API. Imported only by vms.py."""
+"""Pages and handlers for the box list, new/edit forms and the status API. Imported only by vms.py."""
 import importlib
 import os
 import urllib.parse
@@ -33,15 +33,15 @@ def _list_page(req, msg=""):
                     '<td data-cpu></td><td data-ram></td><td data-disk></td><td data-guard class="error">%s</td><td>%s %s</td></tr>'
                     % (q, q, respond.esc(s["state"]), respond.esc(s["nic"]), respond.esc(s["guard"]), buttons, links))
     body = '<p class="error">%s</p>' % respond.esc(msg) if msg else ""
-    body += ('<table id="vm-table"><tr><th>VM</th><th>State</th><th>NIC</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Problems</th><th></th></tr>%s</table>'
-             % "".join(rows)) if rows else "<p>No VMs yet.</p>"
+    body += ('<table id="vm-table"><tr><th>Box</th><th>State</th><th>NIC</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Problems</th><th></th></tr>%s</table>'
+             % "".join(rows)) if rows else "<p>No boxes yet.</p>"
     body += ('<dialog id="confirm"><p id="confirm-text"></p><button id="confirm-yes">Yes</button> '
              '<button id="confirm-no">Cancel</button></dialog>')
     if admin:
         mb = trash_size() / 1048576
-        body += ('<p><a href="/manage/vms/new">New VM</a></p><form method="post" action="/manage/trash/empty">%s'
+        body += ('<p><a href="/manage/vms/new">New box</a></p><form method="post" action="/manage/trash/empty">%s'
                  'Trash: %.0f MB <input type="submit" value="Empty trash"></form>' % (_csrf(req), mb))
-    return respond.page(req, "Virtual machines", body)
+    return respond.page(req, "Boxes", body)
 
 
 def _checks(name, items, chosen, label):
@@ -78,15 +78,15 @@ def _new_page(req, msg="", status_code=200):
              '<p class="hint">A template only picks the board and CPU. Disks, video, sound and the rest are set in '
              'the 86Box Settings window.</p>'
              '<p>Network groups %s</p>'
-             '<p class="hint">A network group is a private virtual switch. VMs in the same group can talk to each other '
-             'and nothing else; they get no internet unless the group allows it. With no group the VM has no network: '
+             '<p class="hint">A network group is a private virtual switch. Boxes in the same group can talk to each other '
+             'and nothing else; they get no internet unless the group allows it. With no group the box has no network: '
              'a card set to network type None does nothing, and type TAP needs a group.</p>'
              '<p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"> Start at boot</label></p>'
              '<input type="submit" value="Create"></form>'
              % (_csrf(req), opts, _group_checks(()),
                 _checks("user", sorted(vms._auth().console_users()), (), "user")))
-    status_, headers, out = respond.page(req, "New VM", body, status_code)
+    status_, headers, out = respond.page(req, "New box", body, status_code)
     return status_, headers, out
 
 
@@ -107,7 +107,7 @@ def _edit_page(req, name, msg=""):
              '<p><label>Display size <input name="resolution" value="%s" list="b86res" placeholder="auto" size="10"></label>'
              '<datalist id="b86res"><option value="auto">%s</datalist>'
              '<br><small><b>auto</b> makes the display follow your browser window, live. Or pick a preset or type your own '
-             'WxH (640x400 up to 2560x1600): a fixed size is scaled to fit the window and applies the next time the VM starts. '
+             'WxH (640x400 up to 2560x1600): a fixed size is scaled to fit the window and applies the next time the box starts. '
              '86Box stretches whatever the guest shows to fill this display.</small></p>'
              '<input type="submit" value="Save"></form>'
              '<h2>Delete</h2><form method="post" action="/manage/vms/%s/delete">%s'
@@ -119,7 +119,7 @@ def _edit_page(req, name, msg=""):
     for mod, fn in (("snapshots", "html_section"),
                     ("clone", "html_section"), ("importexp", "html_section")):
         body += getattr(importlib.import_module(mod), fn)(req, name)
-    return respond.page(req, "VM " + name, body)
+    return respond.page(req, "Box " + name, body)
 
 
 def _multi(req):
@@ -170,7 +170,7 @@ def h_edit_post(req, m):
 def h_delete(req, m):
     name = m.group(1)
     if (_multi(req).get("confirm") or [""])[0] != name:
-        return _edit_page(req, name, "Type the VM name exactly to delete it.")
+        return _edit_page(req, name, "Type the box name exactly to delete it.")
     try:
         delete_vm(name)
     except VmError as e:

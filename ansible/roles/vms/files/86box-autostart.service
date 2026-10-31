@@ -1,5 +1,5 @@
 [Unit]
-Description=Start 86Box VMs marked autostart
+Description=Start 86Box boxes marked autostart
 After=86box-bridges.service 86box-nft.service
 
 [Service]

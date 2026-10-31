@@ -1,5 +1,5 @@
 [Unit]
-Description=86Box settings window for VM %i
+Description=86Box settings window for Box %i
 
 Requires=vnc@%i.service
 Wants=wm@%i.service

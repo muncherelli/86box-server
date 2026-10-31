@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Start every VM whose record says "autostart": true.
+# Start every box whose record says "autostart": true.
 import glob
 import json
 import os

@@ -32,7 +32,7 @@ for a in "$@"; do
 done
 
 case "${ARGS[0]:-}" in
-  vm)
+  vm|box)
     sudo -u 86boxmgr python3 /opt/86box-server/manager/cli.py "${ARGS[@]:1}"
     exit $?
     ;;

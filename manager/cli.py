@@ -16,7 +16,7 @@ def cmd_list():
 
 def cmd_action(verb, name):
     if name not in vms.all_defs():
-        print("no such VM: %s" % name, file=sys.stderr)
+        print("no such box: %s" % name, file=sys.stderr)
         return 1
     ok, err = vms.do_action(name, ACTIONS[verb])
     if not ok:

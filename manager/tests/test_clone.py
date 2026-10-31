@@ -40,7 +40,7 @@ class CloneTest(Base):
     def test_running_source_refused(self):
         self.make_vm()
         self.active.add("vm@src.service")
-        with self.assertRaisesRegex(vms.VmError, "Stop the VM"):
+        with self.assertRaisesRegex(vms.VmError, "Stop the box"):
             clone.clone_vm("src", "copy1")
         self.assertFalse(os.path.exists(self.p("vms/copy1")))
 
@@ -50,7 +50,7 @@ class CloneTest(Base):
         for bad in ("", "X", "../x", "new", "other"):
             with self.assertRaises(vms.VmError):
                 clone.clone_vm("src", bad)
-        with self.assertRaisesRegex(vms.VmError, "No such VM"):
+        with self.assertRaisesRegex(vms.VmError, "No such box"):
             clone.clone_vm("ghost", "copy1")
 
     def test_failure_leaves_nothing(self):

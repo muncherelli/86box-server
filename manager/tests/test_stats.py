@@ -18,7 +18,7 @@ class StatsTest(unittest.TestCase):
             for d in ("proc", "cg/system.slice/vm@vma.service", "data/vmdefs", "data/vms/vma"):
                 os.makedirs(os.path.join(tmp, d))
             open(os.path.join(tmp, "data/vmdefs/vma.json"), "w").close()
-            open(os.path.join(tmp, "data/vmdefs/vmb.json"), "w").close()  # stopped VM
+            open(os.path.join(tmp, "data/vmdefs/vmb.json"), "w").close()  # stopped box
             meminfo = os.path.join(tmp, "proc/meminfo")
             open(meminfo, "w").write("MemTotal: 1000 kB\nMemAvailable: 250 kB\n")
             cg = os.path.join(tmp, "cg/system.slice/vm@vma.service")

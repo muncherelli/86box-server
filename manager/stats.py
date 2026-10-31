@@ -1,4 +1,4 @@
-"""Host and per-VM CPU, RAM and disk numbers, refreshed every 5 s by one background thread."""
+"""Host and per-box CPU, RAM and disk numbers, refreshed every 5 s by one background thread."""
 import glob
 import os
 import re
@@ -121,7 +121,7 @@ def start():
 
 
 def get(user=None):
-    """Current numbers; console users only see their own VMs."""
+    """Current numbers; console users only see their own boxes."""
     start()
     with _lock:
         vms = dict(_data["vms"])

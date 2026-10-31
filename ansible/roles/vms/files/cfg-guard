@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Check a VM's 86box.cfg: network cards may only be tap NICs on the VM's allowed bridges.
+# Check a box's 86box.cfg: network cards may only be tap NICs on the box's allowed bridges.
 # Usage: cfg-guard <name> [--enforce]
 # Trust: vmdefs/<name>.json is trusted; everything in vms/<name>/ is not.
 # This is a check, not a sandbox. The unit's ReadWritePaths is the real boundary.
@@ -65,7 +65,7 @@ def check(name):
                 continue
             bridge = p.get("Network", "net_%s_host_device" % nn, fallback="").strip()
             if bridge not in allowed:
-                problems.append("NIC %s uses bridge '%s' which this VM may not use" % (nn, bridge))
+                problems.append("NIC %s uses bridge '%s' which this box may not use" % (nn, bridge))
     return problems
 
 

@@ -69,7 +69,7 @@
     enabled: true
     state: started
 
-- name: Start VMs marked autostart at boot (not started on every run)
+- name: Start boxes marked autostart at boot (not started on every run)
   ansible.builtin.systemd:
     name: 86box-autostart
     enabled: true

@@ -50,12 +50,12 @@ class SnapshotTest(unittest.TestCase):
 
     def test_running_vm_refused(self):
         with mock.patch("units.is_active", return_value=True):
-            self.assertEqual(snapshots.create("vm1")[0], "Stop the VM first.")
-            self.assertEqual(snapshots.restore("vm1", "20200101-000000"), "Stop the VM first.")
+            self.assertEqual(snapshots.create("vm1")[0], "Stop the box first.")
+            self.assertEqual(snapshots.restore("vm1", "20200101-000000"), "Stop the box first.")
 
     def test_bad_label_and_names(self):
         self.assertIn("Label", snapshots.create("vm1", "Bad Label")[0])
-        self.assertEqual(snapshots.create("../x")[0], "bad VM name")
+        self.assertEqual(snapshots.create("../x")[0], "bad box name")
         self.assertEqual(snapshots.restore("vm1", "../../etc"), "no such snapshot")
 
     def test_no_space(self):

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-# Make 86Box's window resizable (vid_resize = 1) when the VM's cfg has no opinion yet, so the
-# window manager can make it fill the display. Runs as the VM user, before 86Box starts.
+# Make 86Box's window resizable (vid_resize = 1) when the box's cfg has no opinion yet, so the
+# window manager can make it fill the display. Runs as the box user, before 86Box starts.
 # A value 86Box already saved (for example 0, chosen in its Settings) is never changed.
 # Usage: ensure-resize <name>
 import configparser

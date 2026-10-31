@@ -1,5 +1,5 @@
 [Unit]
-Description=Window manager for VM %i (makes the 86Box window fill the display)
+Description=Window manager for Box %i (makes the 86Box window fill the display)
 BindsTo=vnc@%i.service
 After=vnc@%i.service
 

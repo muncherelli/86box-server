@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# After a VM starts: check that every tap NIC in 86box.cfg got a tap that joined its bridge.
+# After a box starts: check that every tap NIC in 86box.cfg got a tap that joined its bridge.
 # Usage: tap-check <name>   (run as root from vm@.service: ExecStartPost=+)
 # 86Box without CAP_NET_ADMIN runs with a dead NIC and no error, so this makes it an error.
 import configparser
@@ -47,7 +47,7 @@ def expected_bridges(name):
 
 
 def vm_taps(name):
-    """tap name -> bridge name, for every tap held open by the VM's processes."""
+    """tap name -> bridge name, for every tap held open by the box's processes."""
     found = {}
     try:
         cg = subprocess.run(["systemctl", "show", "-p", "ControlGroup", "--value", "vm@%s.service" % name],

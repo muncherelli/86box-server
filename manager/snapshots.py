@@ -1,4 +1,4 @@
-"""Snapshots of a stopped VM: disks, nvr, floppies, 86box.cfg and its record (vmdef.json)."""
+"""Snapshots of a stopped box: disks, nvr, floppies, 86box.cfg and its record (vmdef.json)."""
 import datetime
 import os
 import re
@@ -56,13 +56,13 @@ def _busy(name):
 
 
 def _check(name):
-    """Return an error string if this VM cannot be snapshotted or restored right now."""
+    """Return an error string if this box cannot be snapshotted or restored right now."""
     if not VM_RE.fullmatch(name):
-        return "bad VM name"
+        return "bad box name"
     if not os.path.isdir(_vmdir(name)):
-        return "no such VM"
+        return "no such box"
     if _busy(name):
-        return "Stop the VM first."
+        return "Stop the box first."
     return None
 
 
@@ -159,7 +159,7 @@ def _csrf(req):
 
 
 def html_section(req, name):
-    """Fragment for the VM page."""
+    """Fragment for the box page."""
     base = "/manage/api/vm/%s/snapshots" % name
     rows = []
     for s in list_snapshots(name):
@@ -169,7 +169,7 @@ def html_section(req, name):
             '<form method="post" action="%s/%s/delete" style="display:inline">%s<input name="confirm" placeholder="type the name"> '
             '<input type="submit" value="Delete"></form></td></tr>'
             % (respond.esc(s["name"]), s["date"], s["size"] / 1048576.0, base, s["name"], _csrf(req), base, s["name"], _csrf(req)))
-    return ('<h2>Snapshots</h2><p>The VM must be stopped. Restoring saves the current state first.</p>'
+    return ('<h2>Snapshots</h2><p>The box must be stopped. Restoring saves the current state first.</p>'
             '<form method="post" action="%s">%s<input name="label" placeholder="label (optional)"> '
             '<input type="submit" value="Take snapshot"></form>'
             '<table><tr><th>Name</th><th>Date (UTC)</th><th>Size</th><th></th></tr>%s</table>'

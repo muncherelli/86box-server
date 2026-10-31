@@ -1,4 +1,4 @@
-"""Export a VM as JSON (record + 86box.cfg, no disks) and import it under a new name."""
+"""Export a box as JSON (record + 86box.cfg, no disks) and import it under a new name."""
 import configparser
 import json
 import os
@@ -18,7 +18,7 @@ PATH_KEY = re.compile(r".*(_fn|_image_path)$")
 def export_vm(name):
     data = store.read_json(vms._p("vmdefs", name + ".json"))
     if not isinstance(data, dict):
-        raise VmError("No such VM.")
+        raise VmError("No such box.")
     vm = {k: v for k, v in data.items() if k != "display"}
     try:
         fd = os.open(vms._p("vms", name, "86box.cfg"), os.O_RDONLY | os.O_NOFOLLOW)
@@ -43,12 +43,12 @@ def check_cfg(p, allowed_bridges):
             if value.strip() != "tap":
                 problems.append("NIC %s uses network type %s (only tap is allowed)" % (nn, value.strip()))
             elif p.get("Network", "net_%s_host_device" % nn, fallback="").strip() not in allowed_bridges:
-                problems.append("NIC %s uses a bridge this VM may not use" % nn)
+                problems.append("NIC %s uses a bridge this box may not use" % nn)
     return problems
 
 
 def check_paths(p):
-    """File settings must stay inside the VM folder or the media library."""
+    """File settings must stay inside the box folder or the media library."""
     media = vms._p("media") + os.sep
     for section in p.sections():
         for key, value in p.items(section):
@@ -85,7 +85,7 @@ def _import(name, data, groups, autostart, users):
         raise VmError("Name must be 2-31 characters: a-z, 0-9 and '-', starting with a letter.")
     if not isinstance(data, dict) or data.get("format") != 1 or not isinstance(data.get("cfg"), str) \
             or not isinstance(data.get("vm"), dict):
-        raise VmError("This is not a VM export file (format 1).")
+        raise VmError("This is not a box export file (format 1).")
     vms._check_common(groups, users)
     p = configparser.ConfigParser(interpolation=None, strict=False)
     p.optionxform = str
@@ -105,7 +105,7 @@ def _import(name, data, groups, autostart, users):
         p.set("Hard disks", "hdd_01_fn", "disks/hdd1.img")
     final, temp = vms._p("vms", name), vms._p("vms", ".new-" + name)
     if any(os.path.lexists(x) for x in (final, temp, vms._p("vmdefs", name + ".json"))):
-        raise VmError("A VM called %s already exists." % name)
+        raise VmError("A box called %s already exists." % name)
     display = vms._free_display(vms.all_defs())
     template = data["vm"].get("template", "")
     if not isinstance(template, str):
@@ -141,7 +141,7 @@ def _import(name, data, groups, autostart, users):
             shutil.rmtree(path, ignore_errors=True)
         if users_set:
             auth.remove_vm(name)
-        raise VmError("Could not import the VM: %s" % e)
+        raise VmError("Could not import the box: %s" % e)
     return name
 
 
@@ -166,7 +166,7 @@ def _page(req, msg="", status=200):
     users = "".join('<label><input type="checkbox" name="user" value="%s"> %s</label> ' % ((respond.esc(u),) * 2)
                     for u in sorted(vms._auth().console_users())) or "<em>none</em>"
     body = '<p class="error">%s</p>' % respond.esc(msg) if msg else ""
-    body += ('<p>Import a file made by "Export" on a VM page. Disks are not included: a blank disk of the same size is made.</p>'
+    body += ('<p>Import a file made by "Export" on a box page. Disks are not included: a blank disk of the same size is made.</p>'
              '<form method="post" action="/manage/import"><input type="hidden" name="csrf" value="%s">'
              '<p>New name: <input name="name"></p>'
              '<p>Export file: <input type="file" id="file" accept=".json"></p>'
@@ -177,7 +177,7 @@ def _page(req, msg="", status=200):
              '<script>document.getElementById("file").onchange=function(e){var r=new FileReader();'
              'r.onload=function(){document.getElementById("payload").value=r.result};r.readAsText(e.target.files[0]);};</script>'
              % (csrf, groups, users))
-    return respond.page(req, "Import a VM", body, status)
+    return respond.page(req, "Import a box", body, status)
 
 
 def h_page(req, m):
@@ -200,9 +200,9 @@ def h_import(req, m):
 
 
 def html_section(req, name):
-    """Fragment for the VM edit page."""
-    return ('<h2>Export</h2><p><a href="/manage/api/vm/%s/export">Download this VM as JSON</a> (settings only, no disks). '
-            '<a href="/manage/import">Import a VM</a></p>' % respond.esc(name))
+    """Fragment for the box edit page."""
+    return ('<h2>Export</h2><p><a href="/manage/api/vm/%s/export">Download this box as JSON</a> (settings only, no disks). '
+            '<a href="/manage/import">Import a box</a></p>' % respond.esc(name))
 
 
 ROUTES = [

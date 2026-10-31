@@ -1,4 +1,4 @@
-"""Shared media library (isos, floppies, disks): list, upload, delete, attach to a VM."""
+"""Shared media library (isos, floppies, disks): list, upload, delete, attach to a box."""
 import configparser
 import glob
 import os
@@ -66,7 +66,7 @@ def cleanup_parts():
 
 
 def used_by():
-    """Map absolute ISO path -> sorted list of VM names whose cfg points at it."""
+    """Map absolute ISO path -> sorted list of box names whose cfg points at it."""
     used = {}
     for cfg in glob.glob(os.path.join(_root(), "vms", "*", "86box.cfg")):
         vmdir = os.path.dirname(cfg)
@@ -194,7 +194,7 @@ def delete(req, m):
     return _done(req, True, "", back)
 
 
-# ---- attach to a VM -----------------------------------------------------
+# ---- attach to a box -----------------------------------------------------
 
 def attach(req, m):
     vm = m.group(1)
@@ -210,18 +210,18 @@ def attach(req, m):
 
 
 def attach_file(vm, kind, filename):
-    """Attach a library file to a stopped VM. Returns an error string, or None."""
+    """Attach a library file to a stopped box. Returns an error string, or None."""
     if not VM_RE.fullmatch(vm):
-        return "bad VM name"
+        return "bad box name"
     err = valid_name(kind, filename)
     if err:
         return err
     vmdir = os.path.join(_root(), "vms", vm)
     cfg = os.path.join(vmdir, "86box.cfg")
     if not os.path.isdir(vmdir):
-        return "no such VM"
+        return "no such box"
     if units.is_active("vm@%s.service" % vm) or units.is_active("vm-settings@%s.service" % vm):
-        return "The VM is running. Use the Media menu in the console."
+        return "The box is running. Use the Media menu in the console."
     src = os.path.join(_dir(kind), filename)
     try:
         if not stat.S_ISREG(os.lstat(src).st_mode):
@@ -240,7 +240,7 @@ def attach_file(vm, kind, filename):
         p.add_section("Floppy and CD-ROM drives")
     section = p["Floppy and CD-ROM drives"]
     if kind == "isos":
-        if "cdrom_01_parameters" not in section:  # a VM made without a CD drive gets one
+        if "cdrom_01_parameters" not in section:  # a box made without a CD drive gets one
             section["cdrom_01_parameters"] = "1, atapi"
             section["cdrom_01_ide_channel"] = "0:1"
         section["cdrom_01_image_path"] = src
@@ -249,7 +249,7 @@ def attach_file(vm, kind, filename):
         folder = os.path.join(vmdir, sub)
         dest = os.path.join(folder, filename)
         if os.path.lexists(dest):
-            return "A file with that name is already in the VM folder."
+            return "A file with that name is already in the box folder."
         os.makedirs(folder, exist_ok=True)
         os.chmod(folder, 0o2770)
         r = subprocess.run(["cp", "--reflink=auto", "--sparse=always", src, dest], capture_output=True, text=True)
@@ -306,7 +306,7 @@ def media_page(req, m):
 
 
 def html_attach_section(req, vm):
-    """Fragment for the VM page: attach a library file to a stopped VM."""
+    """Fragment for the box page: attach a library file to a stopped box."""
     opts = "".join('<option value="%s|%s">%s/%s</option>' % (k, respond.esc(e["name"]), k, respond.esc(e["name"]))
                    for k in KINDS for e in list_media(k))
     if units.is_active("vm@%s.service" % vm):

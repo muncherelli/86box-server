@@ -83,7 +83,7 @@ def _clean_vms(vms):
     out = []
     for v in vms:
         if not VM_RE.fullmatch(v):
-            raise AuthError("Bad VM name: %s" % v)
+            raise AuthError("Bad box name: %s" % v)
         if v not in out:
             out.append(v)
     return out
@@ -440,7 +440,7 @@ def _users_page(req, error="", status=200):
             '<tr><td>%s</td><td><form method="post" action="/manage/users/update">%s'
             '<input type="hidden" name="name" value="%s">'
             '<select name="role"><option%s>admin</option><option%s>console</option></select> '
-            'VMs <input name="vms" value="%s"> <input type="submit" value="Save"></form></td>'
+            'Boxes <input name="vms" value="%s"> <input type="submit" value="Save"></form></td>'
             '<td><form method="post" action="/manage/users/password">%s<input type="hidden" name="name" value="%s">'
             '<input type="password" name="password" placeholder="new password"> <input type="submit" value="Set"></form></td>'
             '<td><form method="post" action="/manage/users/delete">%s<input type="hidden" name="name" value="%s">'
@@ -448,12 +448,12 @@ def _users_page(req, error="", status=200):
             % (esc(n), csrf, esc(n), sel("admin"), sel("console"), esc(" ".join(u["vms"])),
                csrf, esc(n), csrf, esc(n)))
     err = '<p class="error">%s</p>' % esc(error) if error else ""
-    body = (err + "<table><tr><th>User</th><th>Role and VMs</th><th>Password</th><th></th></tr>" + "".join(rows) + "</table>"
+    body = (err + "<table><tr><th>User</th><th>Role and boxes</th><th>Password</th><th></th></tr>" + "".join(rows) + "</table>"
             '<h2>Add user</h2><form method="post" action="/manage/users/add">' + csrf +
             '<p><input name="name" placeholder="username" required> '
             '<input type="password" name="password" placeholder="password (12+ characters)" required> '
             '<select name="role"><option>console</option><option>admin</option></select> '
-            'VMs <input name="vms"> <input type="submit" value="Add"></p></form>')
+            'Boxes <input name="vms"> <input type="submit" value="Add"></p></form>')
     return respond.page(req, "Users", body, status)
 
 

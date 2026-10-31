@@ -241,7 +241,7 @@ def needs_forwarding(groups, routes):
 
 
 def render_nm(bridges):
-    """NetworkManager must ignore every bridge of ours, including one kept only because a VM is plugged in."""
+    """NetworkManager must ignore every bridge of ours, including one kept only because a box is plugged in."""
     names = "".join("interface-name:%s;" % b for b in bridges)
     return "# managed by 86box-server: do not edit\n[keyfile]\nunmanaged-devices=%sinterface-name:tap*\n" % names
 

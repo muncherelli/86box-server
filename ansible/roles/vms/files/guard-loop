@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Re-check the config of every running VM whenever its 86box.cfg or record changes.
+# Re-check the config of every running box whenever its 86box.cfg or record changes.
 import glob
 import os
 import re

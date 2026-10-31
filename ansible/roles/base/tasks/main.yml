@@ -12,13 +12,13 @@
     name: "{{ vm_share_group }}"
     system: true
 
-- name: Create the VM account group
+- name: Create the box account group
   ansible.builtin.group:
     name: "{{ vm_service_user }}"
     gid: "{{ vm_uid if vm_uid_free | default(false) else omit }}"
     system: true
 
-- name: Create the VM account
+- name: Create the box account
   ansible.builtin.user:
     name: "{{ vm_service_user }}"
     uid: "{{ vm_uid if vm_uid_free | default(false) else omit }}"

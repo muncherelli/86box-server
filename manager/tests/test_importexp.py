@@ -57,7 +57,7 @@ class ImportExportTest(Base):
     def test_bad_files(self):
         self.make_vm()
         for bad in ({}, {"format": 2, "vm": {}, "cfg": ""}, {"format": 1, "vm": {}, "cfg": 5}, [1], "x"):
-            with self.assertRaisesRegex(vms.VmError, "not a VM export"):
+            with self.assertRaisesRegex(vms.VmError, "not a box export"):
                 importexp.import_vm("copy1", bad, [], False, [])
         with self.assertRaisesRegex(vms.VmError, "parse"):
             importexp.import_vm("copy1", {"format": 1, "vm": {}, "cfg": "no section\nx=1"}, [], False, [])

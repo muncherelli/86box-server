@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Wait until the X display for this VM exists (it is made by vnc@<name>).
+# Wait until the X display for this box exists (it is made by vnc@<name>).
 import os
 import re
 import stat

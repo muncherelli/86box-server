@@ -2,24 +2,24 @@
 
 Guests never get direct internet access by default. Each **network group** is one private Linux bridge on the host.
 
-## What a group means for a VM
+## What a group means for a box
 
-A group is a private virtual switch. On the VM's edit page you choose which groups the VM is **allowed** to use. Then, in 86Box's Settings window, you add a network card and set its network type:
+A group is a private virtual switch. On the box's edit page you choose which groups the box is **allowed** to use. Then, in 86Box's Settings window, you add a network card and set its network type:
 
 - **None** (the default): the card exists in the guest but is connected to nothing. This is always allowed and needs no group.
-- **TAP**: connects the card to a host bridge. The bridge must belong to one of the VM's allowed groups. If it doesn't, the config guard stops the VM and the VM list says why.
+- **TAP**: connects the card to a host bridge. The bridge must belong to one of the box's allowed groups. If it doesn't, the config guard stops the box and the box list says why.
 - Any other type (SLiRP, PCap, VDE) is refused, because it would bypass the groups.
 
-So a VM with no groups still works. It just has no network. Guests in the same group can talk to each other; reaching the host, other groups or the internet is up to the group's settings below.
+So a box with no groups still works. It just has no network. Guests in the same group can talk to each other; reaching the host, other groups or the internet is up to the group's settings below.
 
 ## In the web UI
 
-Open **Networks** in the manager (admin only). It lists every group with its network, the host address guests use as their gateway, whether it has internet access or automatic addresses, which other groups it can reach and which VMs use it.
+Open **Networks** in the manager (admin only). It lists every group with its network, the host address guests use as their gateway, whether it has internet access or automatic addresses, which other groups it can reach and which boxes use it.
 
 - **New network group** suggests the first free `10.86.N.0/24`. You can pick **Custom...** and type any private network from `/16` to `/29`. The page checks that it does not overlap another group.
-- Tick **reach the internet through this host** for internet access, **Give VMs addresses automatically** for DHCP, and **Also let this group talk to** to link two groups.
+- Tick **reach the internet through this host** for internet access, **Give boxes addresses automatically** for DHCP, and **Also let this group talk to** to link two groups.
 - A change takes a few seconds to apply, because a small root service builds the bridges. The page shows the result, or the reason it was refused.
-- A group cannot be renamed, and cannot be deleted while a VM is allowed to use it.
+- A group cannot be renamed, and cannot be deleted while a box is allowed to use it.
 
 ## Defining and changing groups
 
@@ -51,7 +51,7 @@ makes the host match. A request that fails any check is refused as a whole and n
 any warnings, is in `/run/86box-server/netapply.json`. The saved groups are in `/etc/86box-server/netgroups.json`
 and `netpolicy.json`.
 
-- **Deleting a group** removes its firewall rules, DHCP range and bridge. If a VM is still plugged into the bridge, the bridge is kept without an address and a warning says so; stop the VM and apply again.
+- **Deleting a group** removes its firewall rules, DHCP range and bridge. If a box is still plugged into the bridge, the bridge is kept without an address and a warning says so; stop the box and apply again.
 - **Changing a network** gives the bridge the new `.1` address; guests need new addresses.
 - The host's own network card, its addresses and its routes are never touched.
 

@@ -31,7 +31,7 @@
 
 - name: Warn when disk space is low
   ansible.builtin.debug:
-    msg: "Only {{ b86_df.stdout }} GB free under /var/lib. VM disks need room; 20 GB or more is comfortable."
+    msg: "Only {{ b86_df.stdout }} GB free under /var/lib. Box disks need room; 20 GB or more is comfortable."
   when: b86_df.stdout | int < 20
 
 - name: Look for programs using ports 80 and 443
@@ -61,7 +61,7 @@
   changed_when: false
   failed_when: false
 
-- name: Work out whether ID 86 can be used for the VM account
+- name: Work out whether ID 86 can be used for the box account
   ansible.builtin.set_fact:
     vm_uid_free: >-
       {{ (b86_uid.rc != 0 or b86_uid.stdout.split(':')[0] == vm_service_user)

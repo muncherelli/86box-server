@@ -33,7 +33,7 @@ def _forwarding(s, e):
     return (
         '<fieldset><legend>Forwarding: where the traffic goes</legend>'
         '<p>Host name <input name="host" value="%s" required></p>'
-        '<p>VM <select name="vm">%s</select> Guest IP <input name="guest_ip" value="%s" required> '
+        '<p>Box <select name="vm">%s</select> Guest IP <input name="guest_ip" value="%s" required> '
         'Port <input name="port" value="%s" size="5"></p>'
         '<p>Host header <input name="host_header" value="%s"> (original, or a name)</p>'
         '<p>Strip prefix <input name="strip_prefix" value="%s"> (one of the allowed paths)</p>'
@@ -89,7 +89,7 @@ def _list(req, error=""):
                     "on" if s.get("enabled", True) else "off",
                     h, csrf, "Disable" if s.get("enabled", True) else "Enable", h, csrf))
     edit = next((s for s in load_sites() if s["host"] == req.query.get("edit", [""])[0]), {})
-    body = ('<table><tr><th>Host</th><th>VM</th><th>Upstream</th><th>Public side</th><th>State</th><th></th></tr>%s</table>'
+    body = ('<table><tr><th>Host</th><th>Box</th><th>Upstream</th><th>Public side</th><th>State</th><th></th></tr>%s</table>'
             '<h2>%s</h2>%s') % (rows, "Edit site" if edit else "Publish a site", _form(req, edit, error))
     return respond.page(req, "Sites", body)
 

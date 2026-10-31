@@ -1,5 +1,5 @@
 [Unit]
-Description=VNC display for VM %i
+Description=VNC display for Box %i
 PartOf=vm@%i.service vm-settings@%i.service
 
 [Service]

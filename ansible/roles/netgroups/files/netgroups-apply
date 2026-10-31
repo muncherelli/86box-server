@@ -160,14 +160,14 @@ def ensure_bridge(ctx, g):
 
 
 def remove_bridge(ctx, br):
-    """Delete a bridge nobody uses. Returns True when it had to be kept because a VM is still plugged in."""
+    """Delete a bridge nobody uses. Returns True when it had to be kept because a box is still plugged in."""
     sysdir = "/sys/class/net/" + br
     if not os.path.isdir(sysdir + "/bridge"):
         return False  # gone already, or not a bridge: never touch it
     if os.listdir(sysdir + "/brif"):
         run(["ip", "-4", "addr", "flush", "dev", br], check=False)
-        ctx.warnings.append("%s is still in use by a VM, so it was kept without an address. "
-                            "Stop the VM and apply again to remove it." % br)
+        ctx.warnings.append("%s is still in use by a box, so it was kept without an address. "
+                            "Stop the box and apply again to remove it." % br)
         return True
     run(["ip", "link", "del", br])
     ctx.note("removed " + br)
@@ -186,7 +186,7 @@ def bridges_to_go(groups, prev, orphans):
 
 def step_bridges(ctx, groups, gone):
     """Remove the bridges that are no longer wanted and bring up the others.
-    Returns the unwanted bridges kept only because a VM is still plugged in (tried again next time)."""
+    Returns the unwanted bridges kept only because a box is still plugged in (tried again next time)."""
     kept = [br for br in gone if remove_bridge(ctx, br)]
     for g in groups.values():
         ensure_bridge(ctx, g)
@@ -286,7 +286,7 @@ def apply_all(ctx, norm, cur, host):
         raise ApplyError("the DHCP unit is not installed; run ./update.sh once")
 
     gone = bridges_to_go(groups, cur["groups"], cur["orphans"])
-    # NetworkManager must keep ignoring a bridge until it is really gone, or it takes over the VM's port.
+    # NetworkManager must keep ignoring a bridge until it is really gone, or it takes over the box's port.
     step_networkmanager(ctx, [g["bridge"] for g in groups.values()] + [br for br in gone if bridge_in_use(br)])
     orphans = step_bridges(ctx, groups, gone)
     step_nft(ctx, groups, nft_text)

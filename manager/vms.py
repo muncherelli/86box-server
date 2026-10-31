@@ -1,4 +1,4 @@
-"""VM records: create, edit, delete, list, start/stop/reset. Hardware is never edited here (86Box Settings does that)."""
+"""Box records: create, edit, delete, list, start/stop/reset. Hardware is never edited here (86Box Settings does that)."""
 import configparser
 import datetime
 import glob
@@ -22,9 +22,9 @@ RESERVED = {"new", "api", "trash"}
 MEDIA_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,120}")
 LOCK = threading.Lock()
 # noVNC resolves path against the page URL (/novnc/vnc.html), so it must start with "/" to reach /websockify.
-# resize=remote makes the VM's display follow the browser window; resize=scale keeps a fixed display size.
+# resize=remote makes the box's display follow the browser window; resize=scale keeps a fixed display size.
 CONSOLE_FMT = "/novnc/vnc.html?path=%%2Fwebsockify%%3Ftoken%%3D%s&autoconnect=1&resize=%s&reconnect=1"
-DEFAULT_GEOMETRY = "1024x768"   # start size of every display; "auto" VMs then follow the browser
+DEFAULT_GEOMETRY = "1024x768"   # start size of every display; "auto" boxes then follow the browser
 RES_RE = re.compile(r"([0-9]{3,4})x([0-9]{3,4})")
 RESOLUTION_PRESETS = ["640x400", "640x480", "720x400", "800x600", "1024x768", "1152x864", "1280x1024", "1600x1200",
                       "1280x720", "1366x768", "1440x900", "1600x900", "1680x1050", "1920x1080", "1920x1200", "2560x1440"]
@@ -46,7 +46,7 @@ def parse_resolution(value):
 
 
 def console_url(name):
-    """Console link for a VM: 'auto' (the default) follows the browser window, a fixed size is scaled to fit."""
+    """Console link for a box: 'auto' (the default) follows the browser window, a fixed size is scaled to fit."""
     data = store.read_json(_p("vmdefs", name + ".json"), {})
     res = data.get("resolution", "auto") if isinstance(data, dict) else "auto"
     return CONSOLE_FMT % (name, "remote" if res == "auto" else "scale")
@@ -209,7 +209,7 @@ def _parse_disk_gb(disk_gb):
 
 
 def _create(name, template, disk_gb, cd, groups, autostart, users):
-    """template '' makes a blank VM (86Box's own defaults). Templates only choose the board and CPU.
+    """template '' makes a blank box (86Box's own defaults). Templates only choose the board and CPU.
     No hard disk and no CD drive are added unless asked for."""
     if not NAME_RE.fullmatch(name or "") or name in RESERVED:
         raise VmError("Name must be 2-31 characters: a-z, 0-9 and '-', starting with a letter.")
@@ -222,7 +222,7 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
     _check_common(groups, users)
     final, temp = _p("vms", name), _p("vms", ".new-" + name)
     if any(os.path.lexists(x) for x in (final, temp, _p("vmdefs", name + ".json"))):
-        raise VmError("A VM called %s already exists." % name)
+        raise VmError("A box called %s already exists." % name)
     display = _free_display(all_defs())
 
     if template:
@@ -272,7 +272,7 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
             shutil.rmtree(path, ignore_errors=True)
         if users_set:
             _auth().remove_vm(name)
-        raise VmError("Could not create the VM: %s" % e)
+        raise VmError("Could not create the box: %s" % e)
     return name
 
 
@@ -283,12 +283,12 @@ def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
         path = _p("vmdefs", name + ".json")
         data = store.read_json(path)
         if not isinstance(data, dict):
-            raise VmError("No such VM.")
+            raise VmError("No such box.")
         _check_common(groups, users)
         res = None if resolution is None else parse_resolution(resolution)
         if cd is not None:
             if busy(name):
-                raise VmError("Use the Media menu in the console while the VM is running.")
+                raise VmError("Use the Media menu in the console while the box is running.")
             if cd and not _iso_ok(cd):
                 raise VmError("That CD image is not in the media library.")
             cfg = _p("vms", name, "86box.cfg")
@@ -312,9 +312,9 @@ def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
 def delete_vm(name):
     with LOCK:
         if not os.path.exists(_p("vmdefs", name + ".json")):
-            raise VmError("No such VM.")
+            raise VmError("No such box.")
         if busy(name):
-            raise VmError("Stop the VM first.")
+            raise VmError("Stop the box first.")
         os.makedirs(_p("trash"), mode=0o700, exist_ok=True)
         dest = _p("trash", "%s-%s" % (name, _now().strftime("%Y%m%d-%H%M%S")))
         if os.path.exists(_p("vms", name)):
