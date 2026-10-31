@@ -170,7 +170,7 @@ def _free_display(defs):
 
 def _check_common(groups, users):
     for g in groups:
-        if g not in config.CFG["netgroups"]:
+        if g not in config.netgroups():
             raise VmError("Unknown network group: %s" % g)
     known = _auth().console_users()
     for u in users:

@@ -93,7 +93,7 @@ def _import(name, data, groups, autostart, users):
         p.read_string(data["cfg"])
     except configparser.Error as e:
         raise VmError("Cannot parse the 86box.cfg: %s" % e)
-    bridges = [config.CFG["netgroups"][g]["bridge"] for g in groups]
+    bridges = [config.netgroups()[g]["bridge"] for g in groups]
     problems = check_cfg(p, bridges)
     if problems:
         raise VmError("; ".join(problems))
@@ -162,7 +162,7 @@ def h_export(req, m):
 def _page(req, msg="", status=200):
     csrf = respond.esc(req.session["csrf"])
     groups = "".join('<label><input type="checkbox" name="group" value="%s"> %s</label> ' % ((respond.esc(g),) * 2)
-                     for g in sorted(config.CFG["netgroups"])) or "<em>none available</em>"
+                     for g in sorted(config.netgroups())) or "<em>none available</em>"
     users = "".join('<label><input type="checkbox" name="user" value="%s"> %s</label> ' % ((respond.esc(u),) * 2)
                     for u in sorted(vms._auth().console_users())) or "<em>none</em>"
     body = '<p class="error">%s</p>' % respond.esc(msg) if msg else ""

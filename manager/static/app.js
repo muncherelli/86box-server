@@ -82,3 +82,18 @@ function csrfToken() {
       .catch(function () {});
   }, 1000);
 })();
+
+// Network groups: wait while the root helper applies a change, then show the result.
+(function () {
+  if (!document.getElementById("net-apply")) return;
+  var timer = setInterval(function () {
+    fetch("/manage/api/netgroups/status", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || d.state === "applying") return;
+        clearInterval(timer);
+        location.href = "/manage/netgroups" + (d.state === "ok" ? "?done=1" : "");
+      })
+      .catch(function () {});
+  }, 1000);
+})();

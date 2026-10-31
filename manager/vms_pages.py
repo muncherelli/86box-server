@@ -50,6 +50,17 @@ def _checks(name, items, chosen, label):
         or "<em>none available</em>"
 
 
+def _group_checks(chosen):
+    """One checkbox per network group, with its subnet, and a link to manage them."""
+    groups = config.netgroups()
+    if not groups:
+        return '<em>No groups yet</em> - <a href="/manage/netgroups/new">create one</a>'
+    boxes = "".join('<label><input type="checkbox" name="group" value="%s"%s> %s <small>%s</small></label> '
+                    % (respond.esc(n), " checked" if n in chosen else "", respond.esc(n), respond.esc(g.get("cidr", "")))
+                    for n, g in sorted(groups.items()))
+    return boxes + ' <a href="/manage/netgroups">Manage network groups</a>'
+
+
 def _cd_select(current):
     opts = ['<option value="">(none)</option>'] + ['<option%s>%s</option>' % (" selected" if f == current else "", respond.esc(f))
                                                     for f in list_isos()]
@@ -75,7 +86,7 @@ def _new_page(req, msg="", status_code=200):
              '<p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"> Start at boot</label></p>'
              '<input type="submit" value="Create"></form>'
-             % (_csrf(req), opts, _cd_select(""), _checks("group", sorted(config.CFG["netgroups"]), (), "group"),
+             % (_csrf(req), opts, _cd_select(""), _group_checks(()),
                 _checks("user", sorted(vms._auth().console_users()), (), "user")))
     status_, headers, out = respond.page(req, "New VM", body, status_code)
     return status_, headers, out
@@ -104,7 +115,7 @@ def _edit_page(req, name, msg=""):
              '<input type="submit" value="Save"></form>'
              '<h2>Delete</h2><form method="post" action="/manage/vms/%s/delete">%s'
              '<p>Type the name to confirm: <input name="confirm"> <input type="submit" value="Delete"></p></form>'
-             % (q, _csrf(req), cd, _checks("group", sorted(config.CFG["netgroups"]), data.get("allowed_groups", []), "group"),
+             % (q, _csrf(req), cd, _group_checks(data.get("allowed_groups", [])),
                 _checks("user", sorted(vms._auth().console_users()), users, "user"),
                 " checked" if data.get("autostart") else "", respond.esc(data.get("resolution", "auto")),
                 "".join('<option value="%s">' % r for r in vms.RESOLUTION_PRESETS), q, _csrf(req)))

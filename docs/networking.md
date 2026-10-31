@@ -12,6 +12,15 @@ A group is a private virtual switch. On the VM's edit page you choose which grou
 
 So a VM with no groups still works. It just has no network. Guests in the same group can talk to each other; reaching the host, other groups or the internet is up to the group's settings below.
 
+## In the web UI
+
+Open **Networks** in the manager (admin only). It lists every group with its network, the host address guests use as their gateway, whether it has internet access or automatic addresses, which other groups it can reach and which VMs use it.
+
+- **New network group** suggests the first free `10.86.N.0/24`. You can pick **Custom...** and type any private network from `/16` to `/29`. The page checks that it does not overlap another group.
+- Tick **reach the internet through this host** for internet access, **Give VMs addresses automatically** for DHCP, and **Also let this group talk to** to link two groups.
+- A change takes a few seconds to apply, because a small root service builds the bridges. The page shows the result, or the reason it was refused.
+- A group cannot be renamed, and cannot be deleted while a VM is allowed to use it.
+
 ## Defining and changing groups
 
 > **After the first `./update.sh`, groups are managed in the web manager** (the Network groups page), not in the
