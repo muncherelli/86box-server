@@ -54,7 +54,7 @@ DEFAULT_RULES = {
 # ---------- validation and rendering ----------
 
 def _netgroups():
-    return config.CFG["netgroups"]
+    return config.netgroups()
 
 
 def _vm_groups(vm):

@@ -14,7 +14,7 @@ def _groups_html(name):
     if not groups:
         return "<p>This VM may not use any network group, so network cards cannot be attached.</p>"
     items = "".join("<li>%s (bridge <code>%s</code>)</li>" % (
-        respond.esc(g), respond.esc(config.CFG["netgroups"].get(g, {}).get("bridge", "?"))) for g in groups)
+        respond.esc(g), respond.esc(config.netgroups().get(g, {}).get("bridge", "?"))) for g in groups)
     return ("<p>Network cards must be of type <b>tap</b> (called &ldquo;TAP&rdquo; or &ldquo;Bridge&rdquo; in 86Box) and use one of "
             "these bridges. Anything else stops the VM within a few seconds.</p><ul>%s</ul>" % items)
 

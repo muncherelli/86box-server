@@ -28,7 +28,15 @@ Big uploads read `req.rfile` directly, exactly `req.length` bytes.
 
 ### Other modules
 
-- `config.CFG`: settings dict (`data_root`, `netgroups`, `manager_host`, `emu86box_tag`, ...). Tests set `B86_DATA_ROOT`.
+- `config.CFG`: settings dict (`data_root`, `manager_host`, `emu86box_tag`, ...). Tests set `B86_DATA_ROOT`.
+- `config.netgroups()` and `config.netpolicy()`: the network groups and group pairs as the root helper applied them
+  (read live from `/etc/86box-server/netgroups.json` and `netpolicy.json`; never read `CFG["netgroups"]`).
+  Tests point `config.NETGROUPS_PATH`, `NETPOLICY_PATH` and `NETAPPLY_RESULT` at a temp folder.
+- `netgroups_store.py` / `netgroups_ui.py`: the Network groups page. The manager has no network privileges, so a change
+  is a complete desired state written to `<data_root>/manager/netgroups-request.json` (`{id, netgroups, group_routes,
+  nat_dns}`). The root helper applies it and answers in `/run/86box-server/netapply.json` (`{id, ok, message,
+  warnings, ts}`). `GET /manage/api/netgroups/status` reports applying / ok / error / idle (30 s timeout).
+  `tools/fake-netapply.py` is a test-only stand-in for the helper.
 - `store.write_json / write_text / read_json / audit`: always write files with these (atomic, explicit mode).
 - `units.run(verb, unit)` and `units.is_active(unit)`: tests patch these; never call systemctl directly.
 - `respond.page(req, title, body_html)` wraps a page in `pages/layout.html`. Escape every value with `respond.esc`.
