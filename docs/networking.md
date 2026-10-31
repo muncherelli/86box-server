@@ -2,6 +2,16 @@
 
 Guests never get direct internet access by default. Each **network group** is one private Linux bridge on the host.
 
+## What a group means for a VM
+
+A group is a private virtual switch. On the VM's edit page you choose which groups the VM is **allowed** to use. Then, in 86Box's Settings window, you add a network card and set its network type:
+
+- **None** (the default): the card exists in the guest but is connected to nothing. This is always allowed and needs no group.
+- **TAP**: connects the card to a host bridge. The bridge must belong to one of the VM's allowed groups. If it doesn't, the config guard stops the VM and the VM list says why.
+- Any other type (SLiRP, PCap, VDE) is refused, because it would bypass the groups.
+
+So a VM with no groups still works. It just has no network. Guests in the same group can talk to each other; reaching the host, other groups or the internet is up to the group's settings below.
+
 ## Defining groups
 
 In your inventory (`group_vars/all/main.yml`):

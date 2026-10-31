@@ -26,7 +26,7 @@ for cfg in "$dir"/*.cfg; do
     saved="$W/$id/86box.cfg"
     reason=""
     grep -q '^\[General\]' "$saved" || reason="86Box did not save the config"
-    for key in machine cpu_family cpu_speed gfxcard; do
+    for key in machine cpu_family cpu_speed; do
         [ -z "$reason" ] || break
         want=$(value "$cfg" "$key")
         got=$(value "$saved" "$key")

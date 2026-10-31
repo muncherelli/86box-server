@@ -187,18 +187,36 @@ def create_vm(name, template, disk_gb, cd, groups, autostart, users):
         return _create(name, template, disk_gb, cd, groups, autostart, users)
 
 
-def _create(name, template, disk_gb, cd, groups, autostart, users):
-    if not NAME_RE.fullmatch(name or "") or name in RESERVED:
-        raise VmError("Name must be 2-31 characters: a-z, 0-9 and '-', starting with a letter.")
-    tpl = list_templates().get(template)
-    if tpl is None:
-        raise VmError("Unknown template.")
+def ensure_cdrom(p):
+    """Give the config a CD-ROM drive (ATAPI, secondary slot) unless it already has one."""
+    section = "Floppy and CD-ROM drives"
+    if not p.has_section(section):
+        p.add_section(section)
+    if not p.has_option(section, "cdrom_01_parameters"):
+        p.set(section, "cdrom_01_parameters", "1, atapi")
+        p.set(section, "cdrom_01_ide_channel", "0:1")
+
+
+def _parse_disk_gb(disk_gb):
+    """Empty or 0 means no hard disk; otherwise a whole number of GB from 1 to 7."""
     try:
-        gb = int(disk_gb) if disk_gb else int(tpl.get("disk_gb", 2))
+        gb = int(disk_gb) if str(disk_gb or "").strip() else 0
     except ValueError:
         raise VmError("Disk size must be a whole number of GB.")
-    if not 1 <= gb <= 7:
-        raise VmError("Disk size must be 1-7 GB.")
+    if gb != 0 and not 1 <= gb <= 7:
+        raise VmError("Disk size must be 1-7 GB, or empty for no hard disk.")
+    return gb
+
+
+def _create(name, template, disk_gb, cd, groups, autostart, users):
+    """template '' makes a blank VM (86Box's own defaults). Templates only choose the board and CPU.
+    No hard disk and no CD drive are added unless asked for."""
+    if not NAME_RE.fullmatch(name or "") or name in RESERVED:
+        raise VmError("Name must be 2-31 characters: a-z, 0-9 and '-', starting with a letter.")
+    template = template or ""
+    if template and template not in list_templates():
+        raise VmError("Unknown template.")
+    gb = _parse_disk_gb(disk_gb)
     if cd and not _iso_ok(cd):
         raise VmError("That CD image is not in the media library.")
     _check_common(groups, users)
@@ -207,19 +225,22 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
         raise VmError("A VM called %s already exists." % name)
     display = _free_display(all_defs())
 
-    p = _read_cfg(os.path.join(_tpl_dir(), template + ".cfg"))
-    if p.has_option("Hard disks", "hdd_01_parameters") and \
-            p.get("Hard disks", "hdd_01_parameters").split(",")[-1].strip() != "ide":
-        raise VmError("Only IDE disks are supported in templates.")
-    cyl = min(16383, math.floor(gb * 1024 ** 3 / 516096))
-    if not p.has_section("Hard disks"):
-        p.add_section("Hard disks")
-    p.set("Hard disks", "hdd_01_parameters", "63, 16, %d, 0, ide" % cyl)
-    p.set("Hard disks", "hdd_01_fn", "disks/hdd1.img")
-    p.set("Hard disks", "hdd_01_ide_channel", "0:0")
+    if template:
+        p = _read_cfg(os.path.join(_tpl_dir(), template + ".cfg"))
+    else:
+        p = configparser.ConfigParser(interpolation=None, strict=False)
+        p.optionxform = str
+        p.add_section("General")
+        p.set("General", "vid_resize", "1")
+    cyl = min(16383, math.floor(gb * 1024 ** 3 / 516096)) if gb else 0
+    if gb:
+        if not p.has_section("Hard disks"):
+            p.add_section("Hard disks")
+        p.set("Hard disks", "hdd_01_parameters", "63, 16, %d, 0, ide" % cyl)
+        p.set("Hard disks", "hdd_01_fn", "disks/hdd1.img")
+        p.set("Hard disks", "hdd_01_ide_channel", "0:0")
     if cd:
-        if not p.has_section("Floppy and CD-ROM drives"):
-            p.add_section("Floppy and CD-ROM drives")
+        ensure_cdrom(p)
         p.set("Floppy and CD-ROM drives", "cdrom_01_image_path", _p("media", "isos", cd))
 
     users_set = False
@@ -228,11 +249,12 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
         for sub in ("disks", "floppies", "snapshots"):
             _mkdir(os.path.join(temp, sub))
         _write_cfg(p, os.path.join(temp, "86box.cfg"))
-        disk = os.path.join(temp, "disks", "hdd1.img")
-        with open(disk, "wb") as f:
-            f.truncate(63 * 16 * cyl * 512)
-        os.chmod(disk, 0o660)
-        _group(disk)
+        if gb:
+            disk = os.path.join(temp, "disks", "hdd1.img")
+            with open(disk, "wb") as f:
+                f.truncate(63 * 16 * cyl * 512)
+            os.chmod(disk, 0o660)
+            _group(disk)
         os.rename(temp, final)
         store.write_text(_p("vmdefs", name + ".env"), _env_text(display, "auto"), mode=0o644)
         store.write_json(_p("vmdefs", name + ".json"), {
@@ -273,8 +295,7 @@ def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
             p = _read_cfg(cfg)
             section = "Floppy and CD-ROM drives"
             if cd:
-                if not p.has_section(section):
-                    p.add_section(section)
+                ensure_cdrom(p)
                 p.set(section, "cdrom_01_image_path", _p("media", "isos", cd))
             elif p.has_option(section, "cdrom_01_image_path"):
                 p.remove_option(section, "cdrom_01_image_path")

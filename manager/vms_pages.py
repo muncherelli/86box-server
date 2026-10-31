@@ -58,13 +58,21 @@ def _cd_select(current):
 
 def _new_page(req, msg="", status_code=200):
     tpls = list_templates()
-    opts = "".join('<option value="%s">%s</option>' % (respond.esc(k), respond.esc(v["name"])) for k, v in tpls.items())
+    opts = '<option value="">Blank: no template, set everything in Settings</option>' + "".join(
+        '<option value="%s">%s</option>' % (respond.esc(k), respond.esc(v["name"])) for k, v in tpls.items())
     body = ('<p class="error">%s</p>' % respond.esc(msg)) if msg else ""
     body += ('<form method="post" action="/manage/vms/new">%s'
              '<p>Name <input name="name" required pattern="[a-z][a-z0-9-]{1,30}"></p>'
              '<p>Template <select name="template">%s</select></p>'
-             '<p>Disk GB (1-7) <input name="disk_gb" type="number" min="1" max="7" placeholder="template default"></p>'
-             '<p>CD image %s</p><p>Network groups %s</p><p>Console users %s</p>'
+             '<p class="hint">A template only picks the board and CPU. Disks, video, sound and the rest are set in '
+             'the 86Box Settings window.</p>'
+             '<p>Hard disk GB (1-7) <input name="disk_gb" type="number" min="1" max="7" placeholder="none"></p>'
+             '<p>CD image %s</p>'
+             '<p>Network groups %s</p>'
+             '<p class="hint">A network group is a private virtual switch. VMs in the same group can talk to each other '
+             'and nothing else; they get no internet unless the group allows it. With no group the VM has no network: '
+             'a card set to network type None does nothing, and type TAP needs a group.</p>'
+             '<p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"> Start at boot</label></p>'
              '<input type="submit" value="Create"></form>'
              % (_csrf(req), opts, _cd_select(""), _checks("group", sorted(config.CFG["netgroups"]), (), "group"),

@@ -254,8 +254,57 @@ class VmsTest(unittest.TestCase):
         self.assertIn("&lt;b&gt;x", out)
 
     def test_templates_listed(self):
-        t = vms.list_templates()
-        self.assertEqual(t["ppro200"]["disk_gb"], 2)
+        self.assertIn("ppro200", vms.list_templates())
+
+    def cfg_of(self, name):
+        cfg = configparser.ConfigParser(interpolation=None)
+        cfg.optionxform = str
+        cfg.read(self.p("vms", name, "86box.cfg"))
+        return cfg
+
+    def test_no_disk_and_no_cd_drive_by_default(self):
+        self.make("plain")
+        cfg = self.cfg_of("plain")
+        self.assertEqual(cfg["Machine"]["machine"], "p65up5_cp6nd")
+        for section in ("Hard disks", "Floppy and CD-ROM drives", "Video", "Input devices"):
+            self.assertFalse(cfg.has_section(section), section)
+        self.assertEqual(os.listdir(self.p("vms/plain/disks")), [])
+
+    def test_blank_vm_has_no_hardware_at_all(self):
+        self.make("blank", template="")
+        cfg = self.cfg_of("blank")
+        self.assertEqual(cfg.sections(), ["General"])
+        self.assertEqual(cfg["General"]["vid_resize"], "1")
+        self.assertEqual(json.loads(rd(self.p("vmdefs/blank.json")))["template"], "")
+        self.assertTrue(os.path.isdir(self.p("vms/blank/disks")))
+
+    def test_disk_is_only_made_when_asked_for(self):
+        self.make("big", template="", disk_gb="1")
+        self.assertEqual(self.cfg_of("big")["Hard disks"]["hdd_01_fn"], "disks/hdd1.img")
+        self.assertTrue(os.path.exists(self.p("vms/big/disks/hdd1.img")))
+        self.make("zero", template="", disk_gb="0")
+        self.assertFalse(os.path.exists(self.p("vms/zero/disks/hdd1.img")))
+        for bad in ("8", "-1", "abc"):
+            with self.assertRaises(vms.VmError):
+                self.make("bad", disk_gb=bad)
+
+    def test_choosing_a_cd_adds_the_drive(self):
+        self.make("withcd", template="", cd="os.iso")
+        drives = self.cfg_of("withcd")["Floppy and CD-ROM drives"]
+        self.assertEqual(drives["cdrom_01_parameters"], "1, atapi")
+        self.assertEqual(drives["cdrom_01_image_path"], self.p("media/isos/os.iso"))
+        self.make("later", template="")
+        vms.edit_vm("later", [], False, [], cd="os.iso")
+        self.assertEqual(self.cfg_of("later")["Floppy and CD-ROM drives"]["cdrom_01_parameters"], "1, atapi")
+
+    def test_unknown_template_is_refused(self):
+        with self.assertRaises(vms.VmError):
+            self.make("nope", template="does-not-exist")
+
+    def test_new_vm_form_offers_a_blank_template(self):
+        out = vms_pages._new_page(Req(ADMIN))[2].decode()
+        self.assertIn('<option value="">Blank', out)
+        self.assertIn("network group is a private virtual switch", out)
 
 
 if __name__ == "__main__":

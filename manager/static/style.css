@@ -9,3 +9,4 @@ button, input[type=submit] { padding: .3rem .8rem; }
 .error { color: #a00; }
 header nav { display: inline-block; margin-left: 1rem; }
 header nav a { color: #ccc; margin-right: .8rem; font-weight: 400; }
+.hint { color: #666; font-size: .9em; margin-top: -.4rem; }

@@ -240,6 +240,9 @@ def attach_file(vm, kind, filename):
         p.add_section("Floppy and CD-ROM drives")
     section = p["Floppy and CD-ROM drives"]
     if kind == "isos":
+        if "cdrom_01_parameters" not in section:  # a VM made without a CD drive gets one
+            section["cdrom_01_parameters"] = "1, atapi"
+            section["cdrom_01_ide_channel"] = "0:1"
         section["cdrom_01_image_path"] = src
     else:
         sub = "floppies" if kind == "floppies" else "disks"
