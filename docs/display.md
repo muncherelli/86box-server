@@ -15,7 +15,7 @@ A display smaller than the guest's mode still works: the picture is scaled down.
 
 ## How it fits together
 
-- The size is stored as `resolution` in `vmdefs/<name>.json` and as `B86_GEOMETRY` in `vmdefs/<name>.env`; `vnc@.service` passes it to `Xvnc -geometry`. Old env files without it use 1024x768.
+- The size is stored as `resolution` in `boxdefs/<name>.json` and as `B86_GEOMETRY` in `boxdefs/<name>.env`; `vnc@.service` passes it to `Xvnc -geometry`. Old env files without it use 1024x768.
 - The console link uses noVNC's `resize=remote` for `auto` (the browser asks Xvnc to change size) and `resize=scale` for a fixed size.
 - `/opt/86box-server/openbox-rc.xml` tells openbox to maximize the main 86Box window and drop its title bar. The 86Box Settings dialog stays a normal window.
 - 86Box must have a resizable window for this. New boxes get `vid_resize = 1` from the template; for older boxes, `libexec/ensure-resize` adds the key at start if it is missing. If you turn "Resizeable window" off in 86Box's Settings, the window stays at its own size.

@@ -53,7 +53,7 @@ class VmsTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = self.tmp.name
-        for d in ("vmdefs", "vms", "media/isos", "vnc-tokens", "manager"):
+        for d in ("boxdefs", "boxes", "media/isos", "vnc-tokens", "manager"):
             os.makedirs(os.path.join(self.root, d))
         self.old = dict(config.CFG)
         config.CFG.update(data_root=self.root, emu86box_tag="v6.0",
@@ -86,19 +86,19 @@ class VmsTest(unittest.TestCase):
         self.make("test2", disk_gb="2", cd="os.iso", groups=["lab"], users=["bob"])
         cfg = configparser.ConfigParser(interpolation=None)
         cfg.optionxform = str
-        cfg.read(self.p("vms/test2/86box.cfg"))
+        cfg.read(self.p("boxes/test2/86box.cfg"))
         self.assertEqual(cfg["Hard disks"]["hdd_01_parameters"], "63, 16, 4161, 0, ide")
         self.assertEqual(cfg["Hard disks"]["hdd_01_fn"], "disks/hdd1.img")
         self.assertEqual(cfg["Machine"]["machine"], "p65up5_cp6nd")
         self.assertEqual(cfg["Floppy and CD-ROM drives"]["cdrom_01_image_path"], self.p("media/isos/os.iso"))
-        self.assertEqual(os.path.getsize(self.p("vms/test2/disks/hdd1.img")), 2147475456)
-        self.assertEqual(stat.S_IMODE(os.stat(self.p("vms/test2/86box.cfg")).st_mode), 0o660)
-        self.assertEqual(stat.S_IMODE(os.stat(self.p("vms/test2")).st_mode), 0o2770)
+        self.assertEqual(os.path.getsize(self.p("boxes/test2/disks/hdd1.img")), 2147475456)
+        self.assertEqual(stat.S_IMODE(os.stat(self.p("boxes/test2/86box.cfg")).st_mode), 0o660)
+        self.assertEqual(stat.S_IMODE(os.stat(self.p("boxes/test2")).st_mode), 0o2770)
         for sub in ("disks", "floppies", "snapshots"):
-            self.assertTrue(os.path.isdir(self.p("vms/test2", sub)))
-        d = json.loads(rd(self.p("vmdefs/test2.json")))
+            self.assertTrue(os.path.isdir(self.p("boxes/test2", sub)))
+        d = json.loads(rd(self.p("boxdefs/test2.json")))
         self.assertEqual((d["display"], d["allowed_groups"], d["autostart"]), (10, ["lab"], False))
-        self.assertEqual(rd(self.p("vmdefs/test2.env")), "B86_DISPLAY=10\nB86_VNC_PORT=5910\nDISPLAY=:10\nB86_GEOMETRY=1024x768\n")
+        self.assertEqual(rd(self.p("boxdefs/test2.env")), "B86_DISPLAY=10\nB86_VNC_PORT=5910\nDISPLAY=:10\nB86_GEOMETRY=1024x768\n")
         self.assertEqual(rd(self.p("vnc-tokens/test2")), "test2: 127.0.0.1:5910\n")
         self.assertEqual(stat.S_IMODE(os.stat(self.p("vnc-tokens/test2")).st_mode), 0o600)
         self.assertEqual(self.auth.calls, [("set", "test2", ["bob"])])
@@ -132,8 +132,8 @@ class VmsTest(unittest.TestCase):
         with mock.patch.object(vms, "_write_token", side_effect=OSError("boom")):
             with self.assertRaises(vms.VmError):
                 self.make("test3", users=["bob"])
-        self.assertEqual(os.listdir(self.p("vms")), [])
-        self.assertEqual(os.listdir(self.p("vmdefs")), [])
+        self.assertEqual(os.listdir(self.p("boxes")), [])
+        self.assertEqual(os.listdir(self.p("boxdefs")), [])
         self.assertEqual(os.listdir(self.p("vnc-tokens")), [])
         self.assertEqual(self.auth.calls, [])
 
@@ -141,19 +141,19 @@ class VmsTest(unittest.TestCase):
         self.auth.set_vm_users = mock.Mock(side_effect=OSError("boom"))
         with self.assertRaises(vms.VmError):
             self.make("test3", users=["bob"])
-        self.assertEqual(os.listdir(self.p("vms")), [])
-        self.assertEqual(os.listdir(self.p("vmdefs")), [])
+        self.assertEqual(os.listdir(self.p("boxes")), [])
+        self.assertEqual(os.listdir(self.p("boxdefs")), [])
         self.assertIn(("remove", "test3"), self.auth.calls)
 
     def test_delete_moves_to_trash(self):
         self.make("test2")
-        self.active.add("vm@test2.service")
+        self.active.add("box@test2.service")
         with self.assertRaises(vms.VmError):
             vms.delete_vm("test2")
         self.active.clear()
         vms.delete_vm("test2")
-        self.assertFalse(os.path.exists(self.p("vms/test2")))
-        self.assertEqual(os.listdir(self.p("vmdefs")), [])
+        self.assertFalse(os.path.exists(self.p("boxes/test2")))
+        self.assertEqual(os.listdir(self.p("boxdefs")), [])
         self.assertEqual(os.listdir(self.p("vnc-tokens")), [])
         trash = os.listdir(self.p("trash"))
         self.assertEqual(len(trash), 1)
@@ -166,12 +166,12 @@ class VmsTest(unittest.TestCase):
     def test_edit_and_cd_change(self):
         self.make("test2")
         vms.edit_vm("test2", ["web"], True, ["bob"], cd="os.iso")
-        d = json.loads(rd(self.p("vmdefs/test2.json")))
+        d = json.loads(rd(self.p("boxdefs/test2.json")))
         self.assertEqual((d["allowed_groups"], d["autostart"], d["template"]), (["web"], True, "ppro200"))
-        self.assertIn("os.iso", rd(self.p("vms/test2/86box.cfg")))
+        self.assertIn("os.iso", rd(self.p("boxes/test2/86box.cfg")))
         vms.edit_vm("test2", ["web"], True, [], cd="")
-        self.assertNotIn("cdrom_01_image_path", rd(self.p("vms/test2/86box.cfg")))
-        self.active.add("vm@test2.service")
+        self.assertNotIn("cdrom_01_image_path", rd(self.p("boxes/test2/86box.cfg")))
+        self.active.add("box@test2.service")
         with self.assertRaises(vms.VmError):
             vms.edit_vm("test2", [], False, [], cd="os.iso")
         vms.edit_vm("test2", [], False, [], cd=None)  # busy is fine when the CD is left alone
@@ -191,23 +191,23 @@ class VmsTest(unittest.TestCase):
 
     def test_resolution_is_saved_and_written_to_the_env_file(self):
         self.make("test2")
-        self.assertIn("B86_GEOMETRY=1024x768\n", rd(self.p("vmdefs/test2.env")))
+        self.assertIn("B86_GEOMETRY=1024x768\n", rd(self.p("boxdefs/test2.env")))
         vms.edit_vm("test2", [], False, [], resolution="1280x1024")
-        d = json.loads(rd(self.p("vmdefs/test2.json")))
-        env = rd(self.p("vmdefs/test2.env"))
+        d = json.loads(rd(self.p("boxdefs/test2.json")))
+        env = rd(self.p("boxdefs/test2.env"))
         self.assertEqual(d["resolution"], "1280x1024")
         self.assertIn("B86_GEOMETRY=1280x1024\n", env)
         self.assertIn("B86_DISPLAY=%d\n" % d["display"], env)
         self.assertIn("resize=scale", vms.console_url("test2"))
         vms.edit_vm("test2", [], False, [], resolution=None)          # left alone
-        self.assertEqual(json.loads(rd(self.p("vmdefs/test2.json")))["resolution"], "1280x1024")
+        self.assertEqual(json.loads(rd(self.p("boxdefs/test2.json")))["resolution"], "1280x1024")
         vms.edit_vm("test2", [], False, [], resolution="auto")        # back to following the browser
-        self.assertIn("B86_GEOMETRY=1024x768\n", rd(self.p("vmdefs/test2.env")))
+        self.assertIn("B86_GEOMETRY=1024x768\n", rd(self.p("boxdefs/test2.env")))
         self.assertIn("resize=remote", vms.console_url("test2"))
-        before = rd(self.p("vmdefs/test2.env"))
+        before = rd(self.p("boxdefs/test2.env"))
         with self.assertRaises(vms.VmError):
             vms.edit_vm("test2", [], False, [], resolution="9999x9999")
-        self.assertEqual(rd(self.p("vmdefs/test2.env")), before)      # a refused size changes nothing
+        self.assertEqual(rd(self.p("boxdefs/test2.env")), before)      # a refused size changes nothing
 
     def test_console_url_defaults_to_following_the_browser(self):
         url = vms.console_url("nope")
@@ -217,19 +217,19 @@ class VmsTest(unittest.TestCase):
     def test_actions_and_permissions(self):
         self.make("test2")
         user = {"name": "bob", "role": "console", "vms": []}
-        m = re.fullmatch(vms_pages.ROUTES[-1][1], "/manage/api/vm/test2/reset")
+        m = re.fullmatch(vms_pages.ROUTES[-1][1], "/manage/api/box/test2/reset")
         self.assertEqual(vms_pages.h_api_action(Req(user), m)[0], 403)
         user["vms"] = ["test2"]
         self.assertEqual(vms_pages.h_api_action(Req(user), m)[0], 200)
-        vms.units.run.assert_called_with("restart", "vm@test2.service")
-        m = re.fullmatch(vms_pages.ROUTES[-1][1], "/manage/api/vm/test2/stop")
+        vms.units.run.assert_called_with("restart", "box@test2.service")
+        m = re.fullmatch(vms_pages.ROUTES[-1][1], "/manage/api/box/test2/stop")
         vms_pages.h_api_action(Req(user), m)
-        vms.units.run.assert_called_with("stop", "vm@test2.service")
+        vms.units.run.assert_called_with("stop", "box@test2.service")
 
     def test_list_hides_other_vms_and_shows_state(self):
         self.make("aa")
         self.make("bb")
-        self.active.add("vm@aa.service")
+        self.active.add("box@aa.service")
         user = {"name": "bob", "role": "console", "vms": ["aa"]}
         body = json.loads(vms_pages.h_api_list(Req(user), None)[2])
         self.assertEqual([(v["name"], v["state"]) for v in body["vms"]], [("aa", "running")])
@@ -259,7 +259,7 @@ class VmsTest(unittest.TestCase):
     def cfg_of(self, name):
         cfg = configparser.ConfigParser(interpolation=None)
         cfg.optionxform = str
-        cfg.read(self.p("vms", name, "86box.cfg"))
+        cfg.read(self.p("boxes", name, "86box.cfg"))
         return cfg
 
     def test_no_disk_and_no_cd_drive_by_default(self):
@@ -268,22 +268,22 @@ class VmsTest(unittest.TestCase):
         self.assertEqual(cfg["Machine"]["machine"], "p65up5_cp6nd")
         for section in ("Hard disks", "Floppy and CD-ROM drives", "Video", "Input devices"):
             self.assertFalse(cfg.has_section(section), section)
-        self.assertEqual(os.listdir(self.p("vms/plain/disks")), [])
+        self.assertEqual(os.listdir(self.p("boxes/plain/disks")), [])
 
     def test_blank_vm_has_no_hardware_at_all(self):
         self.make("blank", template="")
         cfg = self.cfg_of("blank")
         self.assertEqual(cfg.sections(), ["General"])
         self.assertEqual(cfg["General"]["vid_resize"], "1")
-        self.assertEqual(json.loads(rd(self.p("vmdefs/blank.json")))["template"], "")
-        self.assertTrue(os.path.isdir(self.p("vms/blank/disks")))
+        self.assertEqual(json.loads(rd(self.p("boxdefs/blank.json")))["template"], "")
+        self.assertTrue(os.path.isdir(self.p("boxes/blank/disks")))
 
     def test_disk_is_only_made_when_asked_for(self):
         self.make("big", template="", disk_gb="1")
         self.assertEqual(self.cfg_of("big")["Hard disks"]["hdd_01_fn"], "disks/hdd1.img")
-        self.assertTrue(os.path.exists(self.p("vms/big/disks/hdd1.img")))
+        self.assertTrue(os.path.exists(self.p("boxes/big/disks/hdd1.img")))
         self.make("zero", template="", disk_gb="0")
-        self.assertFalse(os.path.exists(self.p("vms/zero/disks/hdd1.img")))
+        self.assertFalse(os.path.exists(self.p("boxes/zero/disks/hdd1.img")))
         for bad in ("8", "-1", "abc"):
             with self.assertRaises(vms.VmError):
                 self.make("bad", disk_gb=bad)

@@ -74,7 +74,7 @@ def _netgroups():
 def _vm_groups(vm):
     if not re.fullmatch(VM_RE, vm):
         raise ValueError("bad box name")
-    path = os.path.join(config.CFG["data_root"], "vmdefs", vm + ".json")
+    path = os.path.join(config.CFG["data_root"], "boxdefs", vm + ".json")
     rec = store.read_json(path)
     if rec is None:
         raise ValueError("unknown box '%s'" % vm)

@@ -31,14 +31,14 @@ def page(req, m):
         return respond.text("not found", 404)
     q = respond.esc(name)
     console = respond.esc(vms.console_url(name))
-    if units.is_active("vm@%s.service" % name):
+    if units.is_active("box@%s.service" % name):
         body = ('<p>This box is running. Open the <a href="%s" target="_blank" rel="noopener">console</a>, then use the 86Box menu '
                 '<b>Tools &gt; Settings&hellip;</b>. Saving the settings resets the box.</p>' % console)
-    elif units.is_active("vm-settings@%s.service" % name):
+    elif units.is_active("box-settings@%s.service" % name):
         body = '<p>The settings window is open in the <a href="%s" target="_blank" rel="noopener">console</a>. Close it to finish.</p>' % console
     else:
         body = ('<p>This box is stopped. The Settings window opens on its own in the console; closing it ends the session.</p>'
-                '<form method="post" action="/manage/vms/%s/settings/open"><input type="hidden" name="csrf" value="%s">'
+                '<form method="post" action="/manage/boxes/%s/settings/open"><input type="hidden" name="csrf" value="%s">'
                 '<input type="submit" value="Open Settings"></form>' % (q, respond.esc(req.session["csrf"])))
     return respond.page(req, "Settings for " + name, body + _groups_html(name))
 
@@ -47,16 +47,16 @@ def open_settings(req, m):
     name = m.group(1)
     if not _allowed(req, name):
         return respond.text("not found", 404)
-    if units.is_active("vm@%s.service" % name):
-        return respond.redirect("/manage/vms/%s/settings" % name)
-    if not units.is_active("vm-settings@%s.service" % name):
-        ok, err = units.run("start", "vm-settings@%s.service" % name)
+    if units.is_active("box@%s.service" % name):
+        return respond.redirect("/manage/boxes/%s/settings" % name)
+    if not units.is_active("box-settings@%s.service" % name):
+        ok, err = units.run("start", "box-settings@%s.service" % name)
         if not ok:
             return respond.page(req, "Settings for " + name, '<p class="error">%s</p>' % respond.esc(err), 500)
     return respond.redirect(vms.console_url(name))
 
 
 ROUTES = [
-    ("GET", r"/manage/vms/%s/settings" % N, page, "admin"),
-    ("POST", r"/manage/vms/%s/settings/open" % N, open_settings, "admin"),
+    ("GET", r"/manage/boxes/%s/settings" % N, page, "admin"),
+    ("POST", r"/manage/boxes/%s/settings/open" % N, open_settings, "admin"),
 ]

@@ -51,7 +51,7 @@ def usage_usec(cg):
 
 
 def vm_names():
-    root = os.path.join(config.CFG["data_root"], "vmdefs")
+    root = os.path.join(config.CFG["data_root"], "boxdefs")
     return [n for n in (os.path.basename(p)[:-5] for p in sorted(glob.glob(root + "/*.json"))) if VM_RE.fullmatch(n)]
 
 
@@ -77,10 +77,10 @@ class Sampler:
 
         vms = {}
         for name in vm_names():
-            info = {"active": units.is_active("vm@%s.service" % name)}
+            info = {"active": units.is_active("box@%s.service" % name)}
             if info["active"]:
                 try:
-                    cg = cgroup_dir("vm@%s.service" % name)
+                    cg = cgroup_dir("box@%s.service" % name)
                     usec = usage_usec(cg)
                     prev = self.last_vm.get(name)
                     info["cpu_percent"] = round(100.0 * (usec - prev[0]) / ((now - prev[1]) * 1e6), 1) if prev and now > prev[1] else 0.0
@@ -92,7 +92,7 @@ class Sampler:
                 self.last_vm.pop(name, None)
             cached = self.du.get(name)
             if not cached or now - cached[1] >= DU_EVERY:
-                r = subprocess.run(["du", "-sb", os.path.join(config.CFG["data_root"], "vms", name)],
+                r = subprocess.run(["du", "-sb", os.path.join(config.CFG["data_root"], "boxes", name)],
                                    capture_output=True, text=True)
                 self.du[name] = (int(r.stdout.split()[0]) if r.returncode == 0 and r.stdout else 0, now)
             info["disk"] = self.du[name][0]

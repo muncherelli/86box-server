@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Check a box's 86box.cfg: network cards may only be tap NICs on the box's allowed bridges.
 # Usage: cfg-guard <name> [--enforce]
-# Trust: vmdefs/<name>.json is trusted; everything in vms/<name>/ is not.
+# Trust: boxdefs/<name>.json is trusted; everything in vms/<name>/ is not.
 # This is a check, not a sandbox. The unit's ReadWritePaths is the real boundary.
 import configparser
 import datetime
@@ -30,11 +30,11 @@ def read_json(path):
 
 
 def check(name):
-    vmdef = read_json("%s/vmdefs/%s.json" % (ROOT, name))
+    vmdef = read_json("%s/boxdefs/%s.json" % (ROOT, name))
     groups = read_json(NETGROUPS)
     allowed = [groups[g]["bridge"] for g in vmdef.get("allowed_groups", []) if g in groups]
 
-    cfg = "%s/vms/%s/86box.cfg" % (ROOT, name)
+    cfg = "%s/boxes/%s/86box.cfg" % (ROOT, name)
     try:
         fd = os.open(cfg, os.O_RDONLY | os.O_NOFOLLOW)
         with os.fdopen(fd, "rb") as f:
@@ -84,7 +84,7 @@ def main():
     for line in problems:
         print(line, file=sys.stderr)
     if problems and enforce:
-        subprocess.run(["systemctl", "stop", "vm@%s" % name], check=False)
+        subprocess.run(["systemctl", "stop", "box@%s" % name], check=False)
     sys.exit(1 if problems else 0)
 
 

@@ -1,12 +1,12 @@
 [Unit]
-Description=Window manager for Box %i (makes the 86Box window fill the display)
+Description=Window manager for box %i (makes the 86Box window fill the display)
 BindsTo=vnc@%i.service
 After=vnc@%i.service
 
 [Service]
 User={{ vm_service_user }}
 Group={{ vm_service_user }}
-EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
+EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
 RuntimeDirectory=wm-%i
 Environment=HOME=%t/wm-%i
 ExecStartPre=/opt/86box-server/libexec/wait-x %i

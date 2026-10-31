@@ -92,7 +92,7 @@ class MediaTest(unittest.TestCase):
         self.assertFalse(os.path.exists(p))
 
     def _vm(self, cdrom):
-        d = os.path.join(self.root, "vms/vm1")
+        d = os.path.join(self.root, "boxes/vm1")
         os.makedirs(d)
         open(os.path.join(d, "86box.cfg"), "w").write("[Floppy and CD-ROM drives]\ncdrom_01_image_path = %s\n" % cdrom)
 
@@ -121,7 +121,7 @@ class MediaTest(unittest.TestCase):
             self.assertIsNone(media.attach_file("vm1", "floppies", "f.img"))
             self.assertIsNone(media.attach_file("vm1", "disks", "d.vhd"))
             self.assertIn("already", media.attach_file("vm1", "floppies", "f.img"))
-        vm = os.path.join(self.root, "vms/vm1")
+        vm = os.path.join(self.root, "boxes/vm1")
         cfg = open(os.path.join(vm, "86box.cfg")).read()
         self.assertIn("cdrom_01_image_path = " + os.path.join(self.root, "media/isos/a.iso"), cfg)
         self.assertIn("fdd_01_fn = " + os.path.join(vm, "floppies/f.img"), cfg)

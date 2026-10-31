@@ -22,7 +22,7 @@ class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         root = self.tmp.name
-        for d in ("vmdefs", "manager", "sites.d"):
+        for d in ("boxdefs", "manager", "sites.d"):
             os.makedirs(os.path.join(root, d))
         self.sites_dir = os.path.join(root, "sites.d")
         snip = os.path.join(root, "snippets.caddy")
@@ -32,7 +32,7 @@ class Base(unittest.TestCase):
         config.CFG.update(data_root=root, sites_dir=self.sites_dir, validate_snippets=snip, edge_mode="acme",
                           publish_domains=["example.com"],
                           netgroups={"web": {"bridge": "br-web", "cidr": "10.86.1.0/24"}})
-        store.write_json(os.path.join(root, "vmdefs", "nt4-web.json"), {"allowed_groups": ["web"]})
+        store.write_json(os.path.join(root, "boxdefs", "nt4-web.json"), {"allowed_groups": ["web"]})
 
     def tearDown(self):
         config.CFG.clear()

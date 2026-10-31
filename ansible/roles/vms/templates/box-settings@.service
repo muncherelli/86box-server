@@ -1,27 +1,27 @@
 [Unit]
-Description=86Box settings window for Box %i
+Description=86Box settings window for box %i
 
 Requires=vnc@%i.service
 Wants=wm@%i.service
 After=vnc@%i.service wm@%i.service
 
 [Service]
-ExecStartPre=/bin/sh -c '! systemctl is-active --quiet vm@%i.service'
+ExecStartPre=/bin/sh -c '! systemctl is-active --quiet box@%i.service'
 User={{ vm_service_user }}
 Group={{ vm_service_user }}
 SupplementaryGroups={{ vm_share_group }}
 UMask=0007
-EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
-Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
+EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
+Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/boxes/%i
 CacheDirectory=86box-vm
 Environment=XDG_CACHE_HOME=/var/cache/86box-vm
 ExecStartPre=/opt/86box-server/libexec/wait-x %i
-ExecStart=/opt/86box-server/86box/current/AppRun -S -N -P {{ vm_data_root }}/vms/%i/ -R /opt/86box-server/roms/current
-ExecStopPost=+/opt/86box-server/libexec/stop-display %i vm-settings
+ExecStart=/opt/86box-server/86box/current/AppRun -S -N -P {{ vm_data_root }}/boxes/%i/ -R /opt/86box-server/roms/current
+ExecStopPost=+/opt/86box-server/libexec/stop-display %i box-settings
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths={{ vm_data_root }}/vms/%i -/tmp/.X11-unix
+ReadWritePaths={{ vm_data_root }}/boxes/%i -/tmp/.X11-unix
 ReadOnlyPaths={{ vm_data_root }}/media
 InaccessiblePaths={{ vm_data_root }}/manager
 KillSignal=SIGHUP

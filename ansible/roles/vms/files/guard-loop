@@ -19,14 +19,14 @@ def mtime(path):
 
 
 while True:
-    for path in sorted(glob.glob(ROOT + "/vmdefs/*.json")):
+    for path in sorted(glob.glob(ROOT + "/boxdefs/*.json")):
         name = os.path.basename(path)[:-5]
         if not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", name):
             continue
         try:
-            if subprocess.run(["systemctl", "is-active", "--quiet", "vm@" + name]).returncode:
+            if subprocess.run(["systemctl", "is-active", "--quiet", "box@" + name]).returncode:
                 continue
-            state = (mtime("%s/vms/%s/86box.cfg" % (ROOT, name)), mtime(path))
+            state = (mtime("%s/boxes/%s/86box.cfg" % (ROOT, name)), mtime(path))
             if seen.get(name) != state:
                 seen[name] = state
                 subprocess.run(["/opt/86box-server/libexec/cfg-guard", name, "--enforce"])

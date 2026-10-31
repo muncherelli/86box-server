@@ -35,13 +35,13 @@ def clone_vm(src, new):
             raise VmError("Name must be 2-31 characters: a-z, 0-9 and '-', starting with a letter.")
         if vms.busy(src):
             raise VmError("Stop the box first.")
-        final, temp = vms._p("vms", new), vms._p("vms", ".new-" + new)
-        if any(os.path.lexists(x) for x in (final, temp, vms._p("vmdefs", new + ".json"))):
+        final, temp = vms._p("boxes", new), vms._p("boxes", ".new-" + new)
+        if any(os.path.lexists(x) for x in (final, temp, vms._p("boxdefs", new + ".json"))):
             raise VmError("A box called %s already exists." % new)
         display = vms._free_display(defs)
         auth = vms._auth()
         users = [u for u, v in auth.console_users().items() if src in v.get("vms", [])]
-        srcdir = vms._p("vms", src)
+        srcdir = vms._p("boxes", src)
         users_set = False
         try:
             vms._mkdir(temp)
@@ -55,9 +55,9 @@ def clone_vm(src, new):
                 new_macs(cfg)
                 vms._write_cfg(cfg, cfg_path)
             os.rename(temp, final)
-            store.write_text(vms._p("vmdefs", new + ".env"),
+            store.write_text(vms._p("boxdefs", new + ".env"),
                              "B86_DISPLAY=%d\nB86_VNC_PORT=%d\nDISPLAY=:%d\n" % (display, 5900 + display, display), mode=0o644)
-            store.write_json(vms._p("vmdefs", new + ".json"), {
+            store.write_json(vms._p("boxdefs", new + ".json"), {
                 "name": new, "display": display, "allowed_groups": defs[src].get("allowed_groups", []),
                 "autostart": False, "template": defs[src].get("template", ""), "cloned_from": src,
                 "created": vms._stamp()}, mode=0o644)
@@ -66,7 +66,7 @@ def clone_vm(src, new):
                 users_set = True
                 auth.set_vm_users(new, users)
         except Exception as e:
-            for path in (vms._p("vnc-tokens", new), vms._p("vmdefs", new + ".json"), vms._p("vmdefs", new + ".env")):
+            for path in (vms._p("vnc-tokens", new), vms._p("boxdefs", new + ".json"), vms._p("boxdefs", new + ".env")):
                 if os.path.lexists(path):
                     os.unlink(path)
             for path in (final, temp):
@@ -81,7 +81,7 @@ def html_section(req, name):
     """Fragment for the box edit page."""
     return ('<h2>Clone</h2><p>The box must be stopped. The copy gets new network card addresses and no snapshots. '
             'Windows NT clones share the same machine SID; fix that inside the guest if it matters.</p>'
-            '<form method="post" action="/manage/vms/%s/clone"><input type="hidden" name="csrf" value="%s">'
+            '<form method="post" action="/manage/boxes/%s/clone"><input type="hidden" name="csrf" value="%s">'
             'New name: <input name="newname"> <input type="submit" value="Clone"></form>'
             % (respond.esc(name), respond.esc(req.session["csrf"] if req.session else "")))
 
@@ -92,10 +92,10 @@ def h_clone(req, m):
     try:
         clone_vm(name, new)
     except VmError as e:
-        return respond.page(req, "Clone failed", '<p class="error">%s</p><p><a href="/manage/vms/%s">Back</a></p>'
+        return respond.page(req, "Clone failed", '<p class="error">%s</p><p><a href="/manage/boxes/%s">Back</a></p>'
                             % (respond.esc(str(e)), respond.esc(name)), 400)
     store.audit(req.user["name"], req.ip, "vm.clone", "%s -> %s" % (name, new))
     return respond.redirect("/manage/")
 
 
-ROUTES = [("POST", r"/manage/vms/([a-z][a-z0-9-]{1,30})/clone", h_clone, "admin")]
+ROUTES = [("POST", r"/manage/boxes/([a-z][a-z0-9-]{1,30})/clone", h_clone, "admin")]

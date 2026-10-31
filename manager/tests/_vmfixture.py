@@ -33,7 +33,7 @@ class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = self.tmp.name
-        for d in ("vmdefs", "vms", "media/isos", "vnc-tokens", "manager"):
+        for d in ("boxdefs", "boxes", "media/isos", "vnc-tokens", "manager"):
             os.makedirs(os.path.join(self.root, d))
         self.old = dict(config.CFG)
         config.CFG.update(data_root=self.root, emu86box_tag="v6.0",
@@ -54,7 +54,7 @@ class Base(unittest.TestCase):
         return os.path.join(self.root, *parts)
 
     def make_vm(self, name="src", cfg=None, display=10, groups=("lab",)):
-        d = self.p("vms", name)
+        d = self.p("boxes", name)
         os.makedirs(os.path.join(d, "disks"))
         os.makedirs(os.path.join(d, "snapshots", "old"))
         with open(os.path.join(d, "86box.cfg"), "w") as f:
@@ -68,7 +68,7 @@ class Base(unittest.TestCase):
             f.write(b"DATA")
         with open(os.path.join(d, "86box.log"), "w") as f:
             f.write("log")
-        with open(self.p("vmdefs", name + ".json"), "w") as f:
+        with open(self.p("boxdefs", name + ".json"), "w") as f:
             json.dump({"name": name, "display": display, "allowed_groups": list(groups), "autostart": True,
                        "template": "ppro200"}, f)
         return d

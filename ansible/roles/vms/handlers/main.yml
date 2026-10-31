@@ -7,3 +7,8 @@
   ansible.builtin.systemd:
     name: "{{ b86_sshd_service }}"
     state: reloaded
+
+- name: Restart the config guard
+  ansible.builtin.systemd:
+    name: 86box-guard
+    state: restarted

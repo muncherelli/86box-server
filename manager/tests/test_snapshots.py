@@ -19,10 +19,10 @@ class SnapshotTest(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = self.tmp.name
         config.CFG["data_root"] = self.root
-        self.vm = os.path.join(self.root, "vms/vm1")
-        for d in ("manager", "vmdefs", "vms/vm1/disks", "vms/vm1/nvr"):
+        self.vm = os.path.join(self.root, "boxes/vm1")
+        for d in ("manager", "boxdefs", "boxes/vm1/disks", "boxes/vm1/nvr"):
             os.makedirs(os.path.join(self.root, d))
-        with open(os.path.join(self.root, "vmdefs/vm1.json"), "w") as f:
+        with open(os.path.join(self.root, "boxdefs/vm1.json"), "w") as f:
             json.dump({"name": "vm1"}, f)
         self.write("86box.cfg", b"cfg1")
         self.write("disks/hdd1.img", b"disk1")
@@ -76,10 +76,10 @@ class SnapshotTest(unittest.TestCase):
 
     def test_vmdef_not_restored(self):
         _, snap = snapshots.create("vm1")
-        with open(os.path.join(self.root, "vmdefs/vm1.json"), "w") as f:
+        with open(os.path.join(self.root, "boxdefs/vm1.json"), "w") as f:
             json.dump({"name": "vm1", "display": 99}, f)
         snapshots.restore("vm1", snap)
-        self.assertEqual(json.load(open(os.path.join(self.root, "vmdefs/vm1.json")))["display"], 99)
+        self.assertEqual(json.load(open(os.path.join(self.root, "boxdefs/vm1.json")))["display"], 99)
 
     def test_delete_needs_confirm(self):
         _, snap = snapshots.create("vm1")

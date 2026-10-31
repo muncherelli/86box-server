@@ -16,12 +16,12 @@ PATH_KEY = re.compile(r".*(_fn|_image_path)$")
 
 
 def export_vm(name):
-    data = store.read_json(vms._p("vmdefs", name + ".json"))
+    data = store.read_json(vms._p("boxdefs", name + ".json"))
     if not isinstance(data, dict):
         raise VmError("No such box.")
     vm = {k: v for k, v in data.items() if k != "display"}
     try:
-        fd = os.open(vms._p("vms", name, "86box.cfg"), os.O_RDONLY | os.O_NOFOLLOW)
+        fd = os.open(vms._p("boxes", name, "86box.cfg"), os.O_RDONLY | os.O_NOFOLLOW)
         with os.fdopen(fd, "rb") as f:
             cfg = f.read().decode("utf-8")
     except FileNotFoundError:
@@ -103,8 +103,8 @@ def _import(name, data, groups, autostart, users):
     size = _disk_bytes(p)
     if size is not None:
         p.set("Hard disks", "hdd_01_fn", "disks/hdd1.img")
-    final, temp = vms._p("vms", name), vms._p("vms", ".new-" + name)
-    if any(os.path.lexists(x) for x in (final, temp, vms._p("vmdefs", name + ".json"))):
+    final, temp = vms._p("boxes", name), vms._p("boxes", ".new-" + name)
+    if any(os.path.lexists(x) for x in (final, temp, vms._p("boxdefs", name + ".json"))):
         raise VmError("A box called %s already exists." % name)
     display = vms._free_display(vms.all_defs())
     template = data["vm"].get("template", "")
@@ -124,9 +124,9 @@ def _import(name, data, groups, autostart, users):
             os.chmod(disk, 0o660)
             vms._group(disk)
         os.rename(temp, final)
-        store.write_text(vms._p("vmdefs", name + ".env"),
+        store.write_text(vms._p("boxdefs", name + ".env"),
                          "B86_DISPLAY=%d\nB86_VNC_PORT=%d\nDISPLAY=:%d\n" % (display, 5900 + display, display), mode=0o644)
-        store.write_json(vms._p("vmdefs", name + ".json"), {
+        store.write_json(vms._p("boxdefs", name + ".json"), {
             "name": name, "display": display, "allowed_groups": sorted(groups), "autostart": bool(autostart),
             "template": template, "created": vms._stamp()}, mode=0o644)
         vms._write_token(name, display)
@@ -134,7 +134,7 @@ def _import(name, data, groups, autostart, users):
             users_set = True
             auth.set_vm_users(name, users)
     except Exception as e:
-        for path in (vms._p("vnc-tokens", name), vms._p("vmdefs", name + ".json"), vms._p("vmdefs", name + ".env")):
+        for path in (vms._p("vnc-tokens", name), vms._p("boxdefs", name + ".json"), vms._p("boxdefs", name + ".env")):
             if os.path.lexists(path):
                 os.unlink(path)
         for path in (final, temp):
@@ -201,12 +201,12 @@ def h_import(req, m):
 
 def html_section(req, name):
     """Fragment for the box edit page."""
-    return ('<h2>Export</h2><p><a href="/manage/api/vm/%s/export">Download this box as JSON</a> (settings only, no disks). '
+    return ('<h2>Export</h2><p><a href="/manage/api/box/%s/export">Download this box as JSON</a> (settings only, no disks). '
             '<a href="/manage/import">Import a box</a></p>' % respond.esc(name))
 
 
 ROUTES = [
-    ("GET", r"/manage/api/vm/([a-z][a-z0-9-]{1,30})/export", h_export, "admin"),
+    ("GET", r"/manage/api/box/([a-z][a-z0-9-]{1,30})/export", h_export, "admin"),
     ("GET", r"/manage/import", h_page, "admin"),
     ("POST", r"/manage/import", h_import, "admin"),
 ]

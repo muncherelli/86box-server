@@ -1,5 +1,5 @@
 [Unit]
-Description=86Box box %i
+Description=86Box %i
 Requires=vnc@%i.service
 Wants=wm@%i.service
 After=vnc@%i.service wm@%i.service 86box-bridges.service
@@ -9,24 +9,24 @@ User={{ vm_service_user }}
 Group={{ vm_service_user }}
 SupplementaryGroups={{ vm_share_group }}
 UMask=0007
-EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
-Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
+EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
+Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/boxes/%i
 # Keep Qt's font cache out of the box folder: the manager could not delete or copy what 86Box wrote there.
 CacheDirectory=86box-vm
 Environment=XDG_CACHE_HOME=/var/cache/86box-vm
-ExecStartPre=/bin/sh -c '! systemctl is-active --quiet vm-settings@%i.service'
+ExecStartPre=/bin/sh -c '! systemctl is-active --quiet box-settings@%i.service'
 ExecStartPre=+/opt/86box-server/libexec/cfg-guard %i
 ExecStartPre=/opt/86box-server/libexec/ensure-resize %i
 ExecStartPre=/opt/86box-server/libexec/wait-x %i
-ExecStart=/opt/86box-server/86box/current/AppRun -N -P {{ vm_data_root }}/vms/%i/ -R /opt/86box-server/roms/current -L {{ vm_data_root }}/vms/%i/86box.log
+ExecStart=/opt/86box-server/86box/current/AppRun -N -P {{ vm_data_root }}/boxes/%i/ -R /opt/86box-server/roms/current -L {{ vm_data_root }}/boxes/%i/86box.log
 ExecStartPost=+/opt/86box-server/libexec/tap-check %i
-ExecStopPost=+/opt/86box-server/libexec/stop-display %i vm
+ExecStopPost=+/opt/86box-server/libexec/stop-display %i box
 AmbientCapabilities=CAP_NET_ADMIN
 CapabilityBoundingSet=CAP_NET_ADMIN
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths={{ vm_data_root }}/vms/%i -/tmp/.X11-unix
+ReadWritePaths={{ vm_data_root }}/boxes/%i -/tmp/.X11-unix
 ReadOnlyPaths={{ vm_data_root }}/media
 InaccessiblePaths={{ vm_data_root }}/manager
 KillSignal=SIGHUP

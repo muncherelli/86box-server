@@ -1,4 +1,52 @@
 ---
+# Boxes used to be called VMs: move the old folders and drop the old units (runs once).
+- name: Look for the old folders
+  ansible.builtin.stat:
+    path: "{{ vm_data_root }}/{{ item }}"
+  loop: [vms, vmdefs]
+  register: old_dirs
+
+- name: Find running guests under the old unit name
+  ansible.builtin.shell: "systemctl list-units --no-legend --state=active 'vm@*' | awk '{print $1}'"
+  register: old_running
+  changed_when: false
+
+- name: Refuse to rename folders while a guest is running
+  ansible.builtin.fail:
+    msg: "Stop these boxes first (they run under the old unit name): {{ old_running.stdout_lines | join(', ') }}"
+  when: old_running.stdout_lines | length > 0 and (old_dirs.results | selectattr('stat.exists') | list | length > 0)
+
+- name: Stop old settings windows
+  ansible.builtin.command: systemctl stop 'vm-settings@*'
+  when: old_dirs.results | selectattr('stat.exists') | list | length > 0
+  changed_when: true
+
+- name: Move the old folders to their new names
+  ansible.builtin.command: "mv {{ vm_data_root }}/{{ item.item }} {{ vm_data_root }}/{{ {'vms': 'boxes', 'vmdefs': 'boxdefs'}[item.item] }}"
+  args:
+    creates: "{{ vm_data_root }}/{{ {'vms': 'boxes', 'vmdefs': 'boxdefs'}[item.item] }}"
+  loop: "{{ old_dirs.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stat.exists
+
+- name: Find box configs that still mention the old folder
+  ansible.builtin.find:
+    paths: "{{ vm_data_root }}/boxes"
+    patterns: 86box.cfg
+    recurse: true
+    depth: 2
+  register: box_cfgs
+
+- name: Point those configs at the new folder
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: "{{ vm_data_root | regex_escape }}/vms/"
+    replace: "{{ vm_data_root }}/boxes/"
+  loop: "{{ box_cfgs.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
 - name: Create the data folders
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -8,8 +56,8 @@
     mode: "{{ item.mode }}"
   loop:
     - { path: "{{ vm_data_root }}", owner: root, group: root, mode: "0755" }
-    - { path: "{{ vm_data_root }}/vmdefs", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0755" }
-    - { path: "{{ vm_data_root }}/vms", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "0755" }
+    - { path: "{{ vm_data_root }}/boxdefs", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0755" }
+    - { path: "{{ vm_data_root }}/boxes", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "0755" }
     - { path: "{{ vm_data_root }}/media", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
     - { path: "{{ vm_data_root }}/media/isos", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
     - { path: "{{ vm_data_root }}/media/floppies", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }

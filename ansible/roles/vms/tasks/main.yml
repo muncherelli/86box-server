@@ -17,6 +17,14 @@
     group: root
     mode: "0755"
   loop: [wait-x, cfg-guard, ensure-resize, tap-check, stop-display, guard-loop, autostart]
+  notify: Restart the config guard
+
+- name: Remove the old VM unit files (boxes used to be called VMs)
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}"
+    state: absent
+  loop: ["vm@.service", "vm-settings@.service"]
+  notify: Reload systemd
 
 - name: Install the templated systemd units
   ansible.builtin.template:
@@ -25,7 +33,7 @@
     owner: root
     group: root
     mode: "0644"
-  loop: ["vnc@.service", "wm@.service", "vm@.service", "vm-settings@.service"]
+  loop: ["vnc@.service", "wm@.service", "box@.service", "box-settings@.service"]
   notify: Reload systemd
 
 - name: Install the window manager settings (the 86Box window fills the display)

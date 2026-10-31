@@ -22,7 +22,7 @@ def _root():
 
 
 def _vmdir(name):
-    return os.path.join(_root(), "vms", name)
+    return os.path.join(_root(), "boxes", name)
 
 
 def _snapdir(name):
@@ -52,7 +52,7 @@ def _du(path):
 
 
 def _busy(name):
-    return units.is_active("vm@%s.service" % name) or units.is_active("vm-settings@%s.service" % name)
+    return units.is_active("box@%s.service" % name) or units.is_active("box-settings@%s.service" % name)
 
 
 def _check(name):
@@ -101,7 +101,7 @@ def create(name, label=""):
         for item in ITEMS:
             if os.path.exists(os.path.join(vm, item)):
                 _cp(os.path.join(vm, item), os.path.join(dest, item))
-        vmdef = os.path.join(_root(), "vmdefs", name + ".json")
+        vmdef = os.path.join(_root(), "boxdefs", name + ".json")
         if os.path.exists(vmdef):
             _cp(vmdef, os.path.join(dest, "vmdef.json"))
     except OSError as e:
@@ -160,7 +160,7 @@ def _csrf(req):
 
 def html_section(req, name):
     """Fragment for the box page."""
-    base = "/manage/api/vm/%s/snapshots" % name
+    base = "/manage/api/box/%s/snapshots" % name
     rows = []
     for s in list_snapshots(name):
         rows.append(
@@ -217,7 +217,7 @@ def h_delete(req, m):
     return _done(req, m.group(1), err)
 
 
-_V = r"/manage/api/vm/([a-z][a-z0-9-]{1,30})/snapshots"
+_V = r"/manage/api/box/([a-z][a-z0-9-]{1,30})/snapshots"
 ROUTES = [
     ("GET", _V, h_list, "admin"),
     ("POST", _V, h_create, "admin"),

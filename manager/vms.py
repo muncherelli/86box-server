@@ -47,7 +47,7 @@ def parse_resolution(value):
 
 def console_url(name):
     """Console link for a box: 'auto' (the default) follows the browser window, a fixed size is scaled to fit."""
-    data = store.read_json(_p("vmdefs", name + ".json"), {})
+    data = store.read_json(_p("boxdefs", name + ".json"), {})
     res = data.get("resolution", "auto") if isinstance(data, dict) else "auto"
     return CONSOLE_FMT % (name, "remote" if res == "auto" else "scale")
 
@@ -132,7 +132,7 @@ def _write_cfg(p, path):
 
 def all_defs():
     out = {}
-    for path in sorted(glob.glob(_p("vmdefs", "*.json"))):
+    for path in sorted(glob.glob(_p("boxdefs", "*.json"))):
         name = os.path.basename(path)[:-5]
         data = store.read_json(path)
         if NAME_RE.fullmatch(name) and isinstance(data, dict):
@@ -141,7 +141,7 @@ def all_defs():
 
 
 def busy(name):
-    return units.is_active("vm@%s.service" % name) or units.is_active("vm-settings@%s.service" % name)
+    return units.is_active("box@%s.service" % name) or units.is_active("box-settings@%s.service" % name)
 
 
 def _iso_ok(filename):
@@ -220,8 +220,8 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
     if cd and not _iso_ok(cd):
         raise VmError("That CD image is not in the media library.")
     _check_common(groups, users)
-    final, temp = _p("vms", name), _p("vms", ".new-" + name)
-    if any(os.path.lexists(x) for x in (final, temp, _p("vmdefs", name + ".json"))):
+    final, temp = _p("boxes", name), _p("boxes", ".new-" + name)
+    if any(os.path.lexists(x) for x in (final, temp, _p("boxdefs", name + ".json"))):
         raise VmError("A box called %s already exists." % name)
     display = _free_display(all_defs())
 
@@ -256,8 +256,8 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
             os.chmod(disk, 0o660)
             _group(disk)
         os.rename(temp, final)
-        store.write_text(_p("vmdefs", name + ".env"), _env_text(display, "auto"), mode=0o644)
-        store.write_json(_p("vmdefs", name + ".json"), {
+        store.write_text(_p("boxdefs", name + ".env"), _env_text(display, "auto"), mode=0o644)
+        store.write_json(_p("boxdefs", name + ".json"), {
             "name": name, "display": display, "allowed_groups": sorted(groups), "autostart": bool(autostart),
             "template": template, "created": _stamp()}, mode=0o644)
         _write_token(name, display)
@@ -265,7 +265,7 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
             users_set = True
             _auth().set_vm_users(name, users)
     except Exception as e:
-        for path in (_p("vnc-tokens", name), _p("vmdefs", name + ".json"), _p("vmdefs", name + ".env")):
+        for path in (_p("vnc-tokens", name), _p("boxdefs", name + ".json"), _p("boxdefs", name + ".env")):
             if os.path.lexists(path):
                 os.unlink(path)
         for path in (final, temp):
@@ -280,7 +280,7 @@ def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
     """cd=None leaves the CD image alone; '' removes it. resolution=None leaves the display size alone;
     '' or 'auto' follows the browser window; 'WxH' is a fixed size that applies at the next start."""
     with LOCK:
-        path = _p("vmdefs", name + ".json")
+        path = _p("boxdefs", name + ".json")
         data = store.read_json(path)
         if not isinstance(data, dict):
             raise VmError("No such box.")
@@ -291,7 +291,7 @@ def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
                 raise VmError("Use the Media menu in the console while the box is running.")
             if cd and not _iso_ok(cd):
                 raise VmError("That CD image is not in the media library.")
-            cfg = _p("vms", name, "86box.cfg")
+            cfg = _p("boxes", name, "86box.cfg")
             p = _read_cfg(cfg)
             section = "Floppy and CD-ROM drives"
             if cd:
@@ -304,22 +304,22 @@ def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
         data["autostart"] = bool(autostart)
         if res is not None:
             data["resolution"] = res
-            store.write_text(_p("vmdefs", name + ".env"), _env_text(data["display"], res), mode=0o644)
+            store.write_text(_p("boxdefs", name + ".env"), _env_text(data["display"], res), mode=0o644)
         store.write_json(path, data, mode=0o644)
         _auth().set_vm_users(name, users)
 
 
 def delete_vm(name):
     with LOCK:
-        if not os.path.exists(_p("vmdefs", name + ".json")):
+        if not os.path.exists(_p("boxdefs", name + ".json")):
             raise VmError("No such box.")
         if busy(name):
             raise VmError("Stop the box first.")
         os.makedirs(_p("trash"), mode=0o700, exist_ok=True)
         dest = _p("trash", "%s-%s" % (name, _now().strftime("%Y%m%d-%H%M%S")))
-        if os.path.exists(_p("vms", name)):
-            os.rename(_p("vms", name), dest)
-        for path in (_p("vmdefs", name + ".json"), _p("vmdefs", name + ".env"), _p("vnc-tokens", name)):
+        if os.path.exists(_p("boxes", name)):
+            os.rename(_p("boxes", name), dest)
+        for path in (_p("boxdefs", name + ".json"), _p("boxdefs", name + ".env"), _p("vnc-tokens", name)):
             if os.path.lexists(path):
                 os.unlink(path)
         _auth().remove_vm(name)
@@ -345,9 +345,9 @@ def empty_trash():
 # ---- status and actions
 
 def status(name):
-    if units.is_active("vm@%s.service" % name):
+    if units.is_active("box@%s.service" % name):
         state = "running"
-    elif units.is_active("vm-settings@%s.service" % name):
+    elif units.is_active("box-settings@%s.service" % name):
         state = "settings"
     else:
         state = "stopped"
@@ -366,7 +366,7 @@ def visible(user):
 
 def do_action(name, action):
     verb = {"start": "start", "stop": "stop", "reset": "restart"}[action]
-    return units.run(verb, "vm@%s.service" % name)
+    return units.run(verb, "box@%s.service" % name)
 
 
 import vms_pages  # noqa: E402  (page handlers; must come last)

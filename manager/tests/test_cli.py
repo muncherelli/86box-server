@@ -35,7 +35,7 @@ class CliTest(unittest.TestCase):
             with mock.patch("units.run", return_value=(True, "")) as run_unit:
                 rc, out, _ = run([verb, "a-vm"])
             self.assertEqual(rc, 0)
-            run_unit.assert_called_once_with(unit_verb, "vm@a-vm.service")
+            run_unit.assert_called_once_with(unit_verb, "box@a-vm.service")
 
     def test_unknown_vm_and_usage(self):
         self.assertEqual(run(["start", "nope"])[0], 1)

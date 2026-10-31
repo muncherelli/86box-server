@@ -108,7 +108,7 @@ class AuthTest(unittest.TestCase):
     def test_not_logged_in(self):
         status, headers, _ = server.dispatch(FakeReq(path="/manage/users"))
         self.assertEqual((status, headers["Location"].split("?")[0]), (303, "/manage/login"))
-        self.assertEqual(server.dispatch(FakeReq(path="/manage/api/vms"))[0] in (401, 404), True)
+        self.assertEqual(server.dispatch(FakeReq(path="/manage/api/boxes"))[0] in (401, 404), True)
 
     def test_console_user_cannot_open_users_page(self):
         status, headers, _ = server.dispatch(FakeReq("POST", "/manage/login", {"username": "bob", "password": "another long password"}))

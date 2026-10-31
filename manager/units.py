@@ -1,4 +1,4 @@
-"""Start/stop box units through systemctl (polkit allows only vm@, vnc@, vm-settings@ and caddy reload)."""
+"""Start/stop box units through systemctl (polkit allows only box@, vnc@, box-settings@ and caddy reload)."""
 import subprocess
 
 

@@ -26,9 +26,9 @@ def _list_page(req, msg=""):
         q = respond.esc(n)
         buttons = "".join('<button data-action="%s" data-vm="%s">%s</button> ' % (a, q, a.title())
                           for a in ("start", "stop", "reset"))
-        links = '<a href="%s" target="_blank" rel="noopener">Console</a> <a href="/manage/vms/%s/settings">Settings</a>' % (respond.esc(console_url(n)), q)
+        links = '<a href="%s" target="_blank" rel="noopener">Console</a> <a href="/manage/boxes/%s/settings">Settings</a>' % (respond.esc(console_url(n)), q)
         if admin:
-            links += ' <a href="/manage/vms/%s">Edit</a>' % q
+            links += ' <a href="/manage/boxes/%s">Edit</a>' % q
         rows.append('<tr data-vm="%s"><td>%s</td><td data-state>%s</td><td data-nic>%s</td>'
                     '<td data-cpu></td><td data-ram></td><td data-disk></td><td data-guard class="error">%s</td><td>%s %s</td></tr>'
                     % (q, q, respond.esc(s["state"]), respond.esc(s["nic"]), respond.esc(s["guard"]), buttons, links))
@@ -39,7 +39,7 @@ def _list_page(req, msg=""):
              '<button id="confirm-no">Cancel</button></dialog>')
     if admin:
         mb = trash_size() / 1048576
-        body += ('<p><a href="/manage/vms/new">New box</a></p><form method="post" action="/manage/trash/empty">%s'
+        body += ('<p><a href="/manage/boxes/new">New box</a></p><form method="post" action="/manage/trash/empty">%s'
                  'Trash: %.0f MB <input type="submit" value="Empty trash"></form>' % (_csrf(req), mb))
     return respond.page(req, "Boxes", body)
 
@@ -72,7 +72,7 @@ def _new_page(req, msg="", status_code=200):
     opts = '<option value="">Blank: no template, set everything in Settings</option>' + "".join(
         '<option value="%s">%s</option>' % (respond.esc(k), respond.esc(v["name"])) for k, v in tpls.items())
     body = ('<p class="error">%s</p>' % respond.esc(msg)) if msg else ""
-    body += ('<form method="post" action="/manage/vms/new">%s'
+    body += ('<form method="post" action="/manage/boxes/new">%s'
              '<p>Name <input name="name" required pattern="[a-z][a-z0-9-]{1,30}"></p>'
              '<p>Template <select name="template">%s</select></p>'
              '<p class="hint">A template only picks the board and CPU. Disks, video, sound and the rest are set in '
@@ -95,14 +95,14 @@ def _edit_page(req, name, msg=""):
     if data is None:
         return respond.text("not found", 404)
     users = [u for u, v in vms._auth().console_users().items() if name in v.get("vms", [])]
-    cfg = _read_cfg(_p("vms", name, "86box.cfg")) if os.path.exists(_p("vms", name, "86box.cfg")) else None
+    cfg = _read_cfg(_p("boxes", name, "86box.cfg")) if os.path.exists(_p("boxes", name, "86box.cfg")) else None
     current = ""
     if cfg and cfg.has_option("Floppy and CD-ROM drives", "cdrom_01_image_path"):
         current = os.path.basename(cfg.get("Floppy and CD-ROM drives", "cdrom_01_image_path"))
     q = respond.esc(name)
     cd = ""
     body = ('<p class="error">%s</p>' % respond.esc(msg)) if msg else ""
-    body += ('<form method="post" action="/manage/vms/%s">%s%s<p>Network groups %s</p><p>Console users %s</p>'
+    body += ('<form method="post" action="/manage/boxes/%s">%s%s<p>Network groups %s</p><p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"%s> Start at boot</label></p>'
              '<p><label>Display size <input name="resolution" value="%s" list="b86res" placeholder="auto" size="10"></label>'
              '<datalist id="b86res"><option value="auto">%s</datalist>'
@@ -110,7 +110,7 @@ def _edit_page(req, name, msg=""):
              'WxH (640x400 up to 2560x1600): a fixed size is scaled to fit the window and applies the next time the box starts. '
              '86Box stretches whatever the guest shows to fill this display.</small></p>'
              '<input type="submit" value="Save"></form>'
-             '<h2>Delete</h2><form method="post" action="/manage/vms/%s/delete">%s'
+             '<h2>Delete</h2><form method="post" action="/manage/boxes/%s/delete">%s'
              '<p>Type the name to confirm: <input name="confirm"> <input type="submit" value="Delete"></p></form>'
              % (q, _csrf(req), cd, _group_checks(data.get("allowed_groups", [])),
                 _checks("user", sorted(vms._auth().console_users()), users, "user"),
@@ -202,12 +202,12 @@ N = r"([a-z][a-z0-9-]{1,30})"
 ROUTES = [
     ("GET", r"/manage", h_root, None),
     ("GET", r"/manage/", h_list, "any"),
-    ("GET", r"/manage/vms/new", h_new_get, "admin"),
-    ("POST", r"/manage/vms/new", h_new_post, "admin"),
-    ("GET", r"/manage/vms/" + N, h_edit_get, "admin"),
-    ("POST", r"/manage/vms/" + N, h_edit_post, "admin"),
-    ("POST", r"/manage/vms/%s/delete" % N, h_delete, "admin"),
+    ("GET", r"/manage/boxes/new", h_new_get, "admin"),
+    ("POST", r"/manage/boxes/new", h_new_post, "admin"),
+    ("GET", r"/manage/boxes/" + N, h_edit_get, "admin"),
+    ("POST", r"/manage/boxes/" + N, h_edit_post, "admin"),
+    ("POST", r"/manage/boxes/%s/delete" % N, h_delete, "admin"),
     ("POST", r"/manage/trash/empty", h_trash, "admin"),
-    ("GET", r"/manage/api/vms", h_api_list, "any"),
-    ("POST", r"/manage/api/vm/%s/(start|stop|reset)" % N, h_api_action, "any"),
+    ("GET", r"/manage/api/boxes", h_api_list, "any"),
+    ("POST", r"/manage/api/box/%s/(start|stop|reset)" % N, h_api_action, "any"),
 ]

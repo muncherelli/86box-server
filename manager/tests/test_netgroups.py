@@ -53,7 +53,7 @@ class Base(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         r = self.tmp.name
         self.etc, self.run, self.sysnet = (os.path.join(r, d) for d in ("etc", "run", "sysnet"))
-        for d in ("etc", "run", "sysnet", "vmdefs", "manager"):
+        for d in ("etc", "run", "sysnet", "boxdefs", "manager"):
             os.makedirs(os.path.join(r, d))
         self.saved = (dict(config.CFG), config.NETGROUPS_PATH, config.NETPOLICY_PATH, config.NETAPPLY_RESULT, ns.SYSNET)
         config.CFG.pop("netgroups", None)
@@ -85,7 +85,7 @@ class Base(unittest.TestCase):
                                      "warnings": list(warnings), "ts": 1})
 
     def vm(self, name, groups):
-        put(os.path.join(self.tmp.name, "vmdefs", name + ".json"), {"allowed_groups": groups})
+        put(os.path.join(self.tmp.name, "boxdefs", name + ".json"), {"allowed_groups": groups})
 
 
 class LiveConfigTest(Base):

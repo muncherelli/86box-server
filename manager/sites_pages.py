@@ -15,7 +15,7 @@ HTTP_WARNING = ("Traffic between the visitor and this server is not encrypted; "
 
 
 def _vm_names():
-    d = os.path.join(config.CFG["data_root"], "vmdefs")
+    d = os.path.join(config.CFG["data_root"], "boxdefs")
     try:
         return sorted(n[:-5] for n in os.listdir(d) if n.endswith(".json") and re.fullmatch(VM_RE, n[:-5]))
     except OSError:

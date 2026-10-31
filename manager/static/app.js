@@ -31,7 +31,7 @@ function csrfToken() {
   var pending = null;
 
   function poll() {
-    fetch("/manage/api/vms").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    fetch("/manage/api/boxes").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       if (!d) return;
       d.vms.forEach(function (v) {
         var row = table.querySelector('tr[data-vm="' + v.name + '"]');
@@ -60,7 +60,7 @@ function csrfToken() {
   }
 
   function send(vm, action) {
-    fetch("/manage/api/vm/" + vm + "/" + action, { method: "POST", headers: { "X-CSRF": csrfToken() } })
+    fetch("/manage/api/box/" + vm + "/" + action, { method: "POST", headers: { "X-CSRF": csrfToken() } })
       .then(function (r) { return r.json(); })
       .then(function (d) { if (!d.ok) alert(d.error || "failed"); poll(); });
   }

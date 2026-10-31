@@ -68,7 +68,7 @@ def cleanup_parts():
 def used_by():
     """Map absolute ISO path -> sorted list of box names whose cfg points at it."""
     used = {}
-    for cfg in glob.glob(os.path.join(_root(), "vms", "*", "86box.cfg")):
+    for cfg in glob.glob(os.path.join(_root(), "boxes", "*", "86box.cfg")):
         vmdir = os.path.dirname(cfg)
         try:
             fd = os.open(cfg, os.O_RDONLY | os.O_NOFOLLOW)
@@ -216,11 +216,11 @@ def attach_file(vm, kind, filename):
     err = valid_name(kind, filename)
     if err:
         return err
-    vmdir = os.path.join(_root(), "vms", vm)
+    vmdir = os.path.join(_root(), "boxes", vm)
     cfg = os.path.join(vmdir, "86box.cfg")
     if not os.path.isdir(vmdir):
         return "no such box"
-    if units.is_active("vm@%s.service" % vm) or units.is_active("vm-settings@%s.service" % vm):
+    if units.is_active("box@%s.service" % vm) or units.is_active("box-settings@%s.service" % vm):
         return "The box is running. Use the Media menu in the console."
     src = os.path.join(_dir(kind), filename)
     try:
@@ -309,9 +309,9 @@ def html_attach_section(req, vm):
     """Fragment for the box page: attach a library file to a stopped box."""
     opts = "".join('<option value="%s|%s">%s/%s</option>' % (k, respond.esc(e["name"]), k, respond.esc(e["name"]))
                    for k in KINDS for e in list_media(k))
-    if units.is_active("vm@%s.service" % vm):
+    if units.is_active("box@%s.service" % vm):
         return "<h2>Media</h2><p>Use the Media menu in the console.</p>"
-    return ('<h2>Media</h2><form method="post" action="/manage/api/vm/%s/attach" id="attach">%s'
+    return ('<h2>Media</h2><form method="post" action="/manage/api/box/%s/attach" id="attach">%s'
             '<select name="pick">%s</select> <input type="submit" value="Attach"></form>' % (vm, _csrf(req), opts))
 
 
@@ -324,5 +324,5 @@ ROUTES = [
     ("GET", r"/manage/api/media", list_api, "admin"),
     ("PUT", r"/manage/api/media/([^/]+)/(.+)", upload, "admin"),
     ("POST", r"/manage/api/media/([^/]+)/([^/]+)/delete", delete, "admin"),
-    ("POST", r"/manage/api/vm/([a-z][a-z0-9-]{1,30})/attach", attach, "admin"),
+    ("POST", r"/manage/api/box/([a-z][a-z0-9-]{1,30})/attach", attach, "admin"),
 ]

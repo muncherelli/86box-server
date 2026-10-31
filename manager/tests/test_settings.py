@@ -16,7 +16,7 @@ class Req:
 
 
 def match(name):
-    return re.fullmatch(settings.ROUTES[0][1], "/manage/vms/%s/settings" % name)
+    return re.fullmatch(settings.ROUTES[0][1], "/manage/boxes/%s/settings" % name)
 
 
 class SettingsTest(unittest.TestCase):
@@ -24,8 +24,8 @@ class SettingsTest(unittest.TestCase):
         self.dir = tempfile.TemporaryDirectory()
         config.CFG["data_root"] = self.dir.name
         config.CFG["netgroups"] = {"web": {"bridge": "br-web"}}
-        os.makedirs(os.path.join(self.dir.name, "vmdefs"))
-        with open(os.path.join(self.dir.name, "vmdefs", "vm1.json"), "w") as f:
+        os.makedirs(os.path.join(self.dir.name, "boxdefs"))
+        with open(os.path.join(self.dir.name, "boxdefs", "vm1.json"), "w") as f:
             json.dump({"name": "vm1", "allowed_groups": ["web"]}, f)
         auth = mock.Mock()
         auth.can_use_vm.return_value = True
@@ -47,7 +47,7 @@ class SettingsTest(unittest.TestCase):
         self.assertIn(b"br-web", body)
 
     def test_running_page_shows_menu_path(self):
-        with self.active(**{"vm@vm1.service": True}):
+        with self.active(**{"box@vm1.service": True}):
             _, _, body = settings.page(Req, match("vm1"))
         self.assertIn(b"Tools &gt; Settings", body)
         self.assertNotIn(b"Open Settings", body)
@@ -55,15 +55,15 @@ class SettingsTest(unittest.TestCase):
     def test_open_starts_unit_and_redirects_to_console(self):
         with self.active(), mock.patch("units.run", return_value=(True, "")) as run:
             status, headers, _ = settings.open_settings(Req, match("vm1"))
-        run.assert_called_once_with("start", "vm-settings@vm1.service")
+        run.assert_called_once_with("start", "box-settings@vm1.service")
         self.assertEqual(status, 303)
         self.assertIn("token%3Dvm1", headers["Location"])
 
     def test_open_while_running_does_not_start(self):
-        with self.active(**{"vm@vm1.service": True}), mock.patch("units.run") as run:
+        with self.active(**{"box@vm1.service": True}), mock.patch("units.run") as run:
             status, headers, _ = settings.open_settings(Req, match("vm1"))
         run.assert_not_called()
-        self.assertEqual(headers["Location"], "/manage/vms/vm1/settings")
+        self.assertEqual(headers["Location"], "/manage/boxes/vm1/settings")
 
     def test_unknown_vm_404_and_start_failure(self):
         with self.active():

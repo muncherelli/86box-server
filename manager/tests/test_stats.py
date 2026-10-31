@@ -15,13 +15,13 @@ class StatsTest(unittest.TestCase):
 
     def test_sampler_deltas(self):
         with tempfile.TemporaryDirectory() as tmp:
-            for d in ("proc", "cg/system.slice/vm@vma.service", "data/vmdefs", "data/vms/vma"):
+            for d in ("proc", "cg/system.slice/box@vma.service", "data/boxdefs", "data/boxes/vma"):
                 os.makedirs(os.path.join(tmp, d))
-            open(os.path.join(tmp, "data/vmdefs/vma.json"), "w").close()
-            open(os.path.join(tmp, "data/vmdefs/vmb.json"), "w").close()  # stopped box
+            open(os.path.join(tmp, "data/boxdefs/vma.json"), "w").close()
+            open(os.path.join(tmp, "data/boxdefs/vmb.json"), "w").close()  # stopped box
             meminfo = os.path.join(tmp, "proc/meminfo")
             open(meminfo, "w").write("MemTotal: 1000 kB\nMemAvailable: 250 kB\n")
-            cg = os.path.join(tmp, "cg/system.slice/vm@vma.service")
+            cg = os.path.join(tmp, "cg/system.slice/box@vma.service")
             open(os.path.join(cg, "memory.current"), "w").write("4096\n")
             config.CFG["data_root"] = os.path.join(tmp, "data")
 
@@ -32,7 +32,7 @@ class StatsTest(unittest.TestCase):
             s = stats.Sampler()
             with mock.patch.object(stats, "PROC", os.path.join(tmp, "proc")), \
                  mock.patch.object(stats, "CGROUP", os.path.join(tmp, "cg")), \
-                 mock.patch("units.is_active", side_effect=lambda u: u == "vm@vma.service"), \
+                 mock.patch("units.is_active", side_effect=lambda u: u == "box@vma.service"), \
                  mock.patch.object(stats, "cgroup_dir", return_value=cg):
                 put("cpu 0 0 0 100 0 0 0 0\n", 0)
                 s.sample(now=100.0)
