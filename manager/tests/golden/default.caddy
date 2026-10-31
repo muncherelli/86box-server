@@ -6,12 +6,10 @@ legacy.example.com {
 	}
 	@b86enc expression `{http.request.orig_uri}.matches("(?i)^[^?]*(%25|%2e|%2f|%5c|%c0|%c1|%u|\\.\\.|::|\\\\)")`
 	@b86method not method GET HEAD POST
-	@b86iis path_regexp (?i)^/(scripts|iisadmin|iisadmpwd|iishelp|iissamples|msadc|printers|_vti_[a-z_]*|_private)(/|$)|\.(htr|ida|idq|printer|htw|idc|htx|stm|shtm|shtml|asa|cdx|cer)$
 	@b86deny not path_regexp ^(/)
 	route {
 		respond @b86enc 400
 		respond @b86method 405
-		respond @b86iis 404
 		respond @b86deny 404
 		reverse_proxy 10.86.1.10:80
 	}

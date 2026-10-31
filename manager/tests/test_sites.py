@@ -41,9 +41,22 @@ class Base(unittest.TestCase):
 
 
 class RenderTest(Base):
-    def test_golden(self):
-        with open(os.path.join(HERE, "golden", "default.caddy")) as f:
-            self.assertEqual(sites.render_site(site()), f.read())
+    def golden(self, name):
+        with open(os.path.join(HERE, "golden", name)) as f:
+            return f.read()
+
+    def test_golden_default_is_https_with_no_presets(self):
+        self.assertEqual(sites.render_site(site()), self.golden("default.caddy"))
+
+    def test_golden_http(self):
+        self.assertEqual(sites.render_site(site(scheme="http")), self.golden("http.caddy"))
+
+    def test_golden_iis4_preset(self):
+        all_on = {k: True for k in sites.preset_items("iis4")}
+        self.assertEqual(sites.render_site(site(rules={"profiles": {"iis4": all_on}})), self.golden("iis4.caddy"))
+
+    def test_preset_with_nothing_on_renders_nothing(self):
+        self.assertEqual(sites.render_site(site(rules={"profiles": {"iis4": {}}})), self.golden("default.caddy"))
 
     def test_bad_values(self):
         bad = [
@@ -61,6 +74,13 @@ class RenderTest(Base):
             site(vm="nope"),
             site(vm="../x"),
             site(host_header="a b"),
+            site(scheme="ftp"),
+            site(scheme="HTTP"),
+            site(scheme=None),
+            site(rules={"profiles": {"nope": {}}}),
+            site(rules={"profiles": {"iis4": {"nope": True}}}),
+            site(rules={"profiles": {"iis4": {"admin_dirs": "yes"}}}),
+            site(rules={"profiles": ["iis4"]}),
             site(rules={"methods": ["TRACE"]}),
             site(rules={"methods": []}),
             site(rules={"allow_paths": ["/a/../"]}),
@@ -77,31 +97,48 @@ class RenderTest(Base):
     def test_variants(self):
         text = sites.render_site(site(rules={
             "methods": ["POST", "GET"], "allow_paths": ["/public/", "/a.b/"], "strip_prefix": "/public/",
-            "block_encoded": False, "iis_profile": {"asa_ext": True}, "max_body": "10MB"}, host_header="legacy"))
+            "block_encoded": False, "profiles": {"iis4": {"asa_ext": True}}, "max_body": "10MB"}, host_header="legacy"))
         self.assertIn("max_size 10MB", text)
         self.assertNotIn("@b86enc", text)
         self.assertIn("@b86method not method GET POST\n", text)
-        self.assertIn("@b86iis path_regexp (?i)\\.(asa|cdx|cer)$\n", text)
+        self.assertIn("@b86p_iis4 path_regexp (?i)\\.(asa|cdx|cer)$\n", text)
         self.assertIn("@b86deny not path_regexp ^(/public/|/a\\.b/)\n", text)
         self.assertIn("\t\turi strip_prefix /public\n", text)
         self.assertIn("\t\treverse_proxy 10.86.1.10:80 {\n\t\t\theader_up Host legacy\n\t\t}\n", text)
 
-    def test_no_iis_items(self):
-        text = sites.render_site(site(rules={"iis_profile": {}}))
-        self.assertNotIn("b86iis", text)
+    def test_http_has_no_tls_import(self):
+        text = sites.render_site(site(scheme="http"))
+        self.assertTrue(text.splitlines()[1].startswith("http://legacy.example.com {"))
+        self.assertNotIn("b86_edge", text)
+        self.assertIn("import b86_edge", sites.render_site(site(scheme="https")))
 
     def test_form(self):
         data = {"host": ["legacy.example.com"], "vm": ["nt4-web"], "guest_ip": ["10.86.1.10"], "port": ["80"],
-                "methods": ["GET", "POST"], "allow_paths": ["/\n/x/\n"], "enabled": ["on"], "iis_scripts": ["on"],
-                "iis_admin_dirs": ["on"]}
+                "methods": ["GET", "POST"], "allow_paths": ["/\n/x/\n"], "enabled": ["on"], "iis4_admin_dirs": ["on"], "scheme": ["http"]}
         s = sites.site_from_form(data)
         self.assertEqual(s["rules"]["methods"], ["GET", "POST"])
         self.assertEqual(s["rules"]["allow_paths"], ["/", "/x/"])
-        self.assertTrue(s["rules"]["iis_profile"]["admin_dirs"])
-        self.assertFalse(s["rules"]["iis_profile"]["asa_ext"])
+        self.assertEqual(s["scheme"], "http")
+        self.assertEqual(s["rules"]["profiles"], {"iis4": {"admin_dirs": True}})
+        self.assertEqual(sites.site_from_form({k: v for k, v in data.items() if k != "scheme"})["scheme"], "https")
         self.assertFalse(s["rules"]["block_encoded"])
         with self.assertRaises(ValueError):
             sites.site_from_form(dict(data, port=["x"]))
+
+
+class PageTest(Base):
+    def test_form_groups_and_http_warning(self):
+        import sites_pages
+
+        class Req:
+            session = {"csrf": "tok"}
+            query = {}
+        html = sites_pages._form(Req(), {"host": "legacy.example.com", "scheme": "http"})
+        self.assertIn("Forwarding", html)
+        self.assertIn("Filtering", html)
+        self.assertIn("not encrypted", html)
+        self.assertIn('name="iis4_admin_dirs"', html)
+        self.assertNotIn("name=\"iis4_admin_dirs\" checked", html)  # presets are off by default
 
 
 @unittest.skipUnless(shutil.which("caddy"), "caddy not installed")

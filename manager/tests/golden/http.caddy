@@ -1,0 +1,15 @@
+# managed by 86box-server: do not edit
+http://legacy.example.com {
+	request_body {
+		max_size 1MB
+	}
+	@b86enc expression `{http.request.orig_uri}.matches("(?i)^[^?]*(%25|%2e|%2f|%5c|%c0|%c1|%u|\\.\\.|::|\\\\)")`
+	@b86method not method GET HEAD POST
+	@b86deny not path_regexp ^(/)
+	route {
+		respond @b86enc 400
+		respond @b86method 405
+		respond @b86deny 404
+		reverse_proxy 10.86.1.10:80
+	}
+}
