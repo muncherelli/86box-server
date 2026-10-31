@@ -77,8 +77,6 @@ def _new_page(req, msg="", status_code=200):
              '<p>Template <select name="template">%s</select></p>'
              '<p class="hint">A template only picks the board and CPU. Disks, video, sound and the rest are set in '
              'the 86Box Settings window.</p>'
-             '<p>Hard disk GB (1-7) <input name="disk_gb" type="number" min="1" max="7" placeholder="none"></p>'
-             '<p>CD image %s</p>'
              '<p>Network groups %s</p>'
              '<p class="hint">A network group is a private virtual switch. VMs in the same group can talk to each other '
              'and nothing else; they get no internet unless the group allows it. With no group the VM has no network: '
@@ -86,7 +84,7 @@ def _new_page(req, msg="", status_code=200):
              '<p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"> Start at boot</label></p>'
              '<input type="submit" value="Create"></form>'
-             % (_csrf(req), opts, _cd_select(""), _group_checks(()),
+             % (_csrf(req), opts, _group_checks(()),
                 _checks("user", sorted(vms._auth().console_users()), (), "user")))
     status_, headers, out = respond.page(req, "New VM", body, status_code)
     return status_, headers, out
@@ -102,8 +100,7 @@ def _edit_page(req, name, msg=""):
     if cfg and cfg.has_option("Floppy and CD-ROM drives", "cdrom_01_image_path"):
         current = os.path.basename(cfg.get("Floppy and CD-ROM drives", "cdrom_01_image_path"))
     q = respond.esc(name)
-    cd = ('<p>CD image %s</p>' % _cd_select(current)) if not busy(name) else \
-        '<p>CD image: use the Media menu in the console while the VM is running.</p>'
+    cd = ""
     body = ('<p class="error">%s</p>' % respond.esc(msg)) if msg else ""
     body += ('<form method="post" action="/manage/vms/%s">%s%s<p>Network groups %s</p><p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"%s> Start at boot</label></p>'
@@ -119,7 +116,7 @@ def _edit_page(req, name, msg=""):
                 _checks("user", sorted(vms._auth().console_users()), users, "user"),
                 " checked" if data.get("autostart") else "", respond.esc(data.get("resolution", "auto")),
                 "".join('<option value="%s">' % r for r in vms.RESOLUTION_PRESETS), q, _csrf(req)))
-    for mod, fn in (("snapshots", "html_section"), ("media", "html_attach_section"),
+    for mod, fn in (("snapshots", "html_section"),
                     ("clone", "html_section"), ("importexp", "html_section")):
         body += getattr(importlib.import_module(mod), fn)(req, name)
     return respond.page(req, "VM " + name, body)
@@ -147,7 +144,7 @@ def h_new_post(req, m):
     f = _multi(req)
     one = lambda k: (f.get(k) or [""])[0]
     try:
-        name = create_vm(one("name"), one("template"), one("disk_gb"), one("cd"), f.get("group", []),
+        name = create_vm(one("name"), one("template"), "", "", f.get("group", []),
                          one("autostart") == "1", f.get("user", []))
     except VmError as e:
         return _new_page(req, str(e), 400)
@@ -163,7 +160,6 @@ def h_edit_post(req, m):
     name, f = m.group(1), _multi(req)
     try:
         edit_vm(name, f.get("group", []), (f.get("autostart") or [""])[0] == "1", f.get("user", []),
-                cd=None if busy(name) else (f.get("cd") or [""])[0],
                 resolution=(f.get("resolution") or [""])[0])
     except VmError as e:
         return _edit_page(req, name, str(e))
