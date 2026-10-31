@@ -43,6 +43,22 @@ function csrfToken() {
     });
   }
 
+  function mb(n) { return n >= 1073741824 ? (n / 1073741824).toFixed(1) + " GB" : Math.round(n / 1048576) + " MB"; }
+
+  function pollStats() {
+    fetch("/manage/api/stats").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d) return;
+      Object.keys(d.vms || {}).forEach(function (name) {
+        var row = table.querySelector('tr[data-vm="' + name + '"]');
+        var v = d.vms[name];
+        if (!row) return;
+        row.querySelector("[data-cpu]").textContent = v.active ? v.cpu_percent + "%" : "";
+        row.querySelector("[data-ram]").textContent = v.active ? mb(v.ram) : "";
+        row.querySelector("[data-disk]").textContent = mb(v.disk);
+      });
+    });
+  }
+
   function send(vm, action) {
     fetch("/manage/api/vm/" + vm + "/" + action, { method: "POST", headers: { "X-CSRF": csrfToken() } })
       .then(function (r) { return r.json(); })
@@ -65,6 +81,8 @@ function csrfToken() {
   };
   document.getElementById("confirm-no").onclick = function () { dlg.close(); };
   setInterval(poll, 5000);
+  pollStats();
+  setInterval(pollStats, 5000);
 })();
 
 // Dev mode only (./update.sh dev): reload the page after the manager restarts.
