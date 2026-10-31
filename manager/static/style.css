@@ -1,12 +1,59 @@
-body { font-family: system-ui, sans-serif; margin: 0; background: #f6f6f4; color: #222; }
-header { background: #222; padding: .6rem 1rem; }
-header a { color: #fff; text-decoration: none; font-weight: 600; }
-header .who { color: #aaa; margin-left: 1rem; }
+/* Colors are variables. The default follows the system setting; the menu switcher can force light or dark. */
+:root {
+  color-scheme: light;
+  --bg: #f6f6f4;
+  --text: #222;
+  --surface: #fff;
+  --border: #ddd;
+  --header-bg: #222;
+  --header-text: #fff;
+  --header-muted: #aaa;
+  --nav-link: #ccc;
+  --error: #a00;
+  --hint: #666;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #17181a;
+    --text: #e4e4e0;
+    --surface: #202225;
+    --border: #3a3d41;
+    --header-bg: #0e0f10;
+    --header-text: #fff;
+    --header-muted: #8b8f94;
+    --nav-link: #b8bcc1;
+    --error: #ff7b72;
+    --hint: #9aa0a6;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #17181a;
+  --text: #e4e4e0;
+  --surface: #202225;
+  --border: #3a3d41;
+  --header-bg: #0e0f10;
+  --header-text: #fff;
+  --header-muted: #8b8f94;
+  --nav-link: #b8bcc1;
+  --error: #ff7b72;
+  --hint: #9aa0a6;
+}
+
+body { font-family: system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+header { background: var(--header-bg); padding: .6rem 1rem; }
+header a { color: var(--header-text); text-decoration: none; font-weight: 600; }
+header .who { color: var(--header-muted); margin-left: 1rem; }
 main { max-width: 60rem; margin: 1rem auto; padding: 0 1rem; }
-table { border-collapse: collapse; width: 100%; background: #fff; }
-th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #ddd; }
+table { border-collapse: collapse; width: 100%; background: var(--surface); }
+th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--border); }
 button, input[type=submit] { padding: .3rem .8rem; }
-.error { color: #a00; }
+.error { color: var(--error); }
 header nav { display: inline-block; margin-left: 1rem; }
-header nav a { color: #ccc; margin-right: .8rem; font-weight: 400; }
-.hint { color: #666; font-size: .9em; margin-top: -.4rem; }
+header nav a { color: var(--nav-link); margin-right: .8rem; font-weight: 400; }
+.hint { color: var(--hint); font-size: .9em; margin-top: -.4rem; }
+header .theme { margin-left: .4rem; background: transparent; color: var(--nav-link); border: 1px solid var(--header-muted); border-radius: 4px; padding: .1rem .3rem; font: inherit; font-size: .9em; }
+header .theme option { background: var(--header-bg); color: var(--header-text); }

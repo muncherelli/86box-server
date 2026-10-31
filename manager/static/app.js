@@ -1,4 +1,23 @@
 // Small helpers shared by pages. Page-specific code is added by later rows.
+
+// Theme switcher in the menu: System (follows the OS setting, the default), Light or Dark.
+// The choice is kept in this browser only. The <head> script in layout.html applies it before first paint.
+(function () {
+  var sel = document.getElementById("theme-switch");
+  if (!sel) return;
+  var saved = "system";
+  try { saved = localStorage.getItem("b86-theme") || "system"; } catch (e) {}
+  sel.value = saved === "light" || saved === "dark" ? saved : "system";
+  sel.addEventListener("change", function () {
+    var v = sel.value;
+    if (v === "light" || v === "dark") document.documentElement.setAttribute("data-theme", v);
+    else document.documentElement.removeAttribute("data-theme");
+    try {
+      if (v === "system") localStorage.removeItem("b86-theme");
+      else localStorage.setItem("b86-theme", v);
+    } catch (e) {}
+  });
+})();
 function csrfToken() {
   var m = document.querySelector('meta[name="csrf"]');
   return m ? m.content : "";

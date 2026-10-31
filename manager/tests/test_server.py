@@ -1,3 +1,4 @@
+import os
 import re
 import unittest
 
@@ -31,6 +32,21 @@ class ServerTest(unittest.TestCase):
         server.ROUTES.append(("POST", re.compile("/manage/x"), lambda r, m: respond.text("hi"), None))
         self.assertEqual(server.dispatch(FakeReq("POST", "/manage/x", "https://evil.example"))[0], 403)
         self.assertEqual(server.dispatch(FakeReq("POST", "/manage/x"))[0], 200)
+
+
+class ThemeTest(unittest.TestCase):
+    def test_page_has_the_theme_switcher_and_early_script(self):
+        page = respond.page(FakeReq(), "t", "")[2].decode()
+        self.assertIn('id="theme-switch"', page)
+        for value in ("system", "light", "dark"):
+            self.assertIn('<option value="%s">' % value, page)
+        self.assertLess(page.index("b86-theme"), page.index("style.css"))  # applied before the css loads
+
+    def test_stylesheet_follows_the_system_and_has_both_themes(self):
+        css = open(os.path.join(os.path.dirname(server.__file__), "static", "style.css")).read()
+        self.assertIn("prefers-color-scheme: dark", css)
+        self.assertIn(':root[data-theme="dark"]', css)
+        self.assertNotIn("#fff;", css.split("body {")[1])  # no hard-coded page colors left after the variables
 
 
 class DevModeTest(unittest.TestCase):
