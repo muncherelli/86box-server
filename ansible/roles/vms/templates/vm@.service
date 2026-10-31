@@ -11,6 +11,9 @@ SupplementaryGroups={{ vm_share_group }}
 UMask=0007
 EnvironmentFile={{ vm_data_root }}/vmdefs/%i.env
 Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/vms/%i
+# Keep Qt's font cache out of the VM folder: the manager could not delete or copy what 86Box wrote there.
+CacheDirectory=86box-vm
+Environment=XDG_CACHE_HOME=/var/cache/86box-vm
 ExecStartPre=/bin/sh -c '! systemctl is-active --quiet vm-settings@%i.service'
 ExecStartPre=+/opt/86box-server/libexec/cfg-guard %i
 ExecStartPre=/opt/86box-server/libexec/ensure-resize %i
