@@ -1,6 +1,6 @@
 """Terminal fallback for the web manager. Run as the 86boxmgr user.
 
-list | start|stop|restart <name> | check-password <user> | set-password <user>
+list | start|stop|restart <name> | check-password <user> | set-password <user> | renew-certs
 The password commands read the password from stdin, so it never shows up in the process list.
 """
 import sys
@@ -65,7 +65,11 @@ def main(argv):
         return cmd_check_password(argv[1])
     if len(argv) == 2 and argv[0] == "set-password":
         return cmd_set_password(argv[1])
-    print("usage: cli.py list | start|stop|restart <name> | check-password <user> | set-password <user>",
+    if argv == ["renew-certs"]:
+        import panel
+        return panel.renew()
+    print("usage: cli.py list | start|stop|restart <name> | check-password <user> | set-password <user>"
+          " | renew-certs",
           file=sys.stderr)
     return 2
 

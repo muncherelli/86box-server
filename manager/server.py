@@ -12,9 +12,9 @@ import config
 import respond
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", "importexp", "clone", "settings", "netgroups_ui"]
+MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", "importexp", "clone", "settings", "netgroups_ui", "cloudflare_ui"]
 STATIC = {"style.css": "text/css", "app.js": "application/javascript",
-          "media.js": "application/javascript"}
+          "media.js": "application/javascript", "cloudflare.js": "application/javascript"}
 MAX_FORM = 1024 * 1024
 BOOT_ID = str(time.time())  # changes on every restart; the dev page reload watches it
 
