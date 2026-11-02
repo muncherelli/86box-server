@@ -71,7 +71,7 @@ Both groups must exist. Guests in a routed pair need the host as gateway (see be
 
 ## Internet access and ufw
 
-`egress: nat` and `group_routes` turn on IPv4 forwarding (`/etc/sysctl.d/86box.conf`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rules, because ufw's default forward policy is DROP. Removing a group or a pair removes its ufw rules again.
+`egress: nat` and `group_routes` turn on IPv4 forwarding (`/opt/86server/system/etc/sysctl.d/86box.conf`, linked from `/etc/sysctl.d/`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rules, because ufw's default forward policy is DROP. Removing a group or a pair removes its ufw rules again.
 
 ## DHCP (optional)
 
