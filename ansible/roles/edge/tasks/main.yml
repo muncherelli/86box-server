@@ -32,6 +32,12 @@
     # certificates the manager gets with lego; setgid so Caddy's group can read them
     - { path: /opt/86server/data/certs, owner: "{{ mgr_user }}", group: caddy, mode: "2750" }
 
+- name: Remove what older versions put in /etc/caddy (Caddy now reads /opt/86server/etc/caddy)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: [/etc/caddy/b86-validate-snippets.caddy, /etc/caddy/sites.d]
+
 - name: Install the snippets used to validate site files on their own
   ansible.builtin.copy:
     src: b86-validate-snippets.caddy

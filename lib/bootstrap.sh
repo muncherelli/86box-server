@@ -53,7 +53,7 @@ migrate_install_state() {
     rmdir "$(dirname "$old_pass")" 2>/dev/null || true
     echo "Moved the vault password to $INSTALL_DIR/vault-pass"
   fi
-  rm -rf "$REPO/ansible/collections"
+  rm -rf "$REPO/ansible/collections" "${XDG_STATE_HOME:-$HOME/.local/state}/86server"
 }
 
 # First run: copy the example inventory to $INSTALL_DIR/inventory and stop.
