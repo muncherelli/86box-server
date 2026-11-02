@@ -5,7 +5,7 @@ Runs as the `86srvmgr` user on `127.0.0.1:8686`; Caddy is the only thing that ta
 
 ## Module contract
 
-`server.py` loads these optional modules from this folder, if they exist: `auth vms media snapshots stats sites secrets_ui importexp clone settings`.
+`server.py` loads these optional modules from this folder, if they exist: `auth vms media snapshots stats sites secrets_ui importexp clone settings netgroups_ui cloudflare_ui`.
 Each module may define `ROUTES = [(method, regex, handler, role), ...]`.
 
 - `method`: `GET`, `POST` or `PUT` (there is no DELETE: deletes are `POST .../delete`).
@@ -39,6 +39,13 @@ Big uploads read `req.rfile` directly, exactly `req.length` bytes.
   `tools/fake-netapply.py` is a test-only stand-in for the helper.
 - `store.write_json / write_text / read_json / audit`: always write files with these (atomic, explicit mode).
 - `units.run(verb, unit)` and `units.is_active(unit)`: tests patch these; never call systemctl directly.
+- `secrets_store.get/put/delete/info`: secrets in `<data_root>/manager/secrets.json` (0600). Never log or show a value;
+  `info()` gives only the date and last 4 characters.
+- `cloudflare.py`: the Cloudflare API client (urllib); `panel.py`: the Cloudflare page's job (Let's Encrypt
+  certificate through lego, `<panel_dir>/panel.caddy`, tunnel, DNS record). Settings it reads from `config.CFG`:
+  `certs_dir`, `panel_dir`, `lego_bin`, `validate_snippets` (see `config.load()` for defaults). `cli.py renew-certs`
+  renews the certificate when it has under 30 days left.
+- `sites.caddy_validate(text)`: check Caddy site text against the snippet stubs in `validate_snippets`.
 - `respond.page(req, title, body_html)` wraps a page in `pages/layout.html`. Escape every value with `respond.esc`.
   Forms need `<input type="hidden" name="csrf" value="...">` with `req.session["csrf"]`.
 

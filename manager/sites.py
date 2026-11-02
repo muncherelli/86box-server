@@ -6,7 +6,7 @@ Nothing here is specific to one guest OS; optional presets (like iis4) add extra
 sites.json holds the records. render_site() turns one record into Caddy text and
 re-checks every value first (never write a file from unchecked data).
 apply_sites() renders all enabled sites, validates them with the real caddy,
-writes /etc/caddy/sites.d/<host>.caddy and reloads caddy (rolling back on failure).
+writes <sites_dir>/<host>.caddy and reloads caddy (rolling back on failure).
 """
 import ipaddress
 import os
@@ -231,12 +231,26 @@ def _restore(src, dst):
         shutil.copy2(os.path.join(src, name), dst)
 
 
+def caddy_validate(text):
+    """Check site text with the real caddy, after the snippet stubs. Return (ok, message)."""
+    work = os.path.join(config.CFG["data_root"], "manager")
+    with open(config.CFG["validate_snippets"]) as f:
+        snippets = f.read()
+    vfile = os.path.join(work, "validate.Caddyfile")
+    store.write_text(vfile, snippets + text, mode=0o600)
+    env = dict(os.environ, HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work)
+    r = subprocess.run([os.environ.get("B86_CADDY", "caddy"), "validate", "--adapter", "caddyfile",
+                        "--config", vfile], capture_output=True, text=True, env=env, timeout=60)
+    if r.returncode:
+        return False, _caddy_error(r.stderr)
+    return True, "valid"
+
+
 def apply_sites(sites=None):
     """Return (ok, message). On any problem the live files stay as they were."""
     with LOCK:
         sites = load_sites() if sites is None else sites
-        sites_dir = config.CFG.get("sites_dir", "/etc/caddy/sites.d")
-        snippets = config.CFG.get("validate_snippets", "/etc/caddy/b86-validate-snippets.caddy")
+        sites_dir = config.CFG["sites_dir"]
         work = os.path.join(config.CFG["data_root"], "manager")
         try:
             files = {s["host"] + ".caddy": render_site(s, config.CFG["edge_mode"])
@@ -244,15 +258,9 @@ def apply_sites(sites=None):
         except ValueError as e:
             return False, str(e)
 
-        with open(snippets) as f:
-            text = f.read()
-        vfile = os.path.join(work, "validate.Caddyfile")
-        store.write_text(vfile, text + "".join(files.values()), mode=0o600)
-        env = dict(os.environ, HOME=work, XDG_DATA_HOME=work, XDG_CONFIG_HOME=work)
-        r = subprocess.run([os.environ.get("B86_CADDY", "caddy"), "validate", "--adapter", "caddyfile",
-                            "--config", vfile], capture_output=True, text=True, env=env, timeout=60)
-        if r.returncode:
-            return False, _caddy_error(r.stderr)
+        ok, msg = caddy_validate("".join(files.values()))
+        if not ok:
+            return False, msg
 
         prev = os.path.join(work, "sites-prev")
         _snapshot(sites_dir, prev)
