@@ -24,12 +24,21 @@ def load():
     cfg.pop("netgroups", None)  # an old manager.json may still carry it; the live file wins
     cfg.setdefault("edge_mode", "acme")
     cfg.setdefault("manager_host", "localhost")
+    cfg.setdefault("manager_hosts", [])
     cfg.setdefault("publish_domains", [])
     cfg.setdefault("port_forward_limits", [])
     cfg.setdefault("public_ipv4", "")
     if os.environ.get("B86_DATA_ROOT"):
         cfg["data_root"] = os.environ["B86_DATA_ROOT"]
     return cfg
+
+
+def manager_hosts():
+    """Every name the manager is served under (manager_host, lan_hosts, tunnel_hosts)."""
+    hosts = list(CFG.get("manager_hosts") or [])
+    if CFG.get("manager_host") and CFG["manager_host"] not in hosts:
+        hosts.append(CFG["manager_host"])
+    return hosts
 
 
 def _read_cached(path, default):

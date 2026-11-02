@@ -387,7 +387,7 @@ def login_post(req, m):
         return _login_page(req, "Wrong user or password.", 401)
     store.audit(form["username"], req.ip, "login-ok")
     status, headers, body = respond.redirect(_safe_next(form.get("next")))
-    headers["Set-Cookie"] = "%s=%s; Path=/; HttpOnly; Secure; SameSite=Strict" % (COOKIE, token)
+    headers["Set-Cookie"] = "%s=%s; %s" % (COOKIE, token, respond.cookie_attrs(req))
     return status, headers, body
 
 
@@ -395,7 +395,7 @@ def logout_post(req, m):
     store.audit(req.user["name"], req.ip, "logout")
     delete_session(_cookie_token(req))
     status, headers, body = respond.redirect("/manage/login")
-    headers["Set-Cookie"] = "%s=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0" % COOKIE
+    headers["Set-Cookie"] = "%s=; %s; Max-Age=0" % (COOKIE, respond.cookie_attrs(req))
     return status, headers, body
 
 
