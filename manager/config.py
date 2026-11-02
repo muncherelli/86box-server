@@ -50,7 +50,8 @@ def manager_hosts():
 def panel_hostname():
     """The control panel name set up on the Cloudflare page, if any (read live from panel.json)."""
     path = os.path.join(CFG["data_root"], "manager", "panel.json")
-    return (_read_cached(path, {}).get("hostname") or "") if _read_cached(path, {}).get("active") else ""
+    panel = _read_cached(path, {})
+    return (panel.get("hostname") or "") if panel.get("active") else ""
 
 
 def _read_cached(path, default):
