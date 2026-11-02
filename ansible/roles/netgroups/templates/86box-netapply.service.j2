@@ -5,7 +5,7 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /opt/86server/libexec/netgroups-apply --request {{ vm_data_root }}/manager/netgroups-request.json --data-root {{ vm_data_root }} --mgr-group {{ mgr_user }}
+ExecStart=/usr/bin/python3 /opt/86server/libexec/netgroups-apply --request {{ vm_data_root }}/manager/netgroups-request.json --data-root {{ vm_data_root }} --mgr-group {{ b86_user }}
 # Exit status 1 means the request was refused; the reason is in the result file.
 SuccessExitStatus=1
 NoNewPrivileges=yes

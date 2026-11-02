@@ -3,8 +3,8 @@ Description=VNC display for box %i
 PartOf=box@%i.service box-settings@%i.service
 
 [Service]
-User={{ vm_service_user }}
-Group={{ vm_service_user }}
+User={{ b86_user }}
+Group={{ b86_user }}
 Environment=B86_GEOMETRY=1024x768
 EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
 ExecStart=/usr/bin/Xvnc :${B86_DISPLAY} -rfbport ${B86_VNC_PORT} -localhost -SecurityTypes None -geometry ${B86_GEOMETRY} -depth 24 -AlwaysShared -nolisten tcp

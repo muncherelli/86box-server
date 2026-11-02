@@ -17,7 +17,6 @@
   loop:
     - /opt/86server
     - /opt/86server/system
-    - /opt/86server/libexec
     - /opt/86server/system/etc
     - /opt/86server/system/etc/systemd/system
     - /opt/86server/system/etc/tmpfiles.d
@@ -26,78 +25,25 @@
     - /opt/86server/system/etc/sysctl.d
     - /opt/86server/system/etc/NetworkManager/conf.d
 
-- name: Install the account migration helper
-  ansible.builtin.copy:
-    src: account-migrate
-    dest: /opt/86server/libexec/account-migrate
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: Look for running boxes
-  ansible.builtin.shell: "systemctl list-units --no-legend --state=active 'box@*' 'box-settings@*' | awk '{print $1}'"
-  register: b86_running_boxes
-  changed_when: false
-
-- name: Rename the old box account and give it its fixed ID (only while no box runs)
-  ansible.builtin.command:
-    argv: [/opt/86server/libexec/account-migrate, 86boxvm, "{{ vm_service_user }}", "{{ vm_uid }}",
-           "vnc@*.service", "wm@*.service", 86box-guard.service]
-  register: b86_vm_migrate
-  changed_when: "'changed' in b86_vm_migrate.stdout"
-  when: b86_running_boxes.stdout_lines | length == 0
-
-- name: Rename the old web manager account and give it its fixed ID
-  ansible.builtin.command:
-    argv: [/opt/86server/libexec/account-migrate, 86boxmgr, "{{ mgr_user }}", "{{ mgr_uid }}",
-           86box-manager.service, 86server-certs.timer, 86server-certs.service, 86box-websockify.service]
-  register: b86_mgr_migrate
-  changed_when: "'changed' in b86_mgr_migrate.stdout"
-
-- name: Create the shared data group
+- name: Create the 86server group (shared with media_users)
   ansible.builtin.group:
-    name: "{{ vm_share_group }}"
+    name: "{{ b86_user }}"
+    gid: "{{ b86_id }}"
     system: true
 
-- name: Create the box account group
-  ansible.builtin.group:
-    name: "{{ vm_service_user }}"
-    gid: "{{ vm_uid if vm_uid_free | default(false) else omit }}"
-    system: true
-
-- name: Create the box account
+- name: Create the 86server account (runs the boxes and the web manager)
   ansible.builtin.user:
-    name: "{{ vm_service_user }}"
-    uid: "{{ vm_uid if vm_uid_free | default(false) else omit }}"
-    group: "{{ vm_service_user }}"
-    groups: ["{{ vm_share_group }}"]
-    append: true
+    name: "{{ b86_user }}"
+    uid: "{{ b86_id }}"
+    group: "{{ b86_user }}"
     system: true
     shell: /usr/bin/nologin
     home: "{{ vm_data_root }}"
     create_home: false
 
-- name: Create the web manager group
-  ansible.builtin.group:
-    name: "{{ mgr_user }}"
-    gid: "{{ mgr_uid if mgr_uid_free | default(false) else omit }}"
-    system: true
-
-- name: Create the web manager account
-  ansible.builtin.user:
-    name: "{{ mgr_user }}"
-    uid: "{{ mgr_uid if mgr_uid_free | default(false) else omit }}"
-    group: "{{ mgr_user }}"
-    groups: ["{{ vm_share_group }}"]
-    append: true
-    system: true
-    shell: /usr/bin/nologin
-    home: "{{ vm_data_root }}/manager"
-    create_home: false
-
-- name: Let media users read and write the shared data group
+- name: Let media users read and write the media library
   ansible.builtin.user:
     name: "{{ item }}"
-    groups: ["{{ vm_share_group }}"]
+    groups: ["{{ b86_user }}"]
     append: true
   loop: "{{ media_users }}"

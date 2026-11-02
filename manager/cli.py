@@ -1,4 +1,4 @@
-"""Terminal fallback for the web manager. Run as the 86srvmgr user.
+"""Terminal fallback for the web manager. Run as the 86server user.
 
 list | start|stop|restart <name> | check-password <user> | set-password <user> | renew-certs
 The password commands read the password from stdin, so it never shows up in the process list.

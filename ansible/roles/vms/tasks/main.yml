@@ -19,13 +19,6 @@
   loop: [wait-x, cfg-guard, ensure-resize, tap-check, stop-display, guard-loop, autostart]
   notify: Restart the config guard
 
-- name: Remove the old VM unit files (boxes used to be called VMs)
-  ansible.builtin.file:
-    path: "/etc/systemd/system/{{ item }}"
-    state: absent
-  loop: ["vm@.service", "vm-settings@.service"]
-  notify: Reload systemd
-
 - name: Install the templated systemd units
   ansible.builtin.template:
     src: "{{ item }}"

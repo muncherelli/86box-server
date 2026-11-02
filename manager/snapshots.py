@@ -30,7 +30,7 @@ def _snapdir(name):
 
 
 def _group():
-    return config.CFG.get("share_group", "86box-data")
+    return config.CFG.get("share_group", "86server")
 
 
 def _chgrp(path):

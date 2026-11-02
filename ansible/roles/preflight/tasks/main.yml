@@ -49,51 +49,28 @@
     - b86_ports.stdout | length > 0
     - "'caddy' not in b86_ports.stdout"
 
-- name: Look for an existing user with ID 86
-  ansible.builtin.command: getent passwd 86
-  register: b86_uid
+- name: Look up the 86server account name and ID
+  ansible.builtin.command: "getent {{ item }}"
+  loop:
+    - "passwd {{ b86_user }}"
+    - "passwd {{ b86_id }}"
+    - "group {{ b86_user }}"
+    - "group {{ b86_id }}"
+  register: b86_ids
   changed_when: false
   failed_when: false
 
-- name: Look for an existing group with ID 86
-  ansible.builtin.command: getent group 86
-  register: b86_gid
-  changed_when: false
-  failed_when: false
-
-- name: Work out whether ID 86 can be used for the box account
-  ansible.builtin.set_fact:
-    vm_uid_free: >-
-      {{ (b86_uid.rc != 0 or b86_uid.stdout.split(':')[0] in [vm_service_user, '86boxvm'])
-         and (b86_gid.rc != 0 or b86_gid.stdout.split(':')[0] in [vm_service_user, '86boxvm']) }}
-
-- name: Look for an existing user with the web manager's ID
-  ansible.builtin.command: "getent passwd {{ mgr_uid }}"
-  register: b86_mgr_uid
-  changed_when: false
-  failed_when: false
-
-- name: Look for an existing group with the web manager's ID
-  ansible.builtin.command: "getent group {{ mgr_uid }}"
-  register: b86_mgr_gid
-  changed_when: false
-  failed_when: false
-
-- name: Work out whether the web manager's ID can be used
-  ansible.builtin.set_fact:
-    mgr_uid_free: >-
-      {{ (b86_mgr_uid.rc != 0 or b86_mgr_uid.stdout.split(':')[0] in [mgr_user, '86boxmgr'])
-         and (b86_mgr_gid.rc != 0 or b86_mgr_gid.stdout.split(':')[0] in [mgr_user, '86boxmgr']) }}
-
-- name: Warn when the web manager's ID is taken
-  ansible.builtin.debug:
-    msg: "UID or GID {{ mgr_uid }} is used by another account; the system will pick IDs for {{ mgr_user }}."
-  when: not mgr_uid_free
-
-- name: Warn when ID 86 is taken
-  ansible.builtin.debug:
-    msg: "UID or GID 86 is used by another account; the system will pick IDs for {{ vm_service_user }}."
-  when: not vm_uid_free
+- name: Check that the 86server name and ID are free (or already ours)
+  vars:
+    b86_hits: "{{ b86_ids.results | selectattr('rc', 'equalto', 0) | map(attribute='stdout') | list }}"
+  ansible.builtin.assert:
+    that:
+      - b86_hits | reject('match', '^' ~ b86_user ~ ':[^:]*:' ~ b86_id ~ ':') | list | length == 0
+    fail_msg: >-
+      86server needs an account named {{ b86_user }} with UID and GID {{ b86_id }}, but another account
+      already uses that name or ID: {{ b86_hits | reject('match', '^' ~ b86_user ~ ':[^:]*:' ~ b86_id ~ ':') | list }}.
+      Log in as a differently named user (not {{ b86_user }}) and free ID {{ b86_id }}, then run ./update.sh again.
+    quiet: true
 
 - name: Check whether ufw is active
   ansible.builtin.command: systemctl is-active ufw
@@ -185,7 +162,7 @@
   ansible.builtin.assert:
     that:
       - item.name is defined and item.name is match('^[a-z][a-z0-9_-]{1,31}$')
-      - item.name not in [vm_service_user, mgr_user]
+      - item.name != b86_user
       - item.ssh_key is defined and item.ssh_key is match('^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp[0-9]+|sk-ssh-ed25519@openssh.com) [A-Za-z0-9+/=]+( [^\n]*)?$')
     fail_msg: "sftp_only_users entry {{ item.name | default('?') }}: needs name (a-z, 0-9, _ -) and a one-line ssh_key"
     quiet: true

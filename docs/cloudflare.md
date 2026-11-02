@@ -30,7 +30,7 @@ Cloudflare's permission list calls Edit "Write" in some places; it is the same p
 
 Open **Cloudflare** in the manager menu, paste the token and select **Save**. The manager first asks Cloudflare
 which zones the token can see and refuses a token that fails or sees none. The token is stored in
-`/opt/86server/data/manager/secrets.json` (readable only by the manager's account). The page only ever shows the
+`/opt/86server/data/manager/secrets.json` (readable only by the `86server` account). The page only ever shows the
 date it was set and its last four characters. **Remove token** deletes it.
 
 ## 3. Set up the hostname
@@ -59,12 +59,12 @@ stay unless you tick **Also delete the Cloudflare Tunnel**.
 
 ## Renewal
 
-A daily timer runs `cli.py renew-certs` as the manager's account. When the certificate has fewer than 30 days left
+A daily timer runs `cli.py renew-certs` as the `86server` account. When the certificate has fewer than 30 days left
 it renews it the same way (DNS challenge through Cloudflare) and reloads Caddy. The API token must still be saved
 for that to work. Run it by hand with:
 
 ```
-sudo -u 86srvmgr python3 /opt/86server/manager/cli.py renew-certs
+sudo -u 86server python3 /opt/86server/manager/cli.py renew-certs
 ```
 
 ## Files

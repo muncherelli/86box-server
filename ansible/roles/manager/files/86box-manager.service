@@ -3,9 +3,8 @@ Description=86server web manager
 After=network.target
 
 [Service]
-User=86srvmgr
-Group=86srvmgr
-SupplementaryGroups=86box-data
+User=86server
+Group=86server
 UMask=0007
 WorkingDirectory=/opt/86server/manager
 ExecStart=/usr/bin/python3 /opt/86server/manager/server.py

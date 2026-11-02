@@ -53,7 +53,7 @@ def ext_ok(kind, name):
 
 
 def _group():
-    return config.CFG.get("share_group", "86box-data")
+    return config.CFG.get("share_group", "86server")
 
 
 def _chgrp(path):

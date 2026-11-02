@@ -10,7 +10,7 @@ vault_admin_password() {
 }
 
 manager_cli() {
-  sudo -u 86srvmgr python3 /opt/86server/manager/cli.py "$@"
+  sudo -u 86server python3 /opt/86server/manager/cli.py "$@"
 }
 
 # Writes a new vault_admin_password into the encrypted vault (stdin = the password).

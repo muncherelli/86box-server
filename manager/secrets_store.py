@@ -1,6 +1,6 @@
 """Secrets the manager needs (for now only the Cloudflare API token).
 
-<data_root>/manager/secrets.json, mode 0600, owned by the manager user:
+<data_root>/manager/secrets.json, mode 0600, owned by the 86server account:
     {"cf_api_token": {"value": "...", "set": "2026-11-02T06:00:00Z"}}
 Values never go to the browser in full, to logs or to the audit log. Not encrypted at rest: the stdlib has no
 AES, and a key on the same disk would add little. Protection is the file mode and the separate user.

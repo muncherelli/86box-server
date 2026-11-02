@@ -4,8 +4,8 @@ BindsTo=vnc@%i.service
 After=vnc@%i.service
 
 [Service]
-User={{ vm_service_user }}
-Group={{ vm_service_user }}
+User={{ b86_user }}
+Group={{ b86_user }}
 EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
 RuntimeDirectory=wm-%i
 Environment=HOME=%t/wm-%i

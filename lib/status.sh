@@ -13,7 +13,7 @@ show_status() {
     printf '%-24s %s\n' "$unit" "$state"
   done
   echo
-  sudo -u 86srvmgr python3 /opt/86server/manager/cli.py list || echo "(Box list unavailable)"
+  sudo -u 86server python3 /opt/86server/manager/cli.py list || echo "(Box list unavailable)"
   echo
   echo "Bridges:"
   ip -br link show type bridge || true

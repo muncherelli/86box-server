@@ -111,16 +111,6 @@ class LiveConfigTest(Base):
         config.CFG["netgroups"] = {"x": {"bridge": "br-x"}}
         self.assertEqual(list(config.netgroups()), ["x"])
 
-    def test_an_old_manager_json_cannot_shadow_the_live_file(self):
-        p = os.path.join(self.tmp.name, "old.json")
-        put(p, {"netgroups": {"stale": {}}, "data_root": "/x"})
-        old = config._PATH
-        config._PATH = p
-        try:
-            self.assertNotIn("netgroups", config.load())
-        finally:
-            config._PATH = old
-
 
 class ChecksTest(Base):
     def test_suggestions_skip_networks_in_use(self):

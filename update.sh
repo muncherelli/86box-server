@@ -39,7 +39,7 @@ done
 
 case "${ARGS[0]:-}" in
   vm|box)
-    sudo -u 86srvmgr python3 /opt/86server/manager/cli.py "${ARGS[@]:1}"
+    sudo -u 86server python3 /opt/86server/manager/cli.py "${ARGS[@]:1}"
     exit $?
     ;;
   status)
@@ -54,7 +54,6 @@ esac
 
 preflight_basic
 ensure_install_dir
-migrate_install_state
 ensure_local_inventory
 ensure_ansible
 ensure_nano

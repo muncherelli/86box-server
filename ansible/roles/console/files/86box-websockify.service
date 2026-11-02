@@ -2,8 +2,8 @@
 Description=websockify for 86Box consoles
 
 [Service]
-User=86srvmgr
-Group=86srvmgr
+User=86server
+Group=86server
 Environment=PYTHONPATH=/opt/86server/vendor/websockify/current
 ExecStart=/usr/bin/python3 -m websockify --token-plugin TokenFile --token-source /opt/86server/data/vnc-tokens 127.0.0.1:6080
 Restart=on-failure

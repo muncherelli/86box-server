@@ -25,18 +25,12 @@
   loop:
     # config: the Caddyfile (Ansible), sites.d (published sites) and panel.d (control panel name), both by the manager
     - { path: /opt/86server/etc/caddy, owner: root, group: caddy, mode: "0750" }
-    - { path: /opt/86server/etc/caddy/sites.d, owner: "{{ mgr_user }}", group: caddy, mode: "0755" }
-    - { path: /opt/86server/etc/caddy/panel.d, owner: "{{ mgr_user }}", group: caddy, mode: "0755" }
+    - { path: /opt/86server/etc/caddy/sites.d, owner: "{{ b86_user }}", group: caddy, mode: "0755" }
+    - { path: /opt/86server/etc/caddy/panel.d, owner: "{{ b86_user }}", group: caddy, mode: "0755" }
     # Caddy's own data (its local CA and the certificates it manages)
     - { path: /opt/86server/data/caddy, owner: caddy, group: caddy, mode: "0700" }
     # certificates the manager gets with lego; setgid so Caddy's group can read them
-    - { path: /opt/86server/data/certs, owner: "{{ mgr_user }}", group: caddy, mode: "2750" }
-
-- name: Remove what older versions put in /etc/caddy (Caddy now reads /opt/86server/etc/caddy)
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop: [/etc/caddy/b86-validate-snippets.caddy, /etc/caddy/sites.d]
+    - { path: /opt/86server/data/certs, owner: "{{ b86_user }}", group: caddy, mode: "2750" }
 
 - name: Install the snippets used to validate site files on their own
   ansible.builtin.copy:

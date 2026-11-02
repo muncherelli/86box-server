@@ -5,9 +5,8 @@ Wants=wm@%i.service
 After=vnc@%i.service wm@%i.service 86box-bridges.service
 
 [Service]
-User={{ vm_service_user }}
-Group={{ vm_service_user }}
-SupplementaryGroups={{ vm_share_group }}
+User={{ b86_user }}
+Group={{ b86_user }}
 UMask=0007
 EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
 Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/boxes/%i
@@ -28,7 +27,7 @@ ProtectSystem=strict
 ProtectHome=yes
 ReadWritePaths={{ vm_data_root }}/boxes/%i -/tmp/.X11-unix
 ReadOnlyPaths={{ media_root }}
-InaccessiblePaths={{ vm_data_root }}/manager
+InaccessiblePaths=-{{ vm_data_root }}/manager -{{ vm_data_root }}/certs -{{ vm_data_root }}/vnc-tokens
 KillSignal=SIGHUP
 TimeoutStopSec=10
 Restart=no

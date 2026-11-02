@@ -12,7 +12,7 @@
     path: /opt/86server/etc
     state: directory
     owner: root
-    group: "{{ mgr_user }}"
+    group: "{{ b86_user }}"
     mode: "0751"
 
 - name: Create the libexec folder
@@ -75,7 +75,7 @@
       - --data-root
       - "{{ vm_data_root }}"
       - --mgr-group
-      - "{{ mgr_user }}"
+      - "{{ b86_user }}"
     stdin: >-
       {{ {'netgroups': netgroups, 'group_routes': group_routes | default([]),
           'nat_dns': nat_dns | default(['1.1.1.1']),

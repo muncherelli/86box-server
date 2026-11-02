@@ -11,7 +11,7 @@
 - name: Create the SFTP-only accounts
   ansible.builtin.user:
     name: "{{ item.name }}"
-    groups: ["{{ vm_share_group }}", 86box-sftp]
+    groups: ["{{ b86_user }}", 86box-sftp]
     append: true
     shell: /usr/bin/nologin
     home: /

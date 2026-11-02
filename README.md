@@ -17,13 +17,13 @@ Supported: Arch Linux (more distros later, see [docs/adding-a-distro.md](docs/ad
 git clone https://github.com/muncherelli/86server
 cd 86server
 ./update.sh            # first run: creates /opt/86server/install/inventory and stops
-$EDITOR /opt/86server/install/inventory/group_vars/all/main.yml
+$EDITOR /opt/86server/install/inventory/group_vars/all/main.yml   # set at least one name, e.g. lan_hosts: [box.lan]
 ./update.sh vault-edit # set the admin password and any other secrets
 ./update.sh            # installs everything
 ./update.sh admin-password   # shows the web manager's admin login
 ```
 
-`./update.sh` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings and secrets live in `/opt/86server/install`, outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings. Older checkouts kept them in `ansible/inventories/local` and `~/.config/86server/vault-pass`; the next run moves them.
+`./update.sh` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings and secrets live in `/opt/86server/install`, outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
 
 To reach the manager from outside, or to give it a real certificate, use the Cloudflare page in the web manager: see [docs/cloudflare.md](docs/cloudflare.md).
 
@@ -38,6 +38,14 @@ To reach the manager from outside, or to give it a real certificate, use the Clo
 | `./update.sh admin-password` | Show the web manager's admin login (warns if it was changed in the web manager) |
 | `./update.sh admin-password reset` | Set a new random admin password, save it in the vault and sign out old admin logins |
 | `./update.sh dev` | Copy `manager/` to the host on every change and restart the manager |
+
+## The 86server account
+
+Everything runs as one service account, `86server`, with UID and GID 86: the boxes, the web manager,
+the console proxy and the certificate timer. It has no shell and no password. Install as any other
+login user (for example `linuxuser`); `./update.sh` stops if a different account already has the
+name `86server` or ID 86. Login users listed in `media_users` join the `86server` group to read and
+write the media library.
 
 ## Install layout
 

@@ -3,3 +3,8 @@
 # The media library: one folder per kind of 86Box drive (manager/media.py KINDS).
 media_root: /opt/86server/media
 media_kinds: [iso, floppy, disk, zip, mo, tape, cassette, cartridge]
+
+# The one service account: runs the boxes and the web manager. Its group is shared with media_users.
+b86_user: 86server
+b86_id: 86                        # UID and GID; preflight stops if another account already has it
+vm_data_root: /opt/86server/data

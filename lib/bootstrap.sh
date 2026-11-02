@@ -41,21 +41,6 @@ ensure_install_dir() {
   fi
 }
 
-# Older checkouts kept the inventory in the repo and the vault password in ~/.config: move them once.
-migrate_install_state() {
-  local old_inv="$REPO/ansible/inventories/local" old_pass="$HOME/.config/86server/vault-pass"
-  if [ -d "$old_inv" ] && [ ! -e "$INSTALL_DIR/inventory" ]; then
-    mv "$old_inv" "$INSTALL_DIR/inventory"
-    echo "Moved ansible/inventories/local to $INSTALL_DIR/inventory"
-  fi
-  if [ -z "${B86_VAULT_PASS_FILE:-}" ] && [ -f "$old_pass" ] && [ ! -e "$INSTALL_DIR/vault-pass" ]; then
-    mv "$old_pass" "$INSTALL_DIR/vault-pass"
-    rmdir "$(dirname "$old_pass")" 2>/dev/null || true
-    echo "Moved the vault password to $INSTALL_DIR/vault-pass"
-  fi
-  rm -rf "$REPO/ansible/collections" "${XDG_STATE_HOME:-$HOME/.local/state}/86server"
-}
-
 # First run: copy the example inventory to $INSTALL_DIR/inventory and stop.
 ensure_local_inventory() {
   local src="$REPO/ansible/inventories/example"

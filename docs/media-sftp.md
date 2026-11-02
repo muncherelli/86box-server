@@ -4,7 +4,7 @@ The media library lives in `/opt/86server/media`, one folder per 86Box drive typ
 
 ## Normal SSH users
 
-Add the login name to `media_users` in the inventory and run `./update.sh`. The user joins the shared group (`vm_share_group`) and can use `sftp` or `scp` on the folders directly.
+Add the login name to `media_users` in the inventory and run `./update.sh`. The user joins the `86server` group and can use `sftp` or `scp` on the folders directly.
 
 ## SFTP-only accounts
 

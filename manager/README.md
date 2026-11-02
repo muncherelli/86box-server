@@ -1,7 +1,7 @@
 # manager
 
 Web app for one 86server host. Python standard library only (Python 3.13+, so no `cgi`, no YAML).
-Runs as the `86srvmgr` user on `127.0.0.1:8686`; Caddy is the only thing that talks to it.
+Runs as the `86server` user on `127.0.0.1:8686`; Caddy is the only thing that talks to it.
 
 ## Module contract
 

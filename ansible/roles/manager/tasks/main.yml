@@ -20,7 +20,7 @@
     src: manager.json.j2
     dest: /opt/86server/etc/manager.json
     owner: root
-    group: "{{ mgr_user }}"
+    group: "{{ b86_user }}"
     mode: "0640"
   notify: Restart the manager
 
@@ -33,8 +33,8 @@
   ansible.builtin.copy:
     content: "{{ {'admin_user': 'admin', 'admin_password': vault_admin_password} | to_json }}"
     dest: "{{ vm_data_root }}/manager/seed.json"
-    owner: "{{ mgr_user }}"
-    group: "{{ mgr_user }}"
+    owner: "{{ b86_user }}"
+    group: "{{ b86_user }}"
     mode: "0600"
   when: not users_file.stat.exists
   no_log: true

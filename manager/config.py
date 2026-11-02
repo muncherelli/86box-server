@@ -21,8 +21,7 @@ def load():
     cfg.setdefault("data_root", "/opt/86server/data")
     cfg.setdefault("media_root", "/opt/86server/media")
     cfg.setdefault("emu86box_tag", "")
-    cfg.setdefault("share_group", "86box-data")
-    cfg.pop("netgroups", None)  # an old manager.json may still carry it; the live file wins
+    cfg.setdefault("share_group", "86server")
     cfg.setdefault("edge_mode", "acme")
     cfg.setdefault("manager_host", "localhost")
     cfg.setdefault("manager_hosts", [])
