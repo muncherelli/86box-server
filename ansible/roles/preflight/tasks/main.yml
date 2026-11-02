@@ -18,7 +18,7 @@
   when: not b86_modules.stat.exists
 
 - name: Read free disk space under /var/lib
-  ansible.builtin.shell: set -o pipefail; df --output=avail -BG /var/lib | tail -n 1 | tr -dc 0-9
+  ansible.builtin.shell: set -o pipefail; df --output=avail -BG /opt | tail -n 1 | tr -dc 0-9
   args:
     executable: /bin/bash
   register: b86_df
@@ -26,12 +26,12 @@
 
 - name: Check that there is enough disk space
   ansible.builtin.fail:
-    msg: "Only {{ b86_df.stdout }} GB free under /var/lib; at least 5 GB is needed."
+    msg: "Only {{ b86_df.stdout }} GB free under /opt; at least 5 GB is needed."
   when: b86_df.stdout | int < 5
 
 - name: Warn when disk space is low
   ansible.builtin.debug:
-    msg: "Only {{ b86_df.stdout }} GB free under /var/lib. Box disks need room; 20 GB or more is comfortable."
+    msg: "Only {{ b86_df.stdout }} GB free under /opt. Box disks need room; 20 GB or more is comfortable."
   when: b86_df.stdout | int < 20
 
 - name: Look for programs using ports 80 and 443
