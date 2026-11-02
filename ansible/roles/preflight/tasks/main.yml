@@ -64,8 +64,31 @@
 - name: Work out whether ID 86 can be used for the box account
   ansible.builtin.set_fact:
     vm_uid_free: >-
-      {{ (b86_uid.rc != 0 or b86_uid.stdout.split(':')[0] == vm_service_user)
-         and (b86_gid.rc != 0 or b86_gid.stdout.split(':')[0] == vm_service_user) }}
+      {{ (b86_uid.rc != 0 or b86_uid.stdout.split(':')[0] in [vm_service_user, '86boxvm'])
+         and (b86_gid.rc != 0 or b86_gid.stdout.split(':')[0] in [vm_service_user, '86boxvm']) }}
+
+- name: Look for an existing user with the web manager's ID
+  ansible.builtin.command: "getent passwd {{ mgr_uid }}"
+  register: b86_mgr_uid
+  changed_when: false
+  failed_when: false
+
+- name: Look for an existing group with the web manager's ID
+  ansible.builtin.command: "getent group {{ mgr_uid }}"
+  register: b86_mgr_gid
+  changed_when: false
+  failed_when: false
+
+- name: Work out whether the web manager's ID can be used
+  ansible.builtin.set_fact:
+    mgr_uid_free: >-
+      {{ (b86_mgr_uid.rc != 0 or b86_mgr_uid.stdout.split(':')[0] in [mgr_user, '86boxmgr'])
+         and (b86_mgr_gid.rc != 0 or b86_mgr_gid.stdout.split(':')[0] in [mgr_user, '86boxmgr']) }}
+
+- name: Warn when the web manager's ID is taken
+  ansible.builtin.debug:
+    msg: "UID or GID {{ mgr_uid }} is used by another account; the system will pick IDs for {{ mgr_user }}."
+  when: not mgr_uid_free
 
 - name: Warn when ID 86 is taken
   ansible.builtin.debug:

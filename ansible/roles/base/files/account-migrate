@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# account-migrate OLD NEW ID [UNIT...]
+# Renames account OLD (and its group of the same name) to NEW, then moves NEW to uid/gid ID when ID is free,
+# re-owning its files under /opt/86server and /run/86server. UNITs (glob patterns) running as the account are
+# stopped first; the caller starts them again. Prints "changed" when it changed anything. Safe to run again.
+set -euo pipefail
+old=$1 new=$2 want=$3
+shift 3
+units=("$@")
+changed=0
+
+stop_units() {
+  [ "${#units[@]}" -gt 0 ] || return 0
+  systemctl stop "${units[@]}" 2>/dev/null || true
+}
+
+if [ "$old" != "$new" ] && getent passwd "$old" >/dev/null && ! getent passwd "$new" >/dev/null; then
+  stop_units
+  usermod -l "$new" "$old"
+  if getent group "$old" >/dev/null && ! getent group "$new" >/dev/null; then
+    groupmod -n "$new" "$old"
+  fi
+  changed=1
+fi
+
+if getent passwd "$new" >/dev/null; then
+  cur_uid=$(id -u "$new")
+  cur_gid=$(getent group "$new" | cut -d: -f3 || true)
+  uid_owner=$(getent passwd "$want" | cut -d: -f1 || true)
+  gid_owner=$(getent group "$want" | cut -d: -f1 || true)
+  if [ "$cur_uid" != "$want" ] && { [ -z "$uid_owner" ] || [ "$uid_owner" = "$new" ]; } \
+     && { [ -z "$gid_owner" ] || [ "$gid_owner" = "$new" ]; }; then
+    stop_units
+    if [ -n "$cur_gid" ] && [ "$cur_gid" != "$want" ]; then
+      groupmod -g "$want" "$new"
+      find /opt/86server /run/86server -xdev -gid "$cur_gid" -exec chgrp -h "$want" {} + 2>/dev/null || true
+    fi
+    usermod -u "$want" "$new"
+    find /opt/86server /run/86server -xdev -uid "$cur_uid" -exec chown -h "$want" {} + 2>/dev/null || true
+    changed=1
+  fi
+fi
+
+[ "$changed" -eq 0 ] || echo changed

@@ -12,15 +12,15 @@ W=/opt/86server/cache/tpl-check
 value() { sed -n "s/^$2 = //p" "$1" | head -n 1; }
 
 rm -rf "$W"
-install -d -o 86boxvm -g 86boxvm -m 0755 "$W"
+install -d -o 86srv -g 86srv -m 0755 "$W"
 rc=0
 shopt -s nullglob
 for cfg in "$dir"/*.cfg; do
     id=$(basename "$cfg" .cfg)
-    install -d -o 86boxvm -g 86boxvm -m 0755 "$W/$id"
-    install -o 86boxvm -g 86boxvm -m 0644 "$cfg" "$W/$id/86box.cfg"
+    install -d -o 86srv -g 86srv -m 0755 "$W/$id"
+    install -o 86srv -g 86srv -m 0644 "$cfg" "$W/$id/86box.cfg"
     # 86Box never exits on its own here; the kill is expected.
-    runuser -u 86boxvm -- env QT_QPA_PLATFORM=offscreen HOME="$W/$id" \
+    runuser -u 86srv -- env QT_QPA_PLATFORM=offscreen HOME="$W/$id" \
         timeout -s KILL 15 "/opt/86server/vendor/86box/$tag/AppRun" -N -P "$W/$id/" \
         -R "/opt/86server/vendor/roms/$tag" >/dev/null 2>&1 || true
     saved="$W/$id/86box.cfg"

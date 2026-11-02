@@ -3,8 +3,8 @@ Description=86server web manager
 After=network.target
 
 [Service]
-User=86boxmgr
-Group=86boxmgr
+User=86srvmgr
+Group=86srvmgr
 SupplementaryGroups=86box-data
 UMask=0007
 WorkingDirectory=/opt/86server/manager

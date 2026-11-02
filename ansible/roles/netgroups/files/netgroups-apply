@@ -382,7 +382,7 @@ def main():
     mode.add_argument("--check")
     mode.add_argument("--bridges", action="store_true")
     ap.add_argument("--data-root", default="/opt/86server/data")
-    ap.add_argument("--mgr-group", default="86boxmgr")
+    ap.add_argument("--mgr-group", default="86srvmgr")
     args = ap.parse_args()
     ctx = Ctx(args.data_root, args.mgr_group)
 
