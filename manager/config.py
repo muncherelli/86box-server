@@ -30,15 +30,27 @@ def load():
     cfg.setdefault("public_ipv4", "")
     if os.environ.get("B86_DATA_ROOT"):
         cfg["data_root"] = os.environ["B86_DATA_ROOT"]
+    # Everything 86server owns lives under /opt/86server, Caddy files included (Ansible writes these too).
+    cfg.setdefault("sites_dir", "/opt/86server/etc/caddy/sites.d")
+    cfg.setdefault("panel_dir", "/opt/86server/etc/caddy/panel.d")
+    cfg.setdefault("validate_snippets", "/opt/86server/etc/caddy/validate-snippets.caddy")
+    cfg.setdefault("certs_dir", os.path.join(cfg["data_root"], "certs"))
+    cfg.setdefault("lego_bin", "/usr/bin/lego")
     return cfg
 
 
 def manager_hosts():
-    """Every name the manager is served under (manager_host, lan_hosts, tunnel_hosts)."""
+    """Every name the manager is served under (manager_host, lan_hosts, tunnel_hosts, the Cloudflare panel name)."""
     hosts = list(CFG.get("manager_hosts") or [])
-    if CFG.get("manager_host") and CFG["manager_host"] not in hosts:
-        hosts.append(CFG["manager_host"])
+    extra = [CFG.get("manager_host"), panel_hostname()]
+    hosts += [h for h in extra if h and h not in hosts]
     return hosts
+
+
+def panel_hostname():
+    """The control panel name set up on the Cloudflare page, if any (read live from panel.json)."""
+    path = os.path.join(CFG["data_root"], "manager", "panel.json")
+    return (_read_cached(path, {}).get("hostname") or "") if _read_cached(path, {}).get("active") else ""
 
 
 def _read_cached(path, default):
