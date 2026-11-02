@@ -3,7 +3,8 @@
   "share_group": vm_share_group,
   "emu86box_tag": pins.emu86box.tag,
   "edge_mode": edge_mode,
-  "manager_host": manager_host,
+  "manager_host": manager_host | default(''),
+  "manager_hosts": ([manager_host] if manager_host | default('') else []) + (lan_hosts | default([])) + (tunnel_hosts | default([])),
   "publish_domains": publish_domains,
   "port_forward_limits": port_forward_limits,
   "public_ipv4": public_ipv4

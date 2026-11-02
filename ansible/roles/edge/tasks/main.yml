@@ -2,6 +2,19 @@
 - name: Load settings for this Linux distribution
   ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
 
+- name: Check the host names Caddy will serve
+  vars:
+    b86_names: "{{ ([manager_host] if manager_host | default('') else []) + (lan_hosts | default([])) + (tunnel_hosts | default([])) }}"
+  ansible.builtin.assert:
+    that:
+      - b86_names | length > 0
+      - b86_names | unique | length == b86_names | length
+      - b86_names | select('match', '^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)*[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$') | list | length == b86_names | length
+    fail_msg: >-
+      Set manager_host, lan_hosts or tunnel_hosts (lowercase names, each listed once across the three).
+      Got: {{ b86_names }}
+    quiet: true
+
 - name: Create the folder for per-site files
   ansible.builtin.file:
     path: /etc/caddy/sites.d
@@ -50,7 +63,10 @@
     port: "{{ item }}"
     proto: tcp
   loop: ["80", "443"]
-  when: b86_ufw | default(false)
+  # Tunnel-only hosts need no inbound port: cloudflared dials out.
+  when:
+    - b86_ufw | default(false)
+    - edge_mode != 'tunnel' or (lan_hosts | default([]) | length > 0)
 
 - name: Make systemd see the drop-in
   ansible.builtin.meta: flush_handlers

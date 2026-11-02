@@ -104,8 +104,7 @@ def dispatch(req):
         return respond.text("method not allowed" if path_known else "not found", 405 if path_known else 404)
 
     if req.method in ("POST", "PUT"):
-        origin = req.headers.get("Origin")
-        if origin and origin != "https://" + config.CFG["manager_host"]:
+        if not respond.origin_ok(req, config.manager_hosts()):
             return respond.text("bad origin", 403)
 
     if role not in (None, "login"):

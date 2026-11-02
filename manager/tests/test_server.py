@@ -7,9 +7,11 @@ import server
 
 
 class FakeReq:
-    def __init__(self, method="GET", path="/manage/health", origin=None):
+    def __init__(self, method="GET", path="/manage/health", origin=None, proto=None):
         self.method, self.path, self.user, self.session = method, path, None, None
         self.headers = {"Origin": origin} if origin else {}
+        if proto:
+            self.headers["X-B86-Proto"] = proto
         self.query = {}
 
 
@@ -32,6 +34,37 @@ class ServerTest(unittest.TestCase):
         server.ROUTES.append(("POST", re.compile("/manage/x"), lambda r, m: respond.text("hi"), None))
         self.assertEqual(server.dispatch(FakeReq("POST", "/manage/x", "https://evil.example"))[0], 403)
         self.assertEqual(server.dispatch(FakeReq("POST", "/manage/x"))[0], 200)
+
+
+class OriginTest(unittest.TestCase):
+    def setUp(self):
+        import config
+        self.cfg = dict(config.CFG)
+        config.CFG["manager_host"] = "mgr.example.com"
+        config.CFG["manager_hosts"] = ["box.lan", "box.example.com"]
+        server.load_routes()
+        server.ROUTES.append(("POST", re.compile("/manage/x"), lambda r, m: respond.text("hi"), None))
+
+    def tearDown(self):
+        import config
+        config.CFG.clear()
+        config.CFG.update(self.cfg)
+
+    def status(self, origin, proto):
+        return server.dispatch(FakeReq("POST", "/manage/x", origin, proto))[0]
+
+    def test_each_host_on_its_own_scheme(self):
+        self.assertEqual(self.status("https://mgr.example.com", "https"), 200)
+        self.assertEqual(self.status("http://box.lan", "http"), 200)
+        self.assertEqual(self.status("https://box.lan", "https"), 200)
+        self.assertEqual(self.status("https://box.example.com", "https"), 200)
+
+    def test_refused(self):
+        self.assertEqual(self.status("http://box.lan", "https"), 403)   # scheme mismatch
+        self.assertEqual(self.status("https://box.lan", None), 403)     # no proto header = http
+        self.assertEqual(self.status("https://evil.example", "https"), 403)
+        self.assertEqual(self.status("https://box.lan:8443", "https"), 403)
+        self.assertEqual(self.status("null", "https"), 403)
 
 
 class ThemeTest(unittest.TestCase):

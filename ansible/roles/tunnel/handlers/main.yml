@@ -1,0 +1,9 @@
+---
+- name: Reload systemd for cloudflared
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Restart cloudflared
+  ansible.builtin.systemd:
+    name: 86server-cloudflared
+    state: restarted

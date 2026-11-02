@@ -47,3 +47,9 @@
   gather_facts: true
   roles:
     - manager
+
+- name: Cloudflare Tunnel
+  hosts: all
+  gather_facts: true
+  roles:
+    - tunnel

@@ -3,6 +3,7 @@ import html
 import json
 import os
 import string
+import urllib.parse
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 # ./update.sh dev creates this file; the normal deploy (rsync --delete) removes it.
@@ -11,6 +12,31 @@ DEV_MARKER = os.path.join(_DIR, ".dev")
 
 def dev_mode():
     return os.path.exists(DEV_MARKER)
+
+
+def scheme(req):
+    """'https' or 'http' as the visitor sees it. Caddy sets X-B86-Proto; anything else counts as http."""
+    return "https" if (req.headers.get("X-B86-Proto") or "").strip().lower() == "https" else "http"
+
+
+def cookie_attrs(req):
+    """Cookie flags: Secure only when the visitor is on https, so plain-http LAN logins still work."""
+    return "Path=/; HttpOnly; Secure; SameSite=Strict" if scheme(req) == "https" else "Path=/; HttpOnly; SameSite=Strict"
+
+
+def origin_ok(req, hosts):
+    """A browser Origin header must name one of our hosts, over the scheme this request came in on."""
+    origin = req.headers.get("Origin")
+    if not origin:
+        return True
+    try:
+        parts = urllib.parse.urlsplit(origin)
+        port = parts.port
+    except ValueError:
+        return False
+    if parts.scheme != scheme(req) or parts.path or port not in (None, 80, 443):
+        return False
+    return (parts.hostname or "") in [h.lower() for h in hosts if h]
 
 
 def text(body, status=200, ctype="text/plain; charset=utf-8"):

@@ -94,6 +94,15 @@ class AuthTest(unittest.TestCase):
         self.assertIn("SameSite=Strict", headers["Set-Cookie"])
         return cookie_of(headers)
 
+    def test_cookie_is_secure_only_over_https(self):
+        form = {"username": "admin", "password": "correct horse battery"}
+        _, h, _ = server.dispatch(FakeReq("POST", "/manage/login", dict(form), headers={"X-B86-Proto": "https"}))
+        self.assertIn("; Secure", h["Set-Cookie"])
+        _, h, _ = server.dispatch(FakeReq("POST", "/manage/login", dict(form), headers={"X-B86-Proto": "http"}))
+        self.assertNotIn("Secure", h["Set-Cookie"])
+        _, h, _ = server.dispatch(FakeReq("POST", "/manage/login", dict(form)))
+        self.assertNotIn("Secure", h["Set-Cookie"])
+
     def test_login_flow_and_csrf(self):
         tok = self.login_via_handler()
         self.assertEqual(server.dispatch(FakeReq(path="/manage/users", cookie=tok))[0], 200)
