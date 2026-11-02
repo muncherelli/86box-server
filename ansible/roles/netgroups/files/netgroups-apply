@@ -6,7 +6,7 @@
   netgroups-apply --check FILE|-   only check a settings file (Ansible preflight); prints the problems
   netgroups-apply --bridges        at boot: bring the saved groups' bridges up again
 
-Files it writes: /opt/86server/etc/{netgroups.json,netpolicy.json,b86server.nft,dnsmasq.conf},
+Files it writes: /opt/86server/etc/{netgroups.json,netpolicy.json,86server.nft,dnsmasq.conf},
 /opt/86server/system/etc/... (linked into /etc),
 /run/86server/netapply.json (the result), NetworkManager and sysctl drop-ins.
 It never touches the host's own interface, its addresses or its routes.
@@ -226,7 +226,7 @@ def step_bridges(ctx, groups, gone):
 
 
 def step_nft(ctx, groups, text):
-    path = CONF + "/b86server.nft"
+    path = CONF + "/86server.nft"
     if not groups:
         if run(["nft", "list", "table", "inet", "b86server"], check=False).returncode == 0:
             run(["nft", "delete", "table", "inet", "b86server"])
