@@ -35,14 +35,15 @@
   roles:
     - console
 
-- name: Web manager
-  hosts: all
-  gather_facts: true
-  roles:
-    - manager
-
+# Caddy first: it creates /etc/caddy/sites.d, which the manager unit needs at start.
 - name: Caddy
   hosts: all
   gather_facts: true
   roles:
     - edge
+
+- name: Web manager
+  hosts: all
+  gather_facts: true
+  roles:
+    - manager
