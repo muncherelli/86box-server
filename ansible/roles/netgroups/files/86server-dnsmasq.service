@@ -1,6 +1,6 @@
 [Unit]
 Description=86server guest DHCP (dnsmasq)
-After=86box-bridges.service
+After=86server-bridges.service
 
 [Service]
 ExecStart=/usr/bin/dnsmasq -k --conf-file=/opt/86server/etc/dnsmasq.conf

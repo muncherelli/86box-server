@@ -48,8 +48,8 @@
 
 - name: Point Caddy at the config and data in /opt/86server
   ansible.builtin.copy:
-    src: caddy-b86.conf
-    dest: /opt/86server/system/etc/systemd/system/caddy.service.d/b86.conf
+    src: caddy-86server.conf
+    dest: /opt/86server/system/etc/systemd/system/caddy.service.d/86server.conf
     owner: root
     group: root
     mode: "0644"

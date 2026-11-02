@@ -52,7 +52,7 @@ admin_password() {
       local pw
       pw=$(python3 -c 'import secrets; print(secrets.token_urlsafe(15))')
       printf '%s\n' "$pw" | manager_cli set-password "$ADMIN_USER" >/dev/null || die "Could not set the password"
-      sudo systemctl restart 86box-manager
+      sudo systemctl restart 86server-manager
       printf '%s\n' "$pw" | vault_set_admin_password || die "Password changed in the manager, but saving it in the vault failed. New password: $pw"
       echo "user:     $ADMIN_USER"
       echo "password: $pw"

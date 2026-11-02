@@ -123,7 +123,7 @@ def dispatch(req):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "86box-manager"
+    server_version = "86server-manager"
 
     def _go(self):
         try:

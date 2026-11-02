@@ -41,7 +41,7 @@
     owner: root
     group: root
     mode: "0644"
-  loop: [86box-bridges.service, 86box-nft.service, 86box-dnsmasq.service]
+  loop: [86server-bridges.service, 86server-nft.service, 86server-dnsmasq.service]
   notify: Reload systemd for the network groups
 
 - name: Install the units that watch for requests from the web manager
@@ -51,7 +51,7 @@
     owner: root
     group: root
     mode: "0644"
-  loop: [86box-netapply.service, 86box-netapply.path]
+  loop: [86server-netapply.service, 86server-netapply.path]
   notify: Reload systemd for the network groups
 
 - name: Link the system files into /etc
@@ -87,11 +87,11 @@
 
 - name: Bring the bridges back at boot
   ansible.builtin.systemd:
-    name: 86box-bridges
+    name: 86server-bridges
     enabled: true
 
 - name: Watch for network group requests from the web manager
   ansible.builtin.systemd:
-    name: 86box-netapply.path
+    name: 86server-netapply.path
     enabled: true
     state: started

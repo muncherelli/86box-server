@@ -42,16 +42,16 @@
 
 - name: Allow the manager to start and stop boxes (polkit)
   ansible.builtin.copy:
-    src: 50-86box.rules
-    dest: /opt/86server/system/etc/polkit-1/rules.d/50-86box.rules
+    src: 50-86server.rules
+    dest: /opt/86server/system/etc/polkit-1/rules.d/50-86server.rules
     owner: root
     group: root
     mode: "0644"
 
 - name: Install the manager unit
   ansible.builtin.copy:
-    src: 86box-manager.service
-    dest: /opt/86server/system/etc/systemd/system/86box-manager.service
+    src: 86server-manager.service
+    dest: /opt/86server/system/etc/systemd/system/86server-manager.service
     owner: root
     group: root
     mode: "0644"
@@ -77,7 +77,7 @@
 
 - name: Run the manager
   ansible.builtin.systemd:
-    name: 86box-manager
+    name: 86server-manager
     enabled: true
     state: started
 

@@ -5,13 +5,13 @@
 
 - name: Create the SFTP-only group
   ansible.builtin.group:
-    name: 86box-sftp
+    name: 86server-sftp
     system: true
 
 - name: Create the SFTP-only accounts
   ansible.builtin.user:
     name: "{{ item.name }}"
-    groups: ["{{ b86_user }}", 86box-sftp]
+    groups: ["{{ b86_user }}", 86server-sftp]
     append: true
     shell: /usr/bin/nologin
     home: /
@@ -58,8 +58,8 @@
 
 - name: Write the SFTP-only SSH settings
   ansible.builtin.template:
-    src: 60-86box-sftp.conf.j2
-    dest: /opt/86server/system/etc/ssh/sshd_config.d/60-86box-sftp.conf
+    src: 60-86server-sftp.conf.j2
+    dest: /opt/86server/system/etc/ssh/sshd_config.d/60-86server-sftp.conf
     owner: root
     group: root
     mode: "0644"

@@ -95,16 +95,16 @@ class SystemFileTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_real_file_in_opt_and_symlink_in_etc(self):
-        link = os.path.join(self.etc, "sysctl.d", "86box.conf")
+        link = os.path.join(self.etc, "sysctl.d", "86server.conf")
         self.assertTrue(na.write_system_file(link, "x\n", 0o644))
-        real = os.path.join(self.sys, "sysctl.d", "86box.conf")
+        real = os.path.join(self.sys, "sysctl.d", "86server.conf")
         self.assertTrue(os.path.islink(link))
         self.assertEqual(os.path.realpath(link), os.path.realpath(real))
         self.assertFalse(os.path.islink(real))
         self.assertFalse(na.write_system_file(link, "x\n", 0o644))  # nothing changed
 
     def test_a_plain_file_in_etc_is_replaced_by_the_link(self):
-        link = os.path.join(self.etc, "sysctl.d", "86box.conf")
+        link = os.path.join(self.etc, "sysctl.d", "86server.conf")
         os.makedirs(os.path.dirname(link))
         with open(link, "w") as f:
             f.write("old\n")
@@ -114,7 +114,7 @@ class SystemFileTest(unittest.TestCase):
             self.assertEqual(f.read(), "new\n")
 
     def test_remove_drops_both(self):
-        link = os.path.join(self.etc, "NetworkManager", "conf.d", "86box.conf")
+        link = os.path.join(self.etc, "NetworkManager", "conf.d", "86server.conf")
         na.write_system_file(link, "x\n", 0o644)
         self.assertTrue(na.system_file_exists(link))
         na.remove_system_file(link)

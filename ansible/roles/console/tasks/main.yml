@@ -46,8 +46,8 @@
 
 - name: Install the websockify unit
   ansible.builtin.copy:
-    src: 86box-websockify.service
-    dest: /opt/86server/system/etc/systemd/system/86box-websockify.service
+    src: 86server-websockify.service
+    dest: /opt/86server/system/etc/systemd/system/86server-websockify.service
     owner: root
     group: root
     mode: "0644"
@@ -61,6 +61,6 @@
 
 - name: Run websockify
   ansible.builtin.systemd:
-    name: 86box-websockify
+    name: 86server-websockify
     enabled: true
     state: started

@@ -6,7 +6,7 @@ show_status() {
   echo "86server status"
   echo
   printf '%-24s %s\n' SERVICE STATE
-  for unit in 86box-manager 86box-websockify 86box-guard 86box-nft 86box-bridges 86box-dnsmasq caddy 86box-cloudflared; do
+  for unit in 86server-manager 86server-websockify 86server-guard 86server-nft 86server-bridges 86server-dnsmasq caddy 86server-cloudflared; do
     # Services that are not installed on this host (not in use) are skipped.
     systemctl cat "$unit" >/dev/null 2>&1 || continue
     state="$(systemctl is-active "$unit" 2>/dev/null || true)"

@@ -30,7 +30,7 @@ run_dev() {
   trap 'exit 0' INT TERM
   dev_sync
   sudo touch "$DEV_DEST/.dev"
-  sudo systemctl restart 86box-manager
+  sudo systemctl restart 86server-manager
   echo "Dev mode on. Watching $REPO/manager (Ctrl+C to stop)."
   local last now
   last=$(dev_stamp)
@@ -40,10 +40,10 @@ run_dev() {
     last=$now
     sleep 0.3  # let an editor finish writing
     dev_sync
-    if sudo systemctl restart 86box-manager; then
+    if sudo systemctl restart 86server-manager; then
       echo "$(date +%T) synced, manager restarted"
     else
-      echo "$(date +%T) restart FAILED (journalctl -u 86box-manager)"
+      echo "$(date +%T) restart FAILED (journalctl -u 86server-manager)"
     fi
   done
 }

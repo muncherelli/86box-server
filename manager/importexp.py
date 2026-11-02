@@ -156,7 +156,7 @@ def h_export(req, m):
     store.audit(req.user["name"], req.ip, "vm.export", name)
     body = json.dumps(data, indent=2).encode()
     return 200, {"Content-Type": "application/json",
-                 "Content-Disposition": 'attachment; filename="%s.86box-vm.json"' % name}, body
+                 "Content-Disposition": 'attachment; filename="%s.86server.json"' % name}, body
 
 
 def _page(req, msg="", status=200):

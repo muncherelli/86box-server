@@ -44,7 +44,7 @@
     owner: root
     group: root
     mode: "0644"
-  loop: [86box-guard.service, 86box-autostart.service]
+  loop: [86server-guard.service, 86server-autostart.service]
   notify: Reload systemd
 
 - name: Install the runtime folders list
@@ -69,11 +69,11 @@
 
 - name: Run the config guard
   ansible.builtin.systemd:
-    name: 86box-guard
+    name: 86server-guard
     enabled: true
     state: started
 
 - name: Start boxes marked autostart at boot (not started on every run)
   ansible.builtin.systemd:
-    name: 86box-autostart
+    name: 86server-autostart
     enabled: true

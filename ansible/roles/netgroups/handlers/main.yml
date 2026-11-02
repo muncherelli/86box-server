@@ -5,7 +5,7 @@
 
 - name: Restart dnsmasq for guests
   ansible.builtin.systemd:
-    name: 86box-dnsmasq
+    name: 86server-dnsmasq
     state: restarted
 
 - name: Reload NetworkManager

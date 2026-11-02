@@ -1,6 +1,6 @@
 [Unit]
 Description=Start 86Box boxes marked autostart
-After=86box-bridges.service 86box-nft.service
+After=86server-bridges.service 86server-nft.service
 
 [Service]
 Type=oneshot

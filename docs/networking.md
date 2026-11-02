@@ -46,7 +46,7 @@ netgroups:
 ### How a change is applied
 
 The web manager never changes the network itself. It writes a request file, and a root helper
-(`/opt/86server/libexec/netgroups-apply`, started by `86box-netapply.path`) checks every part of it and then
+(`/opt/86server/libexec/netgroups-apply`, started by `86server-netapply.path`) checks every part of it and then
 makes the host match. A request that fails any check is refused as a whole and nothing changes. The answer, with
 any warnings, is in `/run/86server/netapply.json`. The saved groups are in `/opt/86server/etc/netgroups.json`
 and `netpolicy.json`.
@@ -59,7 +59,7 @@ and `netpolicy.json`.
 
 - Creates each bridge and gives it the **first host address** of the CIDR (`10.86.0.1` for the example). The host's own network card is never added to a bridge.
 - Tells NetworkManager to ignore the bridges and the `tap*` devices 86Box creates.
-- Loads its own firewall table, `inet b86box`. It matches only the named bridges, never tap names (86Box picks those), so it cannot touch SSH or other traffic. It does not use Arch's `nftables.service`, which would delete ufw's rules; `./update.sh` refuses to run while that service is enabled.
+- Loads its own firewall table, `inet b86server`. It matches only the named bridges, never tap names (86Box picks those), so it cannot touch SSH or other traffic. It does not use Arch's `nftables.service`, which would delete ufw's rules; `./update.sh` refuses to run while that service is enabled.
 
 Result: guests in the same group talk to each other. They cannot reach the host (except DHCP, when enabled), other groups, or the internet.
 
@@ -71,11 +71,11 @@ Both groups must exist. Guests in a routed pair need the host as gateway (see be
 
 ## Internet access and ufw
 
-`egress: nat` and `group_routes` turn on IPv4 forwarding (`/opt/86server/system/etc/sysctl.d/86box.conf`, linked from `/etc/sysctl.d/`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rules, because ufw's default forward policy is DROP. Removing a group or a pair removes its ufw rules again.
+`egress: nat` and `group_routes` turn on IPv4 forwarding (`/opt/86server/system/etc/sysctl.d/86server.conf`, linked from `/etc/sysctl.d/`). When ufw is active, `./update.sh` also adds the matching `ufw route allow` rules, because ufw's default forward policy is DROP. Removing a group or a pair removes its ufw rules again.
 
 ## DHCP (optional)
 
-Set `dhcp: true` on a group and `./update.sh` runs one small `dnsmasq` for all such groups (`86box-dnsmasq.service`). It does DHCP only, no DNS server. Static addresses always work too, and NT4 is fine with them.
+Set `dhcp: true` on a group and `./update.sh` runs one small `dnsmasq` for all such groups (`86server-dnsmasq.service`). It does DHCP only, no DNS server. Static addresses always work too, and NT4 is fine with them.
 
 - **Range:** `.100` to `.199` of the group's network. Groups too small for that (`/25` and smaller) use the upper half of the network instead.
 - **Lease time:** 12 hours. Leases are listed in `<vm_data_root>/dnsmasq.leases`.

@@ -251,7 +251,7 @@ def render_nft(groups, routes, edge=None):
     cf = edge.get("edge_mode") == "cf-origin" and bool(edge.get("cf4_ranges"))
     out = ["# managed by 86server: do not edit",
            "# The first two lines make loading atomic: the table is replaced in one step.",
-           "table inet b86box", "delete table inet b86box", "table inet b86box {",
+           "table inet b86server", "delete table inet b86server", "table inet b86server {",
            "  set ourbr {", "    type ifname"]
     if groups:
         out.append("    elements = { %s }" % ", ".join('"%s"' % g["bridge"] for g in groups.values()))

@@ -147,7 +147,7 @@ def status(now=None):
             return {"state": "applying", "message": "Applying the change...", "warnings": []}
         return {"state": "error", "warnings": [],
                 "message": "The network helper did not answer within %d seconds, so the change was not applied. "
-                           "Check that the 86box-netapply service is running." % APPLY_TIMEOUT}
+                           "Check that the 86server-netapply service is running." % APPLY_TIMEOUT}
     if isinstance(res, dict) and "ok" in res:
         return {"state": "ok" if res["ok"] else "error", "message": str(res.get("message", "")),
                 "warnings": [str(w) for w in (res.get("warnings") or [])]}

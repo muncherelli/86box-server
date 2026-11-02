@@ -176,7 +176,7 @@ class RequestTest(Base):
         self.assertEqual(ns.status()["state"], "applying")
         late = ns.status(now=time.time() + ns.APPLY_TIMEOUT + 5)
         self.assertEqual(late["state"], "error")
-        self.assertIn("86box-netapply", late["message"])
+        self.assertIn("86server-netapply", late["message"])
         self.answer(True, "Applied", ["a warning"])
         self.assertEqual(ns.status(), {"state": "ok", "message": "Applied", "warnings": ["a warning"]})
         self.answer(False, "No such bridge")

@@ -6,7 +6,7 @@
   netgroups-apply --check FILE|-   only check a settings file (Ansible preflight); prints the problems
   netgroups-apply --bridges        at boot: bring the saved groups' bridges up again
 
-Files it writes: /opt/86server/etc/{netgroups.json,netpolicy.json,b86box.nft,dnsmasq.conf},
+Files it writes: /opt/86server/etc/{netgroups.json,netpolicy.json,b86server.nft,dnsmasq.conf},
 /opt/86server/system/etc/... (linked into /etc),
 /run/86server/netapply.json (the result), NetworkManager and sysctl drop-ins.
 It never touches the host's own interface, its addresses or its routes.
@@ -28,8 +28,8 @@ RUN = "/run/86server"
 # System files live in /opt/86server/system/etc/<path>; /etc/<path> is a symlink to them.
 SYSTEM_ETC = "/opt/86server/system/etc"
 ETC = "/etc"
-NM_CONF = "/etc/NetworkManager/conf.d/86box.conf"
-SYSCTL_CONF = "/etc/sysctl.d/86box.conf"
+NM_CONF = "/etc/NetworkManager/conf.d/86server.conf"
+SYSCTL_CONF = "/etc/sysctl.d/86server.conf"
 MAX_REQUEST = 64 * 1024
 ENV = dict(os.environ, PATH="/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin", LC_ALL="C")
 
@@ -226,20 +226,20 @@ def step_bridges(ctx, groups, gone):
 
 
 def step_nft(ctx, groups, text):
-    path = CONF + "/b86box.nft"
+    path = CONF + "/b86server.nft"
     if not groups:
-        if run(["nft", "list", "table", "inet", "b86box"], check=False).returncode == 0:
-            run(["nft", "delete", "table", "inet", "b86box"])
+        if run(["nft", "list", "table", "inet", "b86server"], check=False).returncode == 0:
+            run(["nft", "delete", "table", "inet", "b86server"])
             ctx.note("nft")
-        run(["systemctl", "disable", "86box-nft"], check=False)
+        run(["systemctl", "disable", "86server-nft"], check=False)
         if os.path.exists(path):
             os.unlink(path)
         return
     changed = write_file(path, text, 0o640)
-    run(["systemctl", "enable", "86box-nft"], check=False)
-    loaded = run(["nft", "list", "table", "inet", "b86box"], check=False).returncode == 0
+    run(["systemctl", "enable", "86server-nft"], check=False)
+    loaded = run(["nft", "list", "table", "inet", "b86server"], check=False).returncode == 0
     if changed or not loaded:
-        run(["systemctl", "reload" if unit_active("86box-nft") else "start", "86box-nft"])
+        run(["systemctl", "reload" if unit_active("86server-nft") else "start", "86server-nft"])
         ctx.note("nft")
 
 
@@ -284,14 +284,14 @@ def step_dhcp(ctx, groups, text):
     if text is None:
         if os.path.exists(path):
             os.unlink(path)
-        if unit_active("86box-dnsmasq") or run(["systemctl", "is-enabled", "86box-dnsmasq"], check=False).returncode == 0:
-            run(["systemctl", "disable", "--now", "86box-dnsmasq"], check=False)
+        if unit_active("86server-dnsmasq") or run(["systemctl", "is-enabled", "86server-dnsmasq"], check=False).returncode == 0:
+            run(["systemctl", "disable", "--now", "86server-dnsmasq"], check=False)
             ctx.note("dhcp off")
         return
     changed = write_file(path, text, 0o644)
-    run(["systemctl", "enable", "86box-dnsmasq"], check=False)
-    if changed or not unit_active("86box-dnsmasq"):
-        run(["systemctl", "restart", "86box-dnsmasq"])
+    run(["systemctl", "enable", "86server-dnsmasq"], check=False)
+    if changed or not unit_active("86server-dnsmasq"):
+        run(["systemctl", "restart", "86server-dnsmasq"])
         ctx.note("dhcp")
 
 
@@ -314,7 +314,7 @@ def apply_all(ctx, norm, cur, host):
                 run(cmd)
             finally:
                 os.unlink(scratch)
-    if dhcp_text is not None and not os.path.exists("/etc/systemd/system/86box-dnsmasq.service"):
+    if dhcp_text is not None and not os.path.exists("/etc/systemd/system/86server-dnsmasq.service"):
         raise ApplyError("the DHCP unit is not installed; run ./update.sh once")
 
     gone = bridges_to_go(groups, cur["groups"], cur["orphans"])

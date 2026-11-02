@@ -10,5 +10,5 @@
 
 - name: Restart the config guard
   ansible.builtin.systemd:
-    name: 86box-guard
+    name: 86server-guard
     state: restarted

@@ -1,7 +1,7 @@
 [Unit]
 Description=86server guest bridges
 After=NetworkManager.service
-Before=86box-autostart.service 86box-nft.service
+Before=86server-autostart.service 86server-nft.service
 
 [Service]
 Type=oneshot

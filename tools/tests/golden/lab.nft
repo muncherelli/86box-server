@@ -1,8 +1,8 @@
 # managed by 86server: do not edit
 # The first two lines make loading atomic: the table is replaced in one step.
-table inet b86box
-delete table inet b86box
-table inet b86box {
+table inet b86server
+delete table inet b86server
+table inet b86server {
   set ourbr {
     type ifname
     elements = { "br-lab" }

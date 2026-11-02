@@ -2,7 +2,7 @@
 Description=86Box %i
 Requires=vnc@%i.service
 Wants=wm@%i.service
-After=vnc@%i.service wm@%i.service 86box-bridges.service
+After=vnc@%i.service wm@%i.service 86server-bridges.service
 
 [Service]
 User={{ b86_user }}

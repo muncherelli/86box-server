@@ -112,7 +112,7 @@
 
 - name: Check that the system dnsmasq service is off
   ansible.builtin.fail:
-    msg: dnsmasq.service is active and would clash with 86box-dnsmasq. Stop and disable it first.
+    msg: dnsmasq.service is active and would clash with 86server-dnsmasq. Stop and disable it first.
   when: b86_dnsmasq.stdout == 'active'
 
 - name: Check whether NetworkManager is active
