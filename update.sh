@@ -21,6 +21,8 @@ source "$REPO/lib/vault.sh"
 source "$REPO/lib/status.sh"
 # shellcheck source=lib/dev.sh
 source "$REPO/lib/dev.sh"
+# shellcheck source=lib/admin.sh
+source "$REPO/lib/admin.sh"
 
 VERBOSE=0
 ARGS=()
@@ -54,6 +56,10 @@ export EDITOR=nano
 ensure_collections
 if [ "${ARGS[0]:-}" = vault-edit ]; then
   vault_edit
+  exit 0
+fi
+if [ "${ARGS[0]:-}" = admin-password ]; then
+  admin_password "${ARGS[@]:1}"
   exit 0
 fi
 

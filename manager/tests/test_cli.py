@@ -3,6 +3,7 @@ import io
 import unittest
 from unittest import mock
 
+import auth
 import cli
 import vms
 
@@ -47,6 +48,31 @@ class CliTest(unittest.TestCase):
             rc, _, err = run(["stop", "a-vm"])
         self.assertEqual(rc, 1)
         self.assertIn("denied", err)
+
+
+    def test_check_password_reads_stdin(self):
+        users = {"users": {"admin": {"hash": auth.hash_password("right-password-1"), "role": "admin"}}}
+        with mock.patch.object(auth, "_load", return_value=users):
+            with mock.patch("sys.stdin", io.StringIO("right-password-1\n")):
+                self.assertEqual(run(["check-password", "admin"])[0], 0)
+            with mock.patch("sys.stdin", io.StringIO("wrong-password-1\n")):
+                self.assertEqual(run(["check-password", "admin"])[0], 1)
+            with mock.patch("sys.stdin", io.StringIO("right-password-1\n")):
+                self.assertEqual(run(["check-password", "nobody"])[0], 1)
+
+    def test_set_password_reads_stdin(self):
+        with mock.patch.object(auth, "_load_sessions") as loaded, \
+                mock.patch.object(auth, "set_password") as setpw, mock.patch("sys.stdin", io.StringIO("new-password-12\n")):
+            rc, out, _ = run(["set-password", "admin"])
+        self.assertEqual(rc, 0)
+        setpw.assert_called_once_with("admin", "new-password-12")
+        loaded.assert_called_once()
+        with mock.patch.object(auth, "_load_sessions"), \
+                mock.patch.object(auth, "set_password", side_effect=auth.AuthError("too short")), \
+                mock.patch("sys.stdin", io.StringIO("x\n")):
+            rc, _, err = run(["set-password", "admin"])
+        self.assertEqual(rc, 1)
+        self.assertIn("too short", err)
 
 
 if __name__ == "__main__":

@@ -32,6 +32,8 @@ $EDITOR ansible/inventories/local/group_vars/all/main.yml
 | `./update.sh status` | Services, boxes and bridges, without an Ansible run |
 | `./update.sh box list` | Boxes from the terminal; also `box start\|stop\|restart <name>` |
 | `./update.sh vault-edit` | Edit the encrypted secrets file |
+| `./update.sh admin-password` | Show the web manager's admin login (warns if it was changed in the web manager) |
+| `./update.sh admin-password reset` | Set a new random admin password, save it in the vault and sign out old admin logins |
 | `./update.sh dev` | Copy `manager/` to the host on every change and restart the manager |
 
 ## Install layout
