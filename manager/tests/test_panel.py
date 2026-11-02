@@ -147,7 +147,7 @@ class FakeCF:
 
 class NamesTest(Base):
     def test_hostname_for(self):
-        self.assertEqual(panel.hostname_for("Retro", "example.com"), "retro.example.com")
+        self.assertEqual(panel.hostname_for("Box", "example.com"), "box.example.com")
         self.assertEqual(panel.hostname_for("@", "example.com"), "example.com")
         self.assertEqual(panel.hostname_for("a.b", "example.com"), "a.b.example.com")
         for bad in ("-x", "a_b", "a..b", "x y", "a\nb"):

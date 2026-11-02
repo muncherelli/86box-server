@@ -53,7 +53,7 @@ def save(state):
 
 
 def hostname_for(name, zone):
-    """'retro' + 'example.com' -> 'retro.example.com'; '@' -> the zone itself."""
+    """'box' + 'example.com' -> 'box.example.com'; '@' -> the zone itself."""
     name, zone = name.strip().lower().rstrip("."), zone.strip().lower()
     if name in ("", "@"):
         host = zone

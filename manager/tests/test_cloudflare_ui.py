@@ -132,22 +132,22 @@ class PageTest(Base):
         with mock.patch.object(cloudflare, "list_zones", return_value=ZONES), \
                 mock.patch.object(panel, "start", return_value=True) as start:
             status, _, _ = cloudflare_ui.h_setup(
-                Req("POST", body=b"zone=z1&name=retro&staging=on&tunnel=on&email="), None)
+                Req("POST", body=b"zone=z1&name=box&staging=on&tunnel=on&email="), None)
         self.assertEqual(status, 303)
         kind, fn, steps, state, token, replace = start.call_args[0]
         self.assertIs(fn, panel.setup)
-        self.assertEqual(state["hostname"], "retro.example.com")
+        self.assertEqual(state["hostname"], "box.example.com")
         self.assertEqual(state["account_id"], "acc")
         self.assertTrue(state["staging"] and state["tunnel"])
         self.assertEqual(token, TOKEN)
         self.assertFalse(replace)
-        self.assertIn("retro.example.com", self.audit())
+        self.assertIn("box.example.com", self.audit())
 
     def test_setup_rejects_unknown_zone_and_bad_name(self):
         secrets_store.put("cf_api_token", TOKEN)
         with mock.patch.object(cloudflare, "list_zones", return_value=ZONES), \
                 mock.patch.object(panel, "start") as start, mock.patch("units.is_active", return_value=False):
-            for body in (b"zone=zz&name=retro", b"zone=z1&name=bad_name"):
+            for body in (b"zone=zz&name=box", b"zone=z1&name=bad_name"):
                 status, _, page = cloudflare_ui.h_setup(Req("POST", body=body), None)
                 self.assertEqual(status, 200)
                 self.assertTrue(re.search(r'class="error">[^<]+<', page.decode()))
