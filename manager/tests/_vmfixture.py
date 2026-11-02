@@ -33,10 +33,10 @@ class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = self.tmp.name
-        for d in ("boxdefs", "boxes", "media/isos", "vnc-tokens", "manager"):
+        for d in ("boxdefs", "boxes", "media/iso", "vnc-tokens", "manager"):
             os.makedirs(os.path.join(self.root, d))
         self.old = dict(config.CFG)
-        config.CFG.update(data_root=self.root, emu86box_tag="v6.0",
+        config.CFG.update(data_root=self.root, media_root=os.path.join(self.root, "media"), emu86box_tag="v6.0",
                           netgroups={"lab": {"bridge": "br-lab"}, "web": {"bridge": "br-web"}})
         self.auth = FakeAuth()
         self.active = set()

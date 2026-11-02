@@ -1,5 +1,6 @@
-"""Shared media library (isos, floppies, disks): list, upload, delete, attach to a box."""
+"""Shared media library (/opt/86server/media/<kind>, one folder per 86Box drive type): list, upload, delete, attach."""
 import configparser
+import fnmatch
 import glob
 import os
 import re
@@ -14,11 +15,23 @@ import respond
 import store
 import units
 
+# One folder per kind of 86Box drive. Extensions are the ones 86Box v6.0 offers in its own file dialogs
+# (src/qt/qt_mediamenu.cpp, qt_harddiskdialog.cpp), as fnmatch patterns on the lowercased extension.
 KINDS = {
-    "isos": (".iso", ".cue", ".bin"),
-    "floppies": (".img", ".ima", ".vfd", ".86f", ".imd", ".td0"),
-    "disks": (".img", ".vhd", ".hdi"),
+    "iso": ("CD/DVD images", ("iso", "cue", "bin", "mds", "mdf", "mdx")),
+    # Floppies: the loader table in src/floppy/fdd.c (wider than the dialog filter, e.g. .vfd).
+    "floppy": ("Floppy images", ("001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "12", "144",
+                                 "360", "720", "86f", "bin", "cq", "cqm", "ddi", "dsk", "fdi", "fdf", "flp", "hdm",
+                                 "ima", "imd", "img", "json", "mfm", "td0", "vfd", "xdf")),
+    "disk": ("Hard disk images", ("hd?", "im?", "vhd")),
+    "zip": ("ZIP and removable disk images", ("im?", "rdi", "zdi")),
+    "mo": ("Magneto-optical (MO) images", ("im?", "mdi")),
+    "tape": ("Tape images", ("tap",)),
+    "cassette": ("Cassette images", ("pcm", "raw", "wav", "cas")),
+    "cartridge": ("Cartridge images (PCjr)", ("a", "b", "jrc")),
 }
+# Kinds the box page can attach while a box is stopped; the rest are picked in 86Box's Media menu in the console.
+ATTACHABLE = ("iso", "floppy", "disk")
 NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,120}")
 VM_RE = re.compile(r"[a-z][a-z0-9-]{1,30}")
 CHUNK = 1024 * 1024
@@ -31,7 +44,12 @@ def _root():
 
 
 def _dir(kind):
-    return os.path.join(_root(), "media", kind)
+    return config.media_dir(kind)
+
+
+def ext_ok(kind, name):
+    ext = name.rsplit(".", 1)[1].lower() if "." in name else ""
+    return bool(ext) and any(fnmatch.fnmatchcase(ext, pat) for pat in KINDS[kind][1])
 
 
 def _group():
@@ -49,7 +67,7 @@ def valid_name(kind, name):
     """Return an error string, or None when kind and name are acceptable."""
     if kind not in KINDS:
         return "unknown kind"
-    if not NAME_RE.fullmatch(name) or not name.lower().endswith(KINDS[kind]):
+    if not NAME_RE.fullmatch(name) or not ext_ok(kind, name):
         return "bad file name or extension"
     return None
 
@@ -86,7 +104,7 @@ def used_by():
 
 def list_media(kind):
     out = []
-    users = used_by() if kind == "isos" else {}
+    users = used_by() if kind == "iso" else {}
     try:
         names = sorted(os.listdir(_dir(kind)))
     except OSError:
@@ -185,7 +203,7 @@ def delete(req, m):
     path = os.path.join(_dir(kind), name)
     if not os.path.lexists(path):
         return _done(req, False, "no such file", back, 404)
-    if kind == "isos":
+    if kind == "iso":
         users = used_by().get(os.path.normpath(path), [])
         if users:
             return _done(req, False, "In use by: " + ", ".join(users), back, 409)
@@ -216,6 +234,8 @@ def attach_file(vm, kind, filename):
     err = valid_name(kind, filename)
     if err:
         return err
+    if kind not in ATTACHABLE:
+        return "Attach %s files in the console: 86Box's Media menu opens %s" % (kind, _dir(kind))
     vmdir = os.path.join(_root(), "boxes", vm)
     cfg = os.path.join(vmdir, "86box.cfg")
     if not os.path.isdir(vmdir):
@@ -239,13 +259,13 @@ def attach_file(vm, kind, filename):
     if not p.has_section("Floppy and CD-ROM drives"):
         p.add_section("Floppy and CD-ROM drives")
     section = p["Floppy and CD-ROM drives"]
-    if kind == "isos":
+    if kind == "iso":
         if "cdrom_01_parameters" not in section:  # a box made without a CD drive gets one
             section["cdrom_01_parameters"] = "1, atapi"
             section["cdrom_01_ide_channel"] = "0:1"
         section["cdrom_01_image_path"] = src
     else:
-        sub = "floppies" if kind == "floppies" else "disks"
+        sub = "floppies" if kind == "floppy" else "disks"
         folder = os.path.join(vmdir, sub)
         dest = os.path.join(folder, filename)
         if os.path.lexists(dest):
@@ -257,7 +277,7 @@ def attach_file(vm, kind, filename):
             return "copy failed: " + r.stderr.strip()
         os.chmod(dest, 0o660)
         _chgrp(dest)
-        if kind == "floppies":
+        if kind == "floppy":
             section["fdd_01_fn"] = dest
     from io import StringIO
     out = StringIO()
@@ -281,21 +301,18 @@ def _csrf(req):
     return '<input type="hidden" name="csrf" value="%s">' % respond.esc(req.session["csrf"] if req.session else "")
 
 
-LABELS = {"isos": "CD/DVD images", "floppies": "Floppy images", "disks": "Hard disk images"}
-
-
 def locations_html():
     """Where each kind of media sits on the server, so files can also be copied in over SFTP or the shell."""
     rows = "".join(
-        "<tr><td>%s</td><td><code>%s</code></td><td>%s</td></tr>"
-        % (LABELS[k], respond.esc(_dir(k)), respond.esc(" ".join(KINDS[k])))
+        "<tr><td>%s</td><td><code>%s</code></td><td><code>%s</code></td></tr>"
+        % (KINDS[k][0], respond.esc(_dir(k)), respond.esc(" ".join("." + e for e in KINDS[k][1])))
         for k in KINDS)
     return ("<h2>Where the files are</h2>"
             "<p>The media library is <code>%s</code> on this server. Upload here, or copy files straight into "
             "these folders (SFTP or the shell); they show up on the next page load. Files need to be readable "
             "by the <code>%s</code> group.</p>"
             "<table><tr><th>Kind</th><th>Folder</th><th>File types</th></tr>%s</table>"
-            % (respond.esc(os.path.join(_root(), "media")), respond.esc(_group()), rows))
+            % (respond.esc(config.media_dir()), respond.esc(_group()), rows))
 
 
 def media_page(req, m):
@@ -305,7 +322,7 @@ def media_page(req, m):
     parts.append('<h2>Upload</h2><form id="upload"><select name="kind">%s</select> '
                  '<input type="file" name="file"> <input type="submit" value="Upload"> '
                  '<progress id="bar" value="0" max="100" hidden></progress> <span id="msg"></span></form>'
-                 % "".join("<option>%s</option>" % k for k in KINDS))
+                 % "".join('<option value="%s">%s</option>' % (k, KINDS[k][0]) for k in KINDS))
     for kind in KINDS:
         rows = []
         for e in list_media(kind):
@@ -318,7 +335,7 @@ def media_page(req, m):
                    respond.esc(use), kind, urllib.parse.quote(e["name"]), _csrf(req)))
         parts.append("<h2>%s</h2><p class=\"path\"><code>%s</code></p>"
                      "<table><tr><th>Name</th><th>Size</th><th>Modified</th><th>Used by</th><th></th></tr>%s</table>"
-                     % (LABELS[kind], respond.esc(_dir(kind)),
+                     % (KINDS[kind][0], respond.esc(_dir(kind)),
                         "".join(rows) or "<tr><td colspan=5>Nothing here yet.</td></tr>"))
     parts.append('<script src="/manage/static/media.js"></script>')
     return respond.page(req, "Media", "".join(parts))
@@ -327,7 +344,7 @@ def media_page(req, m):
 def html_attach_section(req, vm):
     """Fragment for the box page: attach a library file to a stopped box."""
     opts = "".join('<option value="%s|%s">%s/%s</option>' % (k, respond.esc(e["name"]), k, respond.esc(e["name"]))
-                   for k in KINDS for e in list_media(k))
+                   for k in ATTACHABLE for e in list_media(k))
     if units.is_active("box@%s.service" % vm):
         return "<h2>Media</h2><p>Use the Media menu in the console.</p>"
     return ('<h2>Media</h2><form method="post" action="/manage/api/box/%s/attach" id="attach">%s'

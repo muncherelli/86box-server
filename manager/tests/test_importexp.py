@@ -51,7 +51,7 @@ class ImportExportTest(Base):
             with self.assertRaises(vms.VmError):
                 importexp.import_vm("copy1", data, ["lab"], False, [])
         data = importexp.export_vm("src")
-        data["cfg"] += "\n[Floppy and CD-ROM drives]\ncdrom_01_image_path = %s\n" % self.p("media/isos/os.iso")
+        data["cfg"] += "\n[Floppy and CD-ROM drives]\ncdrom_01_image_path = %s\n" % self.p("media/iso/os.iso")
         importexp.import_vm("copy2", data, ["lab"], False, [])
 
     def test_bad_files(self):

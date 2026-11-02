@@ -49,7 +49,7 @@ def check_cfg(p, allowed_bridges):
 
 def check_paths(p):
     """File settings must stay inside the box folder or the media library."""
-    media = vms._p("media") + os.sep
+    media = config.media_dir() + os.sep
     for section in p.sections():
         for key, value in p.items(section):
             v = value.strip()

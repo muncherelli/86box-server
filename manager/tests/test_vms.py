@@ -53,10 +53,10 @@ class VmsTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = self.tmp.name
-        for d in ("boxdefs", "boxes", "media/isos", "vnc-tokens", "manager"):
+        for d in ("boxdefs", "boxes", "media/iso", "vnc-tokens", "manager"):
             os.makedirs(os.path.join(self.root, d))
         self.old = dict(config.CFG)
-        config.CFG.update(data_root=self.root, emu86box_tag="v6.0",
+        config.CFG.update(data_root=self.root, media_root=os.path.join(self.root, "media"), emu86box_tag="v6.0",
                           netgroups={"lab": {"bridge": "br-lab"}, "web": {"bridge": "br-web"}})
         self.auth = FakeAuth()
         self.active = set()
@@ -66,7 +66,7 @@ class VmsTest(unittest.TestCase):
         for p in patches:
             p.start()
             self.addCleanup(p.stop)
-        with open(os.path.join(self.root, "media/isos/os.iso"), "wb") as f:
+        with open(os.path.join(self.root, "media/iso/os.iso"), "wb") as f:
             f.write(b"x")
 
     def tearDown(self):
@@ -90,7 +90,7 @@ class VmsTest(unittest.TestCase):
         self.assertEqual(cfg["Hard disks"]["hdd_01_parameters"], "63, 16, 4161, 0, ide")
         self.assertEqual(cfg["Hard disks"]["hdd_01_fn"], "disks/hdd1.img")
         self.assertEqual(cfg["Machine"]["machine"], "p65up5_cp6nd")
-        self.assertEqual(cfg["Floppy and CD-ROM drives"]["cdrom_01_image_path"], self.p("media/isos/os.iso"))
+        self.assertEqual(cfg["Floppy and CD-ROM drives"]["cdrom_01_image_path"], self.p("media/iso/os.iso"))
         self.assertEqual(os.path.getsize(self.p("boxes/test2/disks/hdd1.img")), 2147475456)
         self.assertEqual(stat.S_IMODE(os.stat(self.p("boxes/test2/86box.cfg")).st_mode), 0o660)
         self.assertEqual(stat.S_IMODE(os.stat(self.p("boxes/test2")).st_mode), 0o2770)
@@ -123,7 +123,7 @@ class VmsTest(unittest.TestCase):
             self.make("okname")
 
     def test_cd_symlink_and_bad_names_refused(self):
-        os.symlink("/etc/hostname", self.p("media/isos/link.iso"))
+        os.symlink("/etc/hostname", self.p("media/iso/link.iso"))
         for cd in ("link.iso", "../x.iso", "missing.iso"):
             with self.assertRaises(vms.VmError):
                 self.make("okname", cd=cd)
@@ -292,7 +292,7 @@ class VmsTest(unittest.TestCase):
         self.make("withcd", template="", cd="os.iso")
         drives = self.cfg_of("withcd")["Floppy and CD-ROM drives"]
         self.assertEqual(drives["cdrom_01_parameters"], "1, atapi")
-        self.assertEqual(drives["cdrom_01_image_path"], self.p("media/isos/os.iso"))
+        self.assertEqual(drives["cdrom_01_image_path"], self.p("media/iso/os.iso"))
         self.make("later", template="")
         vms.edit_vm("later", [], False, [], cd="os.iso")
         self.assertEqual(self.cfg_of("later")["Floppy and CD-ROM drives"]["cdrom_01_parameters"], "1, atapi")

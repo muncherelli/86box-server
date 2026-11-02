@@ -19,6 +19,7 @@ def load():
     except OSError:
         cfg = {}
     cfg.setdefault("data_root", "/opt/86server/data")
+    cfg.setdefault("media_root", "/opt/86server/media")
     cfg.setdefault("emu86box_tag", "")
     cfg.setdefault("share_group", "86box-data")
     cfg.pop("netgroups", None)  # an old manager.json may still carry it; the live file wins
@@ -37,6 +38,11 @@ def load():
     cfg.setdefault("certs_dir", os.path.join(cfg["data_root"], "certs"))
     cfg.setdefault("lego_bin", "/usr/bin/lego")
     return cfg
+
+
+def media_dir(*parts):
+    """The media library (/opt/86server/media): one folder per kind of 86Box drive (see media.KINDS)."""
+    return os.path.join(CFG["media_root"], *parts)
 
 
 def manager_hosts():

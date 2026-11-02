@@ -148,14 +148,14 @@ def _iso_ok(filename):
     if not MEDIA_RE.fullmatch(filename):
         return False
     try:
-        return stat.S_ISREG(os.lstat(_p("media", "isos", filename)).st_mode)
+        return stat.S_ISREG(os.lstat(config.media_dir("iso", filename)).st_mode)
     except OSError:
         return False
 
 
 def list_isos():
     try:
-        return sorted(f for f in os.listdir(_p("media", "isos")) if _iso_ok(f))
+        return sorted(f for f in os.listdir(config.media_dir("iso")) if _iso_ok(f))
     except OSError:
         return []
 
@@ -241,7 +241,7 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
         p.set("Hard disks", "hdd_01_ide_channel", "0:0")
     if cd:
         ensure_cdrom(p)
-        p.set("Floppy and CD-ROM drives", "cdrom_01_image_path", _p("media", "isos", cd))
+        p.set("Floppy and CD-ROM drives", "cdrom_01_image_path", config.media_dir("iso", cd))
 
     users_set = False
     try:
@@ -296,7 +296,7 @@ def edit_vm(name, groups, autostart, users, cd=None, resolution=None):
             section = "Floppy and CD-ROM drives"
             if cd:
                 ensure_cdrom(p)
-                p.set(section, "cdrom_01_image_path", _p("media", "isos", cd))
+                p.set(section, "cdrom_01_image_path", config.media_dir("iso", cd))
             elif p.has_option(section, "cdrom_01_image_path"):
                 p.remove_option(section, "cdrom_01_image_path")
             _write_cfg(p, cfg)

@@ -1,0 +1,5 @@
+---
+# Fixed parts of the layout (not per-host settings; those live in /opt/86server/install/inventory).
+# The media library: one folder per kind of 86Box drive (manager/media.py KINDS).
+media_root: /opt/86server/media
+media_kinds: [iso, floppy, disk, zip, mo, tape, cassette, cartridge]

@@ -47,6 +47,45 @@
   loop_control:
     label: "{{ item.path }}"
 
+- name: Move the media library from data/media to /opt/86server/media (older layout, runs once)
+  ansible.builtin.shell: |
+    set -eu
+    old="{{ vm_data_root }}/media"
+    [ -d "$old" ] || exit 0
+    for pair in isos:iso floppies:floppy disks:disk; do
+      from="$old/${pair%%:*}"; to="{{ media_root }}/${pair##*:}"
+      [ -d "$from" ] || continue
+      mkdir -p "$to"
+      find "$from" -mindepth 1 -maxdepth 1 -exec mv -n -t "$to" {} +
+      rmdir "$from" 2>/dev/null || true
+    done
+    rmdir "$old" 2>/dev/null || true
+    echo moved
+  args:
+    executable: /bin/bash
+  register: b86_media_move
+  changed_when: "'moved' in b86_media_move.stdout"
+
+- name: Find box configs that may point at the old media folders
+  ansible.builtin.find:
+    paths: "{{ vm_data_root }}/boxes"
+    patterns: 86box.cfg
+    recurse: true
+    depth: 2
+  register: b86_media_cfgs
+
+- name: Point those configs at the new media folders
+  ansible.builtin.replace:
+    path: "{{ item.0.path }}"
+    regexp: "{{ item.1.from }}"
+    replace: "{{ item.1.to }}"
+  loop: "{{ b86_media_cfgs.files | product([
+      {'from': '(' ~ (vm_data_root | regex_escape) ~ '|\\.\\./\\.\\.)/media/isos/', 'to': media_root ~ '/iso/'},
+      {'from': '(' ~ (vm_data_root | regex_escape) ~ '|\\.\\./\\.\\.)/media/floppies/', 'to': media_root ~ '/floppy/'},
+      {'from': '(' ~ (vm_data_root | regex_escape) ~ '|\\.\\./\\.\\.)/media/disks/', 'to': media_root ~ '/disk/'}]) | list }}"
+  loop_control:
+    label: "{{ item.0.path }} {{ item.1.to }}"
+
 - name: Create the data folders
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -58,10 +97,7 @@
     - { path: "{{ vm_data_root }}", owner: root, group: root, mode: "0755" }
     - { path: "{{ vm_data_root }}/boxdefs", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0755" }
     - { path: "{{ vm_data_root }}/boxes", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "0755" }
-    - { path: "{{ vm_data_root }}/media", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
-    - { path: "{{ vm_data_root }}/media/isos", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
-    - { path: "{{ vm_data_root }}/media/floppies", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
-    - { path: "{{ vm_data_root }}/media/disks", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
+    - { path: "{{ media_root }}", owner: "{{ mgr_user }}", group: "{{ vm_share_group }}", mode: "2775" }
     - { path: "{{ vm_data_root }}/manager", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
     - { path: "{{ vm_data_root }}/vnc-tokens", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
     - { path: "{{ vm_data_root }}/trash", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
@@ -70,3 +106,12 @@
     - { path: /opt/86server/cache/box, owner: "{{ vm_service_user }}", group: "{{ vm_service_user }}", mode: "0700" }
     - { path: /opt/86server, owner: root, group: root, mode: "0755" }
     - { path: /opt/86server/libexec, owner: root, group: root, mode: "0755" }
+
+- name: Create the media library folders, one per kind of 86Box drive
+  ansible.builtin.file:
+    path: "{{ media_root }}/{{ item }}"
+    state: directory
+    owner: "{{ mgr_user }}"
+    group: "{{ vm_share_group }}"
+    mode: "2775"
+  loop: "{{ media_kinds }}"

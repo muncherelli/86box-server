@@ -1,6 +1,6 @@
 # SFTP access to the media library
 
-The media library lives in `<vm_data_root>/media/{isos,floppies,disks}`. It is also managed from the web UI.
+The media library lives in `/opt/86server/media`, one folder per 86Box drive type: `iso`, `floppy`, `disk`, `zip`, `mo`, `tape`, `cassette` and `cartridge`. It is also managed from the web UI (the Media page shows each folder and the file types it takes).
 
 ## Normal SSH users
 
