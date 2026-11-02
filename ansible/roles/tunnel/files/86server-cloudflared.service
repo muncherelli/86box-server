@@ -1,0 +1,19 @@
+[Unit]
+Description=86server Cloudflare Tunnel (cloudflared)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# TUNNEL_TOKEN comes from this file; the tunnel's routes are set in the Cloudflare dashboard.
+EnvironmentFile=/opt/86server/etc/cloudflared.env
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel run
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

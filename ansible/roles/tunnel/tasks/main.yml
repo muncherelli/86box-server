@@ -1,0 +1,69 @@
+---
+# Cloudflare Tunnel: on only when the vault holds a tunnel token (vault_cf_tunnel_token).
+- name: Load settings for this Linux distribution
+  ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
+
+- name: Decide whether the tunnel is on
+  ansible.builtin.set_fact:
+    b86_tunnel_on: "{{ (vault_cf_tunnel_token | default('') | length) > 0 }}"
+
+- name: Set up the tunnel
+  when: b86_tunnel_on | bool
+  block:
+    - name: Install cloudflared
+      community.general.pacman:
+        name: "{{ tunnel_packages }}"
+        state: present
+      when: ansible_facts['os_family'] == 'Archlinux'
+
+    - name: Write the tunnel token
+      ansible.builtin.copy:
+        content: "TUNNEL_TOKEN={{ vault_cf_tunnel_token }}\n"
+        dest: /opt/86server/etc/cloudflared.env
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+      notify: Restart cloudflared
+
+    - name: Install the tunnel unit
+      ansible.builtin.copy:
+        src: 86server-cloudflared.service
+        dest: /etc/systemd/system/86server-cloudflared.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd for cloudflared
+        - Restart cloudflared
+
+
+- name: Make systemd see the unit
+  ansible.builtin.meta: flush_handlers
+
+- name: Run the tunnel
+  ansible.builtin.systemd:
+    name: 86server-cloudflared
+    enabled: true
+    state: started
+  when: b86_tunnel_on | bool
+
+- name: Turn the tunnel off
+  when: not (b86_tunnel_on | bool)
+  block:
+    - name: Check for the tunnel unit
+      ansible.builtin.stat:
+        path: /etc/systemd/system/86server-cloudflared.service
+      register: b86_tunnel_unit
+
+    - name: Stop and disable the tunnel
+      ansible.builtin.systemd:
+        name: 86server-cloudflared
+        enabled: false
+        state: stopped
+      when: b86_tunnel_unit.stat.exists
+
+    - name: Remove the old tunnel token
+      ansible.builtin.file:
+        path: /opt/86server/etc/cloudflared.env
+        state: absent

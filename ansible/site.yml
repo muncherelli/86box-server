@@ -46,3 +46,9 @@
   gather_facts: true
   roles:
     - edge
+
+- name: Cloudflare Tunnel
+  hosts: all
+  gather_facts: true
+  roles:
+    - tunnel
