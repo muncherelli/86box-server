@@ -281,8 +281,25 @@ def _csrf(req):
     return '<input type="hidden" name="csrf" value="%s">' % respond.esc(req.session["csrf"] if req.session else "")
 
 
+LABELS = {"isos": "CD/DVD images", "floppies": "Floppy images", "disks": "Hard disk images"}
+
+
+def locations_html():
+    """Where each kind of media sits on the server, so files can also be copied in over SFTP or the shell."""
+    rows = "".join(
+        "<tr><td>%s</td><td><code>%s</code></td><td>%s</td></tr>"
+        % (LABELS[k], respond.esc(_dir(k)), respond.esc(" ".join(KINDS[k])))
+        for k in KINDS)
+    return ("<h2>Where the files are</h2>"
+            "<p>The media library is <code>%s</code> on this server. Upload here, or copy files straight into "
+            "these folders (SFTP or the shell); they show up on the next page load. Files need to be readable "
+            "by the <code>%s</code> group.</p>"
+            "<table><tr><th>Kind</th><th>Folder</th><th>File types</th></tr>%s</table>"
+            % (respond.esc(os.path.join(_root(), "media")), respond.esc(_group()), rows))
+
+
 def media_page(req, m):
-    parts = []
+    parts = [locations_html()]
     if config.CFG.get("edge_mode") in ("tunnel", "cf-origin"):
         parts.append("<p>Files over 100 MB: use SFTP (Cloudflare limits uploads).</p>")
     parts.append('<h2>Upload</h2><form id="upload"><select name="kind">%s</select> '
@@ -299,8 +316,10 @@ def media_page(req, m):
                 '<input name="confirm" placeholder="type the name"> <input type="submit" value="Delete"></form></td></tr>'
                 % (respond.esc(e["name"]), _size(e["size"]), time.strftime("%Y-%m-%d %H:%M", time.gmtime(e["modified"])),
                    respond.esc(use), kind, urllib.parse.quote(e["name"]), _csrf(req)))
-        parts.append("<h2>%s</h2><table><tr><th>Name</th><th>Size</th><th>Modified</th><th>Used by</th><th></th></tr>%s</table>"
-                     % (kind, "".join(rows) or "<tr><td colspan=5>Nothing here yet.</td></tr>"))
+        parts.append("<h2>%s</h2><p class=\"path\"><code>%s</code></p>"
+                     "<table><tr><th>Name</th><th>Size</th><th>Modified</th><th>Used by</th><th></th></tr>%s</table>"
+                     % (LABELS[kind], respond.esc(_dir(kind)),
+                        "".join(rows) or "<tr><td colspan=5>Nothing here yet.</td></tr>"))
     parts.append('<script src="/manage/static/media.js"></script>')
     return respond.page(req, "Media", "".join(parts))
 

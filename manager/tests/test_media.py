@@ -141,5 +141,17 @@ class MediaTest(unittest.TestCase):
             self.assertIn("regular", media.attach_file("vm1", "isos", "l.iso"))
 
 
+
+class LocationsTest(unittest.TestCase):
+    def test_page_shows_each_folder(self):
+        with mock.patch.dict(media.config.CFG, {"data_root": "/srv/x", "share_group": "grp"}):
+            html = media.locations_html()
+        for kind in ("isos", "floppies", "disks"):
+            self.assertIn("/srv/x/media/%s" % kind, html)
+        self.assertIn("/srv/x/media<", html)
+        self.assertIn("grp", html)
+        self.assertIn(".iso", html)
+
+
 if __name__ == "__main__":
     unittest.main()

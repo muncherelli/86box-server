@@ -64,3 +64,5 @@ header nav a { color: var(--nav-link); margin-right: .8rem; font-weight: 400; }
 header .theme { margin-left: .4rem; background: transparent; color: var(--nav-link); border: 1px solid var(--header-muted); border-radius: 4px; padding: .1rem .3rem; font: inherit; font-size: .9em; }
 header .theme option { background: var(--header-bg); color: var(--header-text); }
 .notice { background: var(--notice-bg); border: 1px solid var(--notice-border); padding: .4rem .6rem; }
+code{font-family:ui-monospace,Menlo,monospace;font-size:.92em}
+.path{margin:-.4em 0 .6em;opacity:.8}
