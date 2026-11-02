@@ -351,8 +351,8 @@ def status(name):
         state = "settings"
     else:
         state = "stopped"
-    nic = store.read_json("/run/86box-server/nic/%s.json" % name, {})
-    guard = store.read_json("/run/86box-server/guard/%s.json" % name, {})
+    nic = store.read_json("/run/86server/nic/%s.json" % name, {})
+    guard = store.read_json("/run/86server/guard/%s.json" % name, {})
     nic_bad = [n for n in nic.get("nics", []) if not n.get("ok")]
     return {"name": name, "state": state,
             "nic": "no data" if not nic else ("problem" if nic_bad else "ok"),

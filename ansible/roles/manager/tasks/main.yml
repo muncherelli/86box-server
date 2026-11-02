@@ -5,7 +5,7 @@
 - name: Copy the manager code
   ansible.posix.synchronize:
     src: "{{ playbook_dir }}/../manager/"
-    dest: /opt/86box-server/manager/
+    dest: /opt/86server/manager/
     delete: true
     rsync_opts:
       - "--exclude=tests"
@@ -17,7 +17,7 @@
 - name: Write the manager settings
   ansible.builtin.template:
     src: manager.json.j2
-    dest: /etc/86box-server/manager.json
+    dest: /opt/86server/etc/manager.json
     owner: root
     group: "{{ mgr_user }}"
     mode: "0640"

@@ -11,9 +11,9 @@ import re
 import subprocess
 import sys
 
-ROOT = "/var/lib/86box-server"
-NETGROUPS = "/etc/86box-server/netgroups.json"
-OUT = "/run/86box-server/guard"
+ROOT = "/opt/86server/data"
+NETGROUPS = "/opt/86server/etc/netgroups.json"
+OUT = "/run/86server/guard"
 
 
 def fail(msg):

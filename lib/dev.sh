@@ -2,7 +2,7 @@
 # ./update.sh dev: copy manager/ to the host and restart the manager whenever a file changes.
 # Open pages reload themselves (the manager is in dev mode while the .dev marker exists).
 
-DEV_DEST=/opt/86box-server/manager
+DEV_DEST=/opt/86server/manager
 
 dev_sync() {
   sudo rsync -a --delete \

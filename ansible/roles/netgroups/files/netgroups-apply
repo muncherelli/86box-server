@@ -6,8 +6,8 @@
   netgroups-apply --check FILE|-   only check a settings file (Ansible preflight); prints the problems
   netgroups-apply --bridges        at boot: bring the saved groups' bridges up again
 
-Files it writes: /etc/86box-server/{netgroups.json,netpolicy.json,b86box.nft,dnsmasq.conf},
-/run/86box-server/netapply.json (the result), NetworkManager and sysctl drop-ins.
+Files it writes: /opt/86server/etc/{netgroups.json,netpolicy.json,b86box.nft,dnsmasq.conf},
+/run/86server/netapply.json (the result), NetworkManager and sysctl drop-ins.
 It never touches the host's own interface, its addresses or its routes.
 """
 import argparse
@@ -22,8 +22,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import netgroups_core as core  # noqa: E402
 
-CONF = "/etc/86box-server"
-RUN = "/run/86box-server"
+CONF = "/opt/86server/etc"
+RUN = "/run/86server"
 NM_CONF = "/etc/NetworkManager/conf.d/86box.conf"
 SYSCTL_CONF = "/etc/sysctl.d/86box.conf"
 MAX_REQUEST = 64 * 1024
@@ -213,7 +213,7 @@ def step_nft(ctx, groups, text):
 
 def step_forwarding(ctx, groups, routes):
     if core.needs_forwarding(groups, routes):
-        if write_file(SYSCTL_CONF, "# managed by 86box-server: do not edit\nnet.ipv4.ip_forward = 1\n", 0o644):
+        if write_file(SYSCTL_CONF, "# managed by 86server: do not edit\nnet.ipv4.ip_forward = 1\n", 0o644):
             ctx.note("sysctl")
         with open("/proc/sys/net/ipv4/ip_forward") as f:
             on = f.read().strip() == "1"
@@ -349,7 +349,7 @@ def main():
     mode.add_argument("--seed")
     mode.add_argument("--check")
     mode.add_argument("--bridges", action="store_true")
-    ap.add_argument("--data-root", default="/var/lib/86box-server")
+    ap.add_argument("--data-root", default="/opt/86server/data")
     ap.add_argument("--mgr-group", default="86boxmgr")
     args = ap.parse_args()
     ctx = Ctx(args.data_root, args.mgr_group)

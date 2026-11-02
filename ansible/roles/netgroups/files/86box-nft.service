@@ -1,13 +1,13 @@
 [Unit]
-Description=86box-server firewall table
+Description=86server firewall table
 After=ufw.service 86box-bridges.service
-ConditionPathExists=/etc/86box-server/b86box.nft
+ConditionPathExists=/opt/86server/etc/b86box.nft
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/nft -f /etc/86box-server/b86box.nft
-ExecReload=/usr/bin/nft -f /etc/86box-server/b86box.nft
+ExecStart=/usr/bin/nft -f /opt/86server/etc/b86box.nft
+ExecReload=/usr/bin/nft -f /opt/86server/etc/b86box.nft
 ExecStop=-/usr/bin/nft delete table inet b86box
 
 [Install]

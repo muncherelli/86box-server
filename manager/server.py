@@ -1,4 +1,4 @@
-"""86box-server web manager: stdlib HTTP app on 127.0.0.1:8686. See README.md for the module contract."""
+"""86server web manager: stdlib HTTP app on 127.0.0.1:8686. See README.md for the module contract."""
 import importlib
 import json
 import os

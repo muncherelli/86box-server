@@ -16,7 +16,7 @@ sftp_only_users:
     ssh_key: "ssh-ed25519 AAAA... comment"
 ```
 
-`./update.sh` then creates each account with no shell and key-only login. Each one is locked into `/srv/86box-sftp`, which shows only the `media` folder (a bind mount of the library). New files are group-writable (umask 0002). Password login, port forwarding and tunnels are off for them.
+`./update.sh` then creates each account with no shell and key-only login. Each one is locked into `/opt/86server/sftp`, which shows only the `media` folder (a bind mount of the library). New files are group-writable (umask 0002). Password login, port forwarding and tunnels are off for them.
 
 The SSH settings go in `/etc/ssh/sshd_config.d/60-86box-sftp.conf`. `./update.sh` checks them with `sshd -t` before it reloads sshd, so a bad config is refused instead of applied. Leaving `sftp_only_users` empty changes nothing on the host.
 

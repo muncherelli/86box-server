@@ -1,7 +1,7 @@
 ---
 # Network groups. The work is done by one root helper, netgroups-apply, which both this role (first time
 # only) and the web manager (every later change) use. After the first run the groups live in
-# /etc/86box-server/netgroups.json and netpolicy.json and are managed in the web manager: the
+# /opt/86server/etc/netgroups.json and netpolicy.json and are managed in the web manager: the
 # netgroups, group_routes and nat_dns settings in the inventory are only the starting point.
 
 - name: Load settings for this Linux distribution
@@ -9,7 +9,7 @@
 
 - name: Create the config folder
   ansible.builtin.file:
-    path: /etc/86box-server
+    path: /opt/86server/etc
     state: directory
     owner: root
     group: "{{ mgr_user }}"
@@ -17,7 +17,7 @@
 
 - name: Create the libexec folder
   ansible.builtin.file:
-    path: /opt/86box-server/libexec
+    path: /opt/86server/libexec
     state: directory
     owner: root
     group: root
@@ -26,7 +26,7 @@
 - name: Install the network group helper
   ansible.builtin.copy:
     src: "{{ item.name }}"
-    dest: "/opt/86box-server/libexec/{{ item.name }}"
+    dest: "/opt/86server/libexec/{{ item.name }}"
     owner: root
     group: root
     mode: "{{ item.mode }}"
@@ -59,14 +59,14 @@
 
 - name: Look for the saved network group settings
   ansible.builtin.stat:
-    path: /etc/86box-server/netpolicy.json
+    path: /opt/86server/etc/netpolicy.json
   register: b86_netpolicy
 
 - name: Set up the network groups from the inventory (first run only)
   ansible.builtin.command:
     argv:
       - /usr/bin/python3
-      - /opt/86box-server/libexec/netgroups-apply
+      - /opt/86server/libexec/netgroups-apply
       - --seed
       - "-"
       - --data-root

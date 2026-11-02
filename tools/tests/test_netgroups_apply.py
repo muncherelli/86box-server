@@ -21,7 +21,7 @@ STATE = {"groups": {}, "routes": [], "dns": ["1.1.1.1"], "edge": {}, "ufw": [], 
 
 class ProcessTest(unittest.TestCase):
     def run_process(self, data, seed=False):
-        ctx = na.Ctx("/var/lib/86box-server", "86boxmgr")
+        ctx = na.Ctx("/opt/86server/data", "86boxmgr")
         steps = {n: mock.DEFAULT for n in ("apply_all",)}
         with mock.patch.object(na, "load_state", return_value=STATE), \
                 mock.patch.object(na, "host_info", return_value=HOST), \

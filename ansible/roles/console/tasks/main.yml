@@ -5,7 +5,7 @@
 - name: Download noVNC and websockify
   ansible.builtin.get_url:
     url: "{{ item.url }}"
-    dest: "/var/cache/86box-server/{{ item.name }}-{{ item.tag }}.tar.gz"
+    dest: "/opt/86server/cache/{{ item.name }}-{{ item.tag }}.tar.gz"
     checksum: "sha256:{{ item.sha256 }}"
     mode: "0644"
   loop:
@@ -14,7 +14,7 @@
 
 - name: Create the noVNC and websockify folders
   ansible.builtin.file:
-    path: "/opt/86box-server/{{ item.name }}/{{ item.tag }}"
+    path: "/opt/86server/vendor/{{ item.name }}/{{ item.tag }}"
     state: directory
     owner: root
     group: root
@@ -25,11 +25,11 @@
 
 - name: Unpack noVNC and websockify
   ansible.builtin.unarchive:
-    src: "/var/cache/86box-server/{{ item.name }}-{{ item.tag }}.tar.gz"
-    dest: "/opt/86box-server/{{ item.name }}/{{ item.tag }}"
+    src: "/opt/86server/cache/{{ item.name }}-{{ item.tag }}.tar.gz"
+    dest: "/opt/86server/vendor/{{ item.name }}/{{ item.tag }}"
     remote_src: true
     extra_opts: ["--strip-components=1"]
-    creates: "/opt/86box-server/{{ item.name }}/{{ item.tag }}/{{ item.marker }}"
+    creates: "/opt/86server/vendor/{{ item.name }}/{{ item.tag }}/{{ item.marker }}"
   loop:
     - "{{ pins.novnc | combine({'name': 'novnc', 'marker': 'vnc.html'}) }}"
     - "{{ pins.websockify | combine({'name': 'websockify', 'marker': 'websockify/__main__.py'}) }}"
@@ -37,7 +37,7 @@
 - name: Point 'current' at these versions
   ansible.builtin.file:
     src: "{{ item.tag }}"
-    dest: "/opt/86box-server/{{ item.name }}/current"
+    dest: "/opt/86server/vendor/{{ item.name }}/current"
     state: link
     force: true
   loop:

@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 
-for path in sorted(glob.glob("/var/lib/86box-server/boxdefs/*.json")):
+for path in sorted(glob.glob("/opt/86server/data/boxdefs/*.json")):
     name = os.path.basename(path)[:-5]
     if not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", name):
         continue

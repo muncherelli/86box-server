@@ -4,7 +4,7 @@
 VAULT_FILE="$REPO/ansible/inventories/local/group_vars/all/vault.yml"
 
 vault_password_file() {
-  echo "${B86_VAULT_PASS_FILE:-$HOME/.config/86box-server/vault-pass}"
+  echo "${B86_VAULT_PASS_FILE:-$HOME/.config/86server/vault-pass}"
 }
 
 # Chooses how Ansible gets the vault password.

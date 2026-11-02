@@ -1,12 +1,12 @@
 [Unit]
-Description=86box-server guest bridges
+Description=86server guest bridges
 After=NetworkManager.service
 Before=86box-autostart.service 86box-nft.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/bin/python3 /opt/86box-server/libexec/netgroups-apply --bridges
+ExecStart=/usr/bin/python3 /opt/86server/libexec/netgroups-apply --bridges
 
 [Install]
 WantedBy=multi-user.target

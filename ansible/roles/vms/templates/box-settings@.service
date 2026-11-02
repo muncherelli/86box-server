@@ -13,11 +13,11 @@ SupplementaryGroups={{ vm_share_group }}
 UMask=0007
 EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
 Environment=QT_QPA_PLATFORM=xcb HOME={{ vm_data_root }}/boxes/%i
-CacheDirectory=86box-vm
-Environment=XDG_CACHE_HOME=/var/cache/86box-vm
-ExecStartPre=/opt/86box-server/libexec/wait-x %i
-ExecStart=/opt/86box-server/86box/current/AppRun -S -N -P {{ vm_data_root }}/boxes/%i/ -R /opt/86box-server/roms/current
-ExecStopPost=+/opt/86box-server/libexec/stop-display %i box-settings
+Environment=XDG_CACHE_HOME=/opt/86server/cache/box
+ReadWritePaths=/opt/86server/cache/box
+ExecStartPre=/opt/86server/libexec/wait-x %i
+ExecStart=/opt/86server/vendor/86box/current/AppRun -S -N -P {{ vm_data_root }}/boxes/%i/ -R /opt/86server/vendor/roms/current
+ExecStopPost=+/opt/86server/libexec/stop-display %i box-settings
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes

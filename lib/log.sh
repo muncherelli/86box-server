@@ -5,9 +5,9 @@ PACKAGES_TO_LOG="ansible-core caddy tigervnc dnsmasq nftables cloudflared python
 
 setup_log() {
   if [ "$(id -u)" -eq 0 ]; then
-    LOG_DIR=/var/log/86box-server
+    LOG_DIR=/opt/86server/log
   else
-    LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/86box-server/logs"
+    LOG_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/86server/logs"
   fi
   mkdir -p "$LOG_DIR"
   LOG="$LOG_DIR/$(date +%Y-%m-%dT%H-%M-%S).log"

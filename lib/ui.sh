@@ -210,7 +210,7 @@ run_playbook() {
   export B86_PROGRESS_FILE="$PROG"
   (cd "$REPO/ansible" && exec ansible-playbook site.yml "${BECOME_ARGS[@]}" "${VAULT_ARGS[@]}" "$@" >>"$LOG" 2>&1) &
   PID=$!
-  echo "86box-server $G_PEND host $(uname -n)"
+  echo "86server $G_PEND host $(uname -n)"
   echo
   if [ "$USE_TTY" -eq 1 ]; then
     tput civis 2>/dev/null || true

@@ -46,9 +46,9 @@ netgroups:
 ### How a change is applied
 
 The web manager never changes the network itself. It writes a request file, and a root helper
-(`/opt/86box-server/libexec/netgroups-apply`, started by `86box-netapply.path`) checks every part of it and then
+(`/opt/86server/libexec/netgroups-apply`, started by `86box-netapply.path`) checks every part of it and then
 makes the host match. A request that fails any check is refused as a whole and nothing changes. The answer, with
-any warnings, is in `/run/86box-server/netapply.json`. The saved groups are in `/etc/86box-server/netgroups.json`
+any warnings, is in `/run/86server/netapply.json`. The saved groups are in `/opt/86server/etc/netgroups.json`
 and `netpolicy.json`.
 
 - **Deleting a group** removes its firewall rules, DHCP range and bridge. If a box is still plugged into the bridge, the bridge is kept without an address and a warning says so; stop the box and apply again.

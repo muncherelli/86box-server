@@ -6,7 +6,7 @@ vm_service_user: 86boxvm          # account the boxes run as
 vm_uid: 86                        # its UID/GID when free
 mgr_user: 86boxmgr                # account the web manager runs as
 vm_share_group: 86box-data        # group shared by box account, manager and media users
-vm_data_root: /var/lib/86box-server
+vm_data_root: /opt/86server/data
 media_users: []                   # existing login users who may read/write the media library
 sftp_only_users: []               # [{name: x, ssh_key: 'ssh-ed25519 ...'}], SFTP-only accounts
 

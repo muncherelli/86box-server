@@ -11,8 +11,8 @@ import subprocess
 import sys
 import time
 
-ROOT = "/var/lib/86box-server"
-OUT = "/run/86box-server/nic"
+ROOT = "/opt/86server/data"
+OUT = "/run/86server/nic"
 WAIT = 20.0  # 86Box needs ~13 s to reach the NIC on a 1 vCPU host; a failed start must stay under the manager's 30 s call limit
 
 

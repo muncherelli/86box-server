@@ -8,7 +8,7 @@ if [ "$(id -u)" -ne 0 ]; then exec sudo "$0" "$@"; fi
 
 dir=$(cd "$1" && pwd)
 tag=$2
-W=/var/cache/86box-server/tpl-check
+W=/opt/86server/cache/tpl-check
 value() { sed -n "s/^$2 = //p" "$1" | head -n 1; }
 
 rm -rf "$W"
@@ -21,8 +21,8 @@ for cfg in "$dir"/*.cfg; do
     install -o 86boxvm -g 86boxvm -m 0644 "$cfg" "$W/$id/86box.cfg"
     # 86Box never exits on its own here; the kill is expected.
     runuser -u 86boxvm -- env QT_QPA_PLATFORM=offscreen HOME="$W/$id" \
-        timeout -s KILL 15 "/opt/86box-server/86box/$tag/AppRun" -N -P "$W/$id/" \
-        -R "/opt/86box-server/roms/$tag" >/dev/null 2>&1 || true
+        timeout -s KILL 15 "/opt/86server/vendor/86box/$tag/AppRun" -N -P "$W/$id/" \
+        -R "/opt/86server/vendor/roms/$tag" >/dev/null 2>&1 || true
     saved="$W/$id/86box.cfg"
     reason=""
     grep -q '^\[General\]' "$saved" || reason="86Box did not save the config"

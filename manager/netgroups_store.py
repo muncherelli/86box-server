@@ -2,7 +2,7 @@
 
 The manager has no network privileges. To change groups it writes the complete desired state to
 <data_root>/manager/netgroups-request.json; the root helper validates and applies it, writes the applied
-state to /etc/86box-server/netgroups.json and netpolicy.json, and reports in /run/86box-server/netapply.json.
+state to /opt/86server/etc/netgroups.json and netpolicy.json, and reports in /run/86server/netapply.json.
 """
 import ipaddress
 import os

@@ -243,13 +243,13 @@ def needs_forwarding(groups, routes):
 def render_nm(bridges):
     """NetworkManager must ignore every bridge of ours, including one kept only because a box is plugged in."""
     names = "".join("interface-name:%s;" % b for b in bridges)
-    return "# managed by 86box-server: do not edit\n[keyfile]\nunmanaged-devices=%sinterface-name:tap*\n" % names
+    return "# managed by 86server: do not edit\n[keyfile]\nunmanaged-devices=%sinterface-name:tap*\n" % names
 
 
 def render_nft(groups, routes, edge=None):
     edge = edge or {}
     cf = edge.get("edge_mode") == "cf-origin" and bool(edge.get("cf4_ranges"))
-    out = ["# managed by 86box-server: do not edit",
+    out = ["# managed by 86server: do not edit",
            "# The first two lines make loading atomic: the table is replaced in one step.",
            "table inet b86box", "delete table inet b86box", "table inet b86box {",
            "  set ourbr {", "    type ifname"]
@@ -290,7 +290,7 @@ def render_nft(groups, routes, edge=None):
 
 def render_dnsmasq(groups, routes, nat_dns, leasefile):
     routed = {n for pair in routes for n in pair}
-    out = ["# managed by 86box-server: do not edit",
+    out = ["# managed by 86server: do not edit",
            "# DHCP only (no DNS server). One range per group that has dhcp: true.",
            "port=0", "bind-interfaces", "dhcp-leasefile=%s" % leasefile]
     for name, g in groups.items():

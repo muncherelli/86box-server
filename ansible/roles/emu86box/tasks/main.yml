@@ -10,20 +10,20 @@
     group: root
     mode: "0755"
   loop:
-    - /var/cache/86box-server
-    - /opt/86box-server/86box
-    - /opt/86box-server/roms
+    - /opt/86server/cache
+    - /opt/86server/vendor/86box
+    - /opt/86server/vendor/roms
 
 - name: Download the 86Box AppImage
   ansible.builtin.get_url:
     url: "{{ pins.emu86box.url }}"
-    dest: "/var/cache/86box-server/86Box-{{ pins.emu86box.tag }}.AppImage"
+    dest: "/opt/86server/cache/86Box-{{ pins.emu86box.tag }}.AppImage"
     checksum: "sha256:{{ pins.emu86box.sha256 }}"
     mode: "0755"
 
 - name: Check whether this 86Box version is already extracted
   ansible.builtin.stat:
-    path: "/opt/86box-server/86box/{{ pins.emu86box.tag }}/AppRun"
+    path: "/opt/86server/vendor/86box/{{ pins.emu86box.tag }}/AppRun"
   register: have_86box
 
 - name: Extract the AppImage
@@ -31,61 +31,61 @@
   block:
     - name: Start with an empty scratch folder
       ansible.builtin.file:
-        path: /opt/86box-server/86box/extract-tmp
+        path: /opt/86server/vendor/86box/extract-tmp
         state: "{{ item }}"
         mode: "0755"
       loop: [absent, directory]
 
     - name: Extract (no FUSE needed)
       ansible.builtin.command:
-        cmd: "/var/cache/86box-server/86Box-{{ pins.emu86box.tag }}.AppImage --appimage-extract"
-        chdir: /opt/86box-server/86box/extract-tmp
+        cmd: "/opt/86server/cache/86Box-{{ pins.emu86box.tag }}.AppImage --appimage-extract"
+        chdir: /opt/86server/vendor/86box/extract-tmp
       changed_when: true
 
     - name: Move the extracted tree into its versioned folder
-      ansible.builtin.command: "mv /opt/86box-server/86box/extract-tmp/squashfs-root /opt/86box-server/86box/{{ pins.emu86box.tag }}"
+      ansible.builtin.command: "mv /opt/86server/vendor/86box/extract-tmp/squashfs-root /opt/86server/vendor/86box/{{ pins.emu86box.tag }}"
       changed_when: true
 
     - name: Make it readable by everyone, writable by root only
-      ansible.builtin.command: "chmod -R u=rwX,go=rX /opt/86box-server/86box/{{ pins.emu86box.tag }}"
+      ansible.builtin.command: "chmod -R u=rwX,go=rX /opt/86server/vendor/86box/{{ pins.emu86box.tag }}"
       changed_when: true
 
     - name: Remove the scratch folder
       ansible.builtin.file:
-        path: /opt/86box-server/86box/extract-tmp
+        path: /opt/86server/vendor/86box/extract-tmp
         state: absent
 
 - name: Point 'current' at this 86Box version
   ansible.builtin.file:
     src: "{{ pins.emu86box.tag }}"
-    dest: /opt/86box-server/86box/current
+    dest: /opt/86server/vendor/86box/current
     state: link
     force: true
 
 - name: Download the ROM set
   ansible.builtin.get_url:
     url: "{{ pins.roms.url }}"
-    dest: "/var/cache/86box-server/roms-{{ pins.roms.tag }}.tar.gz"
+    dest: "/opt/86server/cache/roms-{{ pins.roms.tag }}.tar.gz"
     checksum: "sha256:{{ pins.roms.sha256 }}"
     mode: "0644"
 
 - name: Create the ROM folder for this version
   ansible.builtin.file:
-    path: "/opt/86box-server/roms/{{ pins.roms.tag }}"
+    path: "/opt/86server/vendor/roms/{{ pins.roms.tag }}"
     state: directory
     mode: "0755"
 
 - name: Unpack the ROM set
   ansible.builtin.unarchive:
-    src: "/var/cache/86box-server/roms-{{ pins.roms.tag }}.tar.gz"
-    dest: "/opt/86box-server/roms/{{ pins.roms.tag }}"
+    src: "/opt/86server/cache/roms-{{ pins.roms.tag }}.tar.gz"
+    dest: "/opt/86server/vendor/roms/{{ pins.roms.tag }}"
     remote_src: true
     extra_opts: ["--strip-components=1"]
-    creates: "/opt/86box-server/roms/{{ pins.roms.tag }}/machines"
+    creates: "/opt/86server/vendor/roms/{{ pins.roms.tag }}/machines"
 
 - name: Point 'current' at this ROM set
   ansible.builtin.file:
     src: "{{ pins.roms.tag }}"
-    dest: /opt/86box-server/roms/current
+    dest: /opt/86server/vendor/roms/current
     state: link
     force: true

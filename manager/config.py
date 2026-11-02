@@ -1,11 +1,11 @@
-"""Settings: /etc/86box-server/manager.json (written by Ansible). Tests set B86_CONFIG / B86_DATA_ROOT."""
+"""Settings: /opt/86server/etc/manager.json (written by Ansible). Tests set B86_CONFIG / B86_DATA_ROOT."""
 import json
 import os
 
-_PATH = os.environ.get("B86_CONFIG", "/etc/86box-server/manager.json")
+_PATH = os.environ.get("B86_CONFIG", "/opt/86server/etc/manager.json")
 # Network groups are changed from the web UI, so they are read live from what the root helper applied.
-ETC = os.environ.get("B86_ETC", "/etc/86box-server")
-RUN = os.environ.get("B86_RUN", "/run/86box-server")
+ETC = os.environ.get("B86_ETC", "/opt/86server/etc")
+RUN = os.environ.get("B86_RUN", "/run/86server")
 NETGROUPS_PATH = os.path.join(ETC, "netgroups.json")
 NETPOLICY_PATH = os.path.join(ETC, "netpolicy.json")
 NETAPPLY_RESULT = os.path.join(RUN, "netapply.json")
@@ -18,7 +18,7 @@ def load():
             cfg = json.load(f)
     except OSError:
         cfg = {}
-    cfg.setdefault("data_root", "/var/lib/86box-server")
+    cfg.setdefault("data_root", "/opt/86server/data")
     cfg.setdefault("emu86box_tag", "")
     cfg.setdefault("share_group", "86box-data")
     cfg.pop("netgroups", None)  # an old manager.json may still carry it; the live file wins

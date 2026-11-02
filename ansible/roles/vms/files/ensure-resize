@@ -11,7 +11,7 @@ import sys
 name = sys.argv[1] if len(sys.argv) > 1 else ""
 if not re.fullmatch(r"[a-z][a-z0-9-]{1,30}", name):
     sys.exit("usage: ensure-resize <name>")
-cfg = "/var/lib/86box-server/boxes/%s/86box.cfg" % name
+cfg = "/opt/86server/data/boxes/%s/86box.cfg" % name
 p = configparser.ConfigParser(interpolation=None, strict=False)
 p.optionxform = str
 try:

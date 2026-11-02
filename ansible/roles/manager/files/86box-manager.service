@@ -1,5 +1,5 @@
 [Unit]
-Description=86box-server web manager
+Description=86server web manager
 After=network.target
 
 [Service]
@@ -7,14 +7,14 @@ User=86boxmgr
 Group=86boxmgr
 SupplementaryGroups=86box-data
 UMask=0007
-WorkingDirectory=/opt/86box-server/manager
-ExecStart=/usr/bin/python3 /opt/86box-server/manager/server.py
+WorkingDirectory=/opt/86server/manager
+ExecStart=/usr/bin/python3 /opt/86server/manager/server.py
 Restart=on-failure
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
-ReadWritePaths=/var/lib/86box-server /etc/caddy/sites.d
+ReadWritePaths=/opt/86server/data /etc/caddy/sites.d
 MemoryMax=150M
 
 [Install]

@@ -11,7 +11,7 @@ import netgroups_core as core  # noqa: E402
 
 GOLDEN = os.path.join(HERE, "golden")
 RID = "0123456789abcdef"
-LEASES = "/var/lib/86box-server/dnsmasq.leases"
+LEASES = "/opt/86server/data/dnsmasq.leases"
 
 
 def golden(name):

@@ -1,6 +1,6 @@
 ---
 # Optional SFTP-only accounts (inventory sftp_only_users). They are chrooted to
-# /srv/86box-sftp and see only the media library. Normal SSH users in media_users
+# /opt/86server/sftp and see only the media library. Normal SSH users in media_users
 # need none of this: they are in the shared group already.
 
 - name: Create the SFTP-only group
@@ -46,12 +46,12 @@
     owner: root
     group: root
     mode: "0755"
-  loop: [/srv/86box-sftp, /srv/86box-sftp/media]
+  loop: [/opt/86server/sftp, /opt/86server/sftp/media]
 
 - name: Bind the media library into the chroot
   ansible.posix.mount:
     src: "{{ vm_data_root }}/media"
-    path: /srv/86box-sftp/media
+    path: /opt/86server/sftp/media
     fstype: none
     opts: bind
     state: mounted

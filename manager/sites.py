@@ -166,9 +166,9 @@ def render_site(site, edge_mode="acme"):
     deny = "^(" + "|".join(p.replace(".", "\\.") for p in r["allow_paths"]) + ")"
     methods = [m for m in METHODS if m in r["methods"]]
     if s["scheme"] == "http":
-        out = ["# managed by 86box-server: do not edit", "http://" + s["host"] + " {"]
+        out = ["# managed by 86server: do not edit", "http://" + s["host"] + " {"]
     else:
-        out = ["# managed by 86box-server: do not edit", s["host"] + " {", "\timport b86_edge"]
+        out = ["# managed by 86server: do not edit", s["host"] + " {", "\timport b86_edge"]
     out += ["\trequest_body {", "\t\tmax_size " + r["max_body"], "\t}"]
     if r["block_encoded"]:
         out.append("\t@b86enc expression `" + ENC_EXPR + "`")

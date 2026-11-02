@@ -137,7 +137,7 @@
 
 - name: Look for saved network group settings
   ansible.builtin.stat:
-    path: /etc/86box-server/netpolicy.json
+    path: /opt/86server/etc/netpolicy.json
   register: b86_netpolicy_saved
 
 - name: Check the network group settings in the inventory (only used the first time)

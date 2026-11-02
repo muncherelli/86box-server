@@ -7,7 +7,7 @@ import subprocess
 import time
 import traceback
 
-ROOT = "/var/lib/86box-server"
+ROOT = "/opt/86server/data"
 seen = {}
 
 
@@ -29,7 +29,7 @@ while True:
             state = (mtime("%s/boxes/%s/86box.cfg" % (ROOT, name)), mtime(path))
             if seen.get(name) != state:
                 seen[name] = state
-                subprocess.run(["/opt/86box-server/libexec/cfg-guard", name, "--enforce"])
+                subprocess.run(["/opt/86server/libexec/cfg-guard", name, "--enforce"])
         except Exception:
             traceback.print_exc()
     time.sleep(3)

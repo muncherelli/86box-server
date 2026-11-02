@@ -12,7 +12,7 @@
 - name: Install the helper scripts
   ansible.builtin.copy:
     src: "{{ item }}"
-    dest: "/opt/86box-server/libexec/{{ item }}"
+    dest: "/opt/86server/libexec/{{ item }}"
     owner: root
     group: root
     mode: "0755"
@@ -39,7 +39,7 @@
 - name: Install the window manager settings (the 86Box window fills the display)
   ansible.builtin.copy:
     src: openbox-rc.xml
-    dest: /opt/86box-server/openbox-rc.xml
+    dest: /opt/86server/openbox-rc.xml
     owner: root
     group: root
     mode: "0644"
@@ -56,15 +56,15 @@
 
 - name: Install the runtime folders list
   ansible.builtin.copy:
-    src: 86box-server.tmpfiles.conf
-    dest: /etc/tmpfiles.d/86box-server.conf
+    src: 86server.tmpfiles.conf
+    dest: /etc/tmpfiles.d/86server.conf
     owner: root
     group: root
     mode: "0644"
   register: tmpfiles
 
 - name: Create the runtime folders now
-  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/86box-server.conf
+  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/86server.conf
   when: tmpfiles.changed
   changed_when: true
 

@@ -3,7 +3,7 @@
 
 show_status() {
   local unit state
-  echo "86box-server status"
+  echo "86server status"
   echo
   printf '%-24s %s\n' SERVICE STATE
   for unit in 86box-manager 86box-websockify 86box-guard 86box-nft 86box-bridges 86box-dnsmasq caddy 86box-cloudflared; do
@@ -13,7 +13,7 @@ show_status() {
     printf '%-24s %s\n' "$unit" "$state"
   done
   echo
-  sudo -u 86boxmgr python3 /opt/86box-server/manager/cli.py list || echo "(Box list unavailable)"
+  sudo -u 86boxmgr python3 /opt/86server/manager/cli.py list || echo "(Box list unavailable)"
   echo
   echo "Bridges:"
   ip -br link show type bridge || true

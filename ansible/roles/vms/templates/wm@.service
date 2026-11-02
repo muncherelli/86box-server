@@ -9,8 +9,8 @@ Group={{ vm_service_user }}
 EnvironmentFile={{ vm_data_root }}/boxdefs/%i.env
 RuntimeDirectory=wm-%i
 Environment=HOME=%t/wm-%i
-ExecStartPre=/opt/86box-server/libexec/wait-x %i
-ExecStart=/usr/bin/openbox --config-file /opt/86box-server/openbox-rc.xml
+ExecStartPre=/opt/86server/libexec/wait-x %i
+ExecStart=/usr/bin/openbox --config-file /opt/86server/openbox-rc.xml
 Restart=on-failure
 NoNewPrivileges=yes
 ProtectSystem=strict
