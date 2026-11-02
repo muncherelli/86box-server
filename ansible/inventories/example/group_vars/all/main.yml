@@ -1,5 +1,5 @@
 ---
-# Settings for this host. ./update.sh copies this folder to /opt/86server/install/inventory on the
+# Settings for this host. ./update.sh copies this folder to /opt/86server/inventory on the
 # first run. Edit that copy, never this example. Fixed parts of the layout (the 86server account,
 # uid/gid 86, the folders) are in ansible/group_vars/all/defaults.yml.
 

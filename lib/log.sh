@@ -1,10 +1,9 @@
 # shellcheck shell=bash
-# One log file per run. Sets LOG and LOG_DIR.
+# One log file per run in $LOG_DIR. Sets LOG.
 
 PACKAGES_TO_LOG="ansible-core caddy tigervnc dnsmasq nftables cloudflared lego python polkit openssl rsync ttf-dejavu shellcheck"
 
 setup_log() {
-  LOG_DIR="$INSTALL_DIR/logs"
   mkdir -p "$LOG_DIR"
   LOG="$LOG_DIR/$(date +%Y-%m-%dT%H-%M-%S).log"
   ln -sfn "$LOG" "$LOG_DIR/latest.log"

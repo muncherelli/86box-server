@@ -21,7 +21,7 @@ ensure_nano() {
 ensure_collections() {
   ansible-galaxy collection install \
     -r "$REPO/ansible/requirements.yml" \
-    -p "$INSTALL_DIR/collections" >/dev/null
+    -p "$COLLECTIONS_DIR" >/dev/null
 }
 
 # Sets BECOME_ARGS (used by lib/ui.sh): ask for the sudo password only when sudo needs one.
@@ -33,20 +33,23 @@ set_become_args() {
   fi
 }
 
-# /opt/86server/install belongs to the person who runs ./update.sh (mode 700): settings and secrets.
-ensure_install_dir() {
-  if [ ! -d "$INSTALL_DIR" ] || [ ! -O "$INSTALL_DIR" ]; then
-    sudo install -d -o root -g root -m 0755 /opt/86server
-    sudo install -d -o "$(id -u)" -g "$(id -g)" -m 0700 "$INSTALL_DIR"
-  fi
+# The inventory (settings and secrets, mode 700), the install logs and the Ansible collections belong to
+# the person who runs ./update.sh, so it can write them without sudo.
+ensure_install_dirs() {
+  local d
+  for d in "$INVENTORY_DIR" "$LOG_DIR" "$COLLECTIONS_DIR"; do
+    [ -d "$d" ] && [ -O "$d" ] && continue
+    sudo install -d -o root -g root -m 0755 /opt/86server /opt/86server/cache
+    sudo install -d -o "$(id -u)" -g "$(id -g)" -m "$([ "$d" = "$INVENTORY_DIR" ] && echo 0700 || echo 0755)" "$d"
+  done
 }
 
-# First run: copy the example inventory to $INSTALL_DIR/inventory and stop.
+# First run: copy the example inventory to $INVENTORY_DIR and stop.
 ensure_local_inventory() {
   local src="$REPO/ansible/inventories/example"
-  local dst="$INSTALL_DIR/inventory"
-  [ -d "$dst" ] && return 0
-  cp -r "$src" "$dst"
+  local dst="$INVENTORY_DIR"
+  [ -f "$dst/hosts.yml" ] && return 0
+  cp -r "$src/." "$dst/"
   mv "$dst/group_vars/all/vault.yml.example" "$dst/group_vars/all/vault.yml"
   echo "Created $dst."
   echo "Edit it, encrypt vault.yml (./update.sh vault-edit), then run ./update.sh again."

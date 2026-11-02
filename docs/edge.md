@@ -1,6 +1,6 @@
 # Web front (Caddy)
 
-Caddy serves the web manager, the browser consoles and published sites. It can do this under three kinds of names, and you can use any mix of them. Set them in `/opt/86server/install/inventory/group_vars/all/main.yml`, then run `./update.sh`. Each name may appear only once across the three lists.
+Caddy serves the web manager, the browser consoles and published sites. It can do this under three kinds of names, and you can use any mix of them. Set them in `/opt/86server/inventory/group_vars/all/main.yml`, then run `./update.sh`. Each name may appear only once across the three lists.
 
 | Setting | Served as | Certificate |
 | --- | --- | --- |

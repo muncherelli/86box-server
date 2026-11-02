@@ -16,14 +16,14 @@ Supported: Arch Linux (more distros later, see [docs/adding-a-distro.md](docs/ad
 ```sh
 git clone https://github.com/muncherelli/86server
 cd 86server
-./update.sh            # first run: creates /opt/86server/install/inventory and stops
-$EDITOR /opt/86server/install/inventory/group_vars/all/main.yml   # set at least one name, e.g. lan_hosts: [box.lan]
+./update.sh            # first run: creates /opt/86server/inventory and stops
+$EDITOR /opt/86server/inventory/group_vars/all/main.yml   # set at least one name, e.g. lan_hosts: [box.lan]
 ./update.sh vault-edit # set the admin password and any other secrets
 ./update.sh            # installs everything
 ./update.sh admin-password   # shows the web manager's admin login
 ```
 
-`./update.sh` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings and secrets live in `/opt/86server/install`, outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
+`./update.sh` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings and secrets live in `/opt/86server/inventory`, outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
 
 To reach the manager from outside, or to give it a real certificate, use the Cloudflare page in the web manager: see [docs/cloudflare.md](docs/cloudflare.md).
 
@@ -65,7 +65,9 @@ write the media library.
 | `/opt/86server/etc` | Generated settings: `manager.json`, network groups, `cloudflared.env`, `ssh/sftp-keys/` |
 | `/opt/86server/etc/caddy` | `Caddyfile`, `sites.d/` (published sites) and `panel.d/` (the control panel name) |
 | `/opt/86server/system/etc` | The real files for systemd units, the Caddy drop-in, polkit, tmpfiles, sshd, sysctl and NetworkManager (see below) |
-| `/opt/86server/install` | The installer's own state: `inventory/` (settings and `vault.yml`), `vault-pass`, `logs/`, `collections/`. Owned by the person who runs `./update.sh`, mode 700 |
+| `/opt/86server/inventory` | This host's settings: `hosts.yml`, `group_vars/all/` (`main.yml`, `pins.yml`, encrypted `vault.yml`) and `vault-pass`. Owned by the person who runs `./update.sh`, mode 700 |
+| `/opt/86server/log` | `./update.sh` run logs (newest 30) |
+| `/opt/86server/cache/ansible-collections` | Ansible collections the installer downloads |
 | `/opt/86server/cache` | Downloads and caches |
 | `/opt/86server/sftp` | Chroot for SFTP-only accounts |
 
