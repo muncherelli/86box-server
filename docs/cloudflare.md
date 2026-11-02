@@ -64,7 +64,7 @@ it renews it the same way (DNS challenge through Cloudflare) and reloads Caddy. 
 for that to work. Run it by hand with:
 
 ```
-sudo -u 86boxmgr python3 /opt/86server/manager/cli.py renew-certs
+sudo -u 86servermgr python3 /opt/86server/manager/cli.py renew-certs
 ```
 
 ## Files
