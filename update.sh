@@ -4,6 +4,10 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REPO
 export ANSIBLE_CONFIG="$REPO/ansible/ansible.cfg"
+# This host's settings, vault, vault password, logs and Ansible collections. Kept outside the repo,
+# so a fresh clone (or a different checkout) installs with the same settings.
+INSTALL_DIR=/opt/86server/install
+export INSTALL_DIR
 
 die() { echo "error: $*" >&2; exit 1; }
 
@@ -49,6 +53,8 @@ case "${ARGS[0]:-}" in
 esac
 
 preflight_basic
+ensure_install_dir
+migrate_install_state
 ensure_local_inventory
 ensure_ansible
 ensure_nano

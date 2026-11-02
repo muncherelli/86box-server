@@ -1,0 +1,20 @@
+# managed by 86server: do not edit
+[Unit]
+Description=86server: renew the control panel certificate when it is due
+After=network-online.target
+Wants=network-online.target
+# Nothing to renew until the Cloudflare page has set up a hostname.
+ConditionPathExists=/opt/86server/data/manager/panel.json
+
+[Service]
+Type=oneshot
+User=86boxmgr
+Group=86boxmgr
+UMask=0027
+WorkingDirectory=/opt/86server/manager
+ExecStart=/usr/bin/python3 /opt/86server/manager/cli.py renew-certs
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/opt/86server/data

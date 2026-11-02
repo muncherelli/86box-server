@@ -6,6 +6,8 @@ polkit.addRule(function(action, subject) {
         if (/^(box|vnc|box-settings)@[a-z][a-z0-9-]{1,30}\.service$/.test(unit) &&
             ["start", "stop", "restart"].indexOf(verb) >= 0) return polkit.Result.YES;
         if (unit == "caddy.service" && verb == "reload") return polkit.Result.YES;
+        if (unit == "86server-cloudflared.service" &&
+            ["start", "stop", "restart"].indexOf(verb) >= 0) return polkit.Result.YES;
     }
     return polkit.Result.NOT_HANDLED;
 });

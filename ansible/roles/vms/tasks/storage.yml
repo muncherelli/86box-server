@@ -65,7 +65,7 @@
     - { path: "{{ vm_data_root }}/manager", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
     - { path: "{{ vm_data_root }}/vnc-tokens", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
     - { path: "{{ vm_data_root }}/trash", owner: "{{ mgr_user }}", group: "{{ mgr_user }}", mode: "0700" }
-    - { path: /opt/86server/etc, owner: root, group: "{{ mgr_user }}", mode: "0750" }
+    - { path: /opt/86server/etc, owner: root, group: "{{ mgr_user }}", mode: "0751" }
     - { path: /opt/86server/cache, owner: root, group: root, mode: "0755" }
     - { path: /opt/86server/cache/box, owner: "{{ vm_service_user }}", group: "{{ vm_service_user }}", mode: "0700" }
     - { path: /opt/86server, owner: root, group: root, mode: "0755" }

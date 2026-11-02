@@ -7,6 +7,24 @@
     name: "{{ base_packages }}"
     state: present
 
+- name: Create the 86server folder and the home of its system files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /opt/86server
+    - /opt/86server/system
+    - /opt/86server/system/etc
+    - /opt/86server/system/etc/systemd/system
+    - /opt/86server/system/etc/tmpfiles.d
+    - /opt/86server/system/etc/polkit-1/rules.d
+    - /opt/86server/system/etc/ssh/sshd_config.d
+    - /opt/86server/system/etc/sysctl.d
+    - /opt/86server/system/etc/NetworkManager/conf.d
+
 - name: Create the shared data group
   ansible.builtin.group:
     name: "{{ vm_share_group }}"

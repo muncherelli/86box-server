@@ -1,0 +1,11 @@
+# managed by 86server: do not edit
+[Unit]
+Description=86server: daily check of the control panel certificate
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

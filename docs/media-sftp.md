@@ -20,4 +20,4 @@ sftp_only_users:
 
 The SSH settings go in `/etc/ssh/sshd_config.d/60-86box-sftp.conf`. `./update.sh` checks them with `sshd -t` before it reloads sshd, so a bad config is refused instead of applied. Leaving `sftp_only_users` empty changes nothing on the host.
 
-Removing a name from the list does not delete the account; remove it by hand (`userdel`) and delete `/etc/ssh/sftp-keys/<name>`.
+Removing a name from the list does not delete the account; remove it by hand (`userdel`) and delete `/opt/86server/etc/ssh/sftp-keys/<name>`.

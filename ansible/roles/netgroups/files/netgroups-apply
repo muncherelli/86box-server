@@ -7,6 +7,7 @@
   netgroups-apply --bridges        at boot: bring the saved groups' bridges up again
 
 Files it writes: /opt/86server/etc/{netgroups.json,netpolicy.json,b86box.nft,dnsmasq.conf},
+/opt/86server/system/etc/... (linked into /etc),
 /run/86server/netapply.json (the result), NetworkManager and sysctl drop-ins.
 It never touches the host's own interface, its addresses or its routes.
 """
@@ -24,6 +25,9 @@ import netgroups_core as core  # noqa: E402
 
 CONF = "/opt/86server/etc"
 RUN = "/run/86server"
+# System files live in /opt/86server/system/etc/<path>; /etc/<path> is a symlink to them.
+SYSTEM_ETC = "/opt/86server/system/etc"
+ETC = "/etc"
 NM_CONF = "/etc/NetworkManager/conf.d/86box.conf"
 SYSCTL_CONF = "/etc/sysctl.d/86box.conf"
 MAX_REQUEST = 64 * 1024
@@ -55,6 +59,34 @@ def run(args, check=True):
 
 def now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def system_path(etc_path):
+    assert etc_path.startswith(ETC + "/"), etc_path
+    return SYSTEM_ETC + etc_path[len(ETC):]
+
+
+def write_system_file(etc_path, text, mode):
+    """Write the real file under /opt/86server/system and link it into /etc; True when anything changed."""
+    real = system_path(etc_path)
+    changed = write_file(real, text, mode)
+    if os.path.realpath(etc_path) != real:
+        os.makedirs(os.path.dirname(etc_path), exist_ok=True)
+        if os.path.lexists(etc_path):
+            os.unlink(etc_path)
+        os.symlink(real, etc_path)
+        changed = True
+    return changed
+
+
+def system_file_exists(etc_path):
+    return os.path.lexists(etc_path) or os.path.exists(system_path(etc_path))
+
+
+def remove_system_file(etc_path):
+    for p in (etc_path, system_path(etc_path)):
+        if os.path.lexists(p):
+            os.unlink(p)
 
 
 def write_file(path, text, mode, group=None):
@@ -121,11 +153,11 @@ def step_networkmanager(ctx, bridges):
     if not unit_active("NetworkManager"):
         return
     if bridges:
-        changed = write_file(NM_CONF, core.render_nm(bridges), 0o644)
+        changed = write_system_file(NM_CONF, core.render_nm(bridges), 0o644)
     else:
-        changed = os.path.exists(NM_CONF)
+        changed = system_file_exists(NM_CONF)
         if changed:
-            os.unlink(NM_CONF)
+            remove_system_file(NM_CONF)
     if changed:
         run(["systemctl", "reload", "NetworkManager"], check=False)
         ctx.note("networkmanager")
@@ -213,7 +245,7 @@ def step_nft(ctx, groups, text):
 
 def step_forwarding(ctx, groups, routes):
     if core.needs_forwarding(groups, routes):
-        if write_file(SYSCTL_CONF, "# managed by 86server: do not edit\nnet.ipv4.ip_forward = 1\n", 0o644):
+        if write_system_file(SYSCTL_CONF, "# managed by 86server: do not edit\nnet.ipv4.ip_forward = 1\n", 0o644):
             ctx.note("sysctl")
         with open("/proc/sys/net/ipv4/ip_forward") as f:
             on = f.read().strip() == "1"
@@ -221,8 +253,8 @@ def step_forwarding(ctx, groups, routes):
             with open("/proc/sys/net/ipv4/ip_forward", "w") as f:
                 f.write("1")
             ctx.note("forwarding")
-    elif os.path.exists(SYSCTL_CONF):
-        os.unlink(SYSCTL_CONF)  # the running value is left alone: something else may need it
+    elif system_file_exists(SYSCTL_CONF):
+        remove_system_file(SYSCTL_CONF)  # the running value is left alone: something else may need it
         ctx.note("sysctl")
 
 

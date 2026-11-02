@@ -14,7 +14,7 @@ NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
-ReadWritePaths=/opt/86server/data /etc/caddy/sites.d
+ReadWritePaths=/opt/86server/data /opt/86server/etc/caddy/sites.d /opt/86server/etc/caddy/panel.d
 MemoryMax=150M
 
 [Install]

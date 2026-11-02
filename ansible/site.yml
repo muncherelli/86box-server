@@ -35,7 +35,7 @@
   roles:
     - console
 
-# Caddy first: it creates /etc/caddy/sites.d, which the manager unit needs at start.
+# Caddy first: it creates /opt/86server/etc/caddy/sites.d and panel.d, which the manager unit needs at start.
 - name: Caddy
   hosts: all
   gather_facts: true

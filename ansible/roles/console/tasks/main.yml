@@ -47,11 +47,14 @@
 - name: Install the websockify unit
   ansible.builtin.copy:
     src: 86box-websockify.service
-    dest: /etc/systemd/system/86box-websockify.service
+    dest: /opt/86server/system/etc/systemd/system/86box-websockify.service
     owner: root
     group: root
     mode: "0644"
   notify: Reload systemd for consoles
+
+- name: Link the system files into /etc
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
 
 - name: Make systemd see the unit
   ansible.builtin.meta: flush_handlers

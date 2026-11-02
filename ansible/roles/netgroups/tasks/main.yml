@@ -13,7 +13,7 @@
     state: directory
     owner: root
     group: "{{ mgr_user }}"
-    mode: "0750"
+    mode: "0751"
 
 - name: Create the libexec folder
   ansible.builtin.file:
@@ -37,7 +37,7 @@
 - name: Install the fixed units
   ansible.builtin.copy:
     src: "{{ item }}"
-    dest: "/etc/systemd/system/{{ item }}"
+    dest: "/opt/86server/system/etc/systemd/system/{{ item }}"
     owner: root
     group: root
     mode: "0644"
@@ -47,12 +47,15 @@
 - name: Install the units that watch for requests from the web manager
   ansible.builtin.template:
     src: "{{ item }}.j2"
-    dest: "/etc/systemd/system/{{ item }}"
+    dest: "/opt/86server/system/etc/systemd/system/{{ item }}"
     owner: root
     group: root
     mode: "0644"
   loop: [86box-netapply.service, 86box-netapply.path]
   notify: Reload systemd for the network groups
+
+- name: Link the system files into /etc
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
 
 - name: Make systemd see the units
   ansible.builtin.meta: flush_handlers

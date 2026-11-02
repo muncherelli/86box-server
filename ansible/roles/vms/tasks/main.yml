@@ -29,7 +29,7 @@
 - name: Install the templated systemd units
   ansible.builtin.template:
     src: "{{ item }}"
-    dest: "/etc/systemd/system/{{ item }}"
+    dest: "/opt/86server/system/etc/systemd/system/{{ item }}"
     owner: root
     group: root
     mode: "0644"
@@ -47,7 +47,7 @@
 - name: Install the fixed systemd units
   ansible.builtin.copy:
     src: "{{ item }}"
-    dest: "/etc/systemd/system/{{ item }}"
+    dest: "/opt/86server/system/etc/systemd/system/{{ item }}"
     owner: root
     group: root
     mode: "0644"
@@ -57,16 +57,19 @@
 - name: Install the runtime folders list
   ansible.builtin.copy:
     src: 86server.tmpfiles.conf
-    dest: /etc/tmpfiles.d/86server.conf
+    dest: /opt/86server/system/etc/tmpfiles.d/86server.conf
     owner: root
     group: root
     mode: "0644"
   register: tmpfiles
 
 - name: Create the runtime folders now
-  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/86server.conf
+  ansible.builtin.command: systemd-tmpfiles --create /opt/86server/system/etc/tmpfiles.d/86server.conf
   when: tmpfiles.changed
   changed_when: true
+
+- name: Link the system files into /etc
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
 
 - name: Make systemd see the new units
   ansible.builtin.meta: flush_handlers

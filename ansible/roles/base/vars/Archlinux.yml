@@ -11,3 +11,5 @@ base_packages:
   - nftables
   - dnsmasq
   - ttf-dejavu
+  - lego          # DNS-01 certificates for the control panel name (Cloudflare page)
+  - cloudflared   # Cloudflare Tunnel, started by the manager or from the vault token

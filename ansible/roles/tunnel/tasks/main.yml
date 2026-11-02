@@ -1,69 +1,46 @@
 ---
-# Cloudflare Tunnel: on only when the vault holds a tunnel token (vault_cf_tunnel_token).
+# Cloudflare Tunnel. cloudflared (installed by the base role) runs as 86server-cloudflared when a token exists:
+# - set up from the web manager's Cloudflare page (it writes /opt/86server/data/manager/cloudflared.env), or
+# - from the vault (vault_cf_tunnel_token -> /opt/86server/etc/cloudflared.env) for a tunnel made by hand.
 - name: Load settings for this Linux distribution
   ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
 
-- name: Decide whether the tunnel is on
-  ansible.builtin.set_fact:
-    b86_tunnel_on: "{{ (vault_cf_tunnel_token | default('') | length) > 0 }}"
+- name: Write the tunnel token from the vault
+  ansible.builtin.copy:
+    content: "TUNNEL_TOKEN={{ vault_cf_tunnel_token }}\n"
+    dest: /opt/86server/etc/cloudflared.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: vault_cf_tunnel_token | default('') | length > 0
+  notify: Restart cloudflared
 
-- name: Set up the tunnel
-  when: b86_tunnel_on | bool
-  block:
-    - name: Install cloudflared
-      community.general.pacman:
-        name: "{{ tunnel_packages }}"
-        state: present
-      when: ansible_facts['os_family'] == 'Archlinux'
+- name: Remove the vault tunnel token when the vault has none
+  ansible.builtin.file:
+    path: /opt/86server/etc/cloudflared.env
+    state: absent
+  when: vault_cf_tunnel_token | default('') | length == 0
+  notify: Restart cloudflared
 
-    - name: Write the tunnel token
-      ansible.builtin.copy:
-        content: "TUNNEL_TOKEN={{ vault_cf_tunnel_token }}\n"
-        dest: /opt/86server/etc/cloudflared.env
-        owner: root
-        group: root
-        mode: "0600"
-      no_log: true
-      notify: Restart cloudflared
+- name: Install the tunnel unit
+  ansible.builtin.copy:
+    src: 86server-cloudflared.service
+    dest: /opt/86server/system/etc/systemd/system/86server-cloudflared.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd for cloudflared
+    - Restart cloudflared
 
-    - name: Install the tunnel unit
-      ansible.builtin.copy:
-        src: 86server-cloudflared.service
-        dest: /etc/systemd/system/86server-cloudflared.service
-        owner: root
-        group: root
-        mode: "0644"
-      notify:
-        - Reload systemd for cloudflared
-        - Restart cloudflared
-
+- name: Link the system files into /etc
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
 
 - name: Make systemd see the unit
   ansible.builtin.meta: flush_handlers
 
-- name: Run the tunnel
+- name: Start the tunnel at boot (it stays off until a token exists)
   ansible.builtin.systemd:
     name: 86server-cloudflared
     enabled: true
-    state: started
-  when: b86_tunnel_on | bool
-
-- name: Turn the tunnel off
-  when: not (b86_tunnel_on | bool)
-  block:
-    - name: Check for the tunnel unit
-      ansible.builtin.stat:
-        path: /etc/systemd/system/86server-cloudflared.service
-      register: b86_tunnel_unit
-
-    - name: Stop and disable the tunnel
-      ansible.builtin.systemd:
-        name: 86server-cloudflared
-        enabled: false
-        state: stopped
-      when: b86_tunnel_unit.stat.exists
-
-    - name: Remove the old tunnel token
-      ansible.builtin.file:
-        path: /opt/86server/etc/cloudflared.env
-        state: absent

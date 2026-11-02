@@ -7,3 +7,8 @@
   ansible.builtin.systemd:
     name: caddy
     state: reloaded
+
+- name: Restart caddy
+  ansible.builtin.systemd:
+    name: caddy
+    state: restarted

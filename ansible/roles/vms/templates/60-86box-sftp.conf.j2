@@ -2,7 +2,7 @@
 Match Group 86box-sftp
     ChrootDirectory /opt/86server/sftp
     ForceCommand internal-sftp -u 0002 -d /media
-    AuthorizedKeysFile /etc/ssh/sftp-keys/%u
+    AuthorizedKeysFile /opt/86server/etc/ssh/sftp-keys/%u
     PasswordAuthentication no
     AllowTcpForwarding no
     X11Forwarding no

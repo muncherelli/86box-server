@@ -7,5 +7,10 @@
   "manager_hosts": ([manager_host] if manager_host | default('') else []) + (lan_hosts | default([])) + (tunnel_hosts | default([])),
   "publish_domains": publish_domains,
   "port_forward_limits": port_forward_limits,
-  "public_ipv4": public_ipv4
+  "public_ipv4": public_ipv4,
+  "sites_dir": "/opt/86server/etc/caddy/sites.d",
+  "panel_dir": "/opt/86server/etc/caddy/panel.d",
+  "validate_snippets": "/opt/86server/etc/caddy/validate-snippets.caddy",
+  "certs_dir": "/opt/86server/data/certs",
+  "lego_bin": "/usr/bin/lego"
 } | to_nice_json }}

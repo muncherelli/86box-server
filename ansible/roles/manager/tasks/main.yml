@@ -42,7 +42,7 @@
 - name: Allow the manager to start and stop boxes (polkit)
   ansible.builtin.copy:
     src: 50-86box.rules
-    dest: /etc/polkit-1/rules.d/50-86box.rules
+    dest: /opt/86server/system/etc/polkit-1/rules.d/50-86box.rules
     owner: root
     group: root
     mode: "0644"
@@ -50,7 +50,7 @@
 - name: Install the manager unit
   ansible.builtin.copy:
     src: 86box-manager.service
-    dest: /etc/systemd/system/86box-manager.service
+    dest: /opt/86server/system/etc/systemd/system/86box-manager.service
     owner: root
     group: root
     mode: "0644"
@@ -58,11 +58,30 @@
     - Reload systemd for the manager
     - Restart the manager
 
+- name: Install the certificate renewal timer
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/opt/86server/system/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [86server-certs.service, 86server-certs.timer]
+  notify: Reload systemd for the manager
+
+- name: Link the system files into /etc
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
+
 - name: Make systemd see the unit
   ansible.builtin.meta: flush_handlers
 
 - name: Run the manager
   ansible.builtin.systemd:
     name: 86box-manager
+    enabled: true
+    state: started
+
+- name: Check the control panel certificate daily
+  ansible.builtin.systemd:
+    name: 86server-certs.timer
     enabled: true
     state: started

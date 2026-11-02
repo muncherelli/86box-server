@@ -1,10 +1,10 @@
 # shellcheck shell=bash
 # Ansible Vault handling. Sets VAULT_ARGS for ansible-playbook.
 
-VAULT_FILE="$REPO/ansible/inventories/local/group_vars/all/vault.yml"
+VAULT_FILE="$INSTALL_DIR/inventory/group_vars/all/vault.yml"
 
 vault_password_file() {
-  echo "${B86_VAULT_PASS_FILE:-$HOME/.config/86server/vault-pass}"
+  echo "${B86_VAULT_PASS_FILE:-$INSTALL_DIR/vault-pass}"
 }
 
 # Chooses how Ansible gets the vault password.
@@ -32,7 +32,7 @@ check_vault() {
   [ -f "$VAULT_FILE" ] || die "Missing $VAULT_FILE"
   vault_is_encrypted || die "vault.yml is not encrypted. Run: ./update.sh vault-edit"
   local bad
-  bad=$(grep -rlE '^\s*vault_[a-z0-9_]+:' "$REPO/ansible/inventories/local" \
+  bad=$(grep -rlE '^\s*vault_[a-z0-9_]+:' "$INSTALL_DIR/inventory" \
     --include='*.yml' --exclude=vault.yml || true)
   [ -z "$bad" ] || die "Secrets (vault_*) found outside vault.yml: $bad"
 }

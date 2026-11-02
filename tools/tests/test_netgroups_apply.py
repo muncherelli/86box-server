@@ -79,5 +79,48 @@ class InputTest(unittest.TestCase):
                 na.read_input(p)
 
 
+class SystemFileTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.etc = os.path.join(self.tmp.name, "etc")
+        self.sys = os.path.join(self.tmp.name, "opt", "system", "etc")
+        self.p = mock.patch.multiple(na, ETC=self.etc, SYSTEM_ETC=self.sys)
+        self.p.start()
+        self.chown = mock.patch.object(na.os, "chown")  # the helper runs as root; tests don't
+        self.chown.start()
+
+    def tearDown(self):
+        self.chown.stop()
+        self.p.stop()
+        self.tmp.cleanup()
+
+    def test_real_file_in_opt_and_symlink_in_etc(self):
+        link = os.path.join(self.etc, "sysctl.d", "86box.conf")
+        self.assertTrue(na.write_system_file(link, "x\n", 0o644))
+        real = os.path.join(self.sys, "sysctl.d", "86box.conf")
+        self.assertTrue(os.path.islink(link))
+        self.assertEqual(os.path.realpath(link), os.path.realpath(real))
+        self.assertFalse(os.path.islink(real))
+        self.assertFalse(na.write_system_file(link, "x\n", 0o644))  # nothing changed
+
+    def test_a_plain_file_in_etc_is_replaced_by_the_link(self):
+        link = os.path.join(self.etc, "sysctl.d", "86box.conf")
+        os.makedirs(os.path.dirname(link))
+        with open(link, "w") as f:
+            f.write("old\n")
+        self.assertTrue(na.write_system_file(link, "new\n", 0o644))
+        self.assertTrue(os.path.islink(link))
+        with open(link) as f:
+            self.assertEqual(f.read(), "new\n")
+
+    def test_remove_drops_both(self):
+        link = os.path.join(self.etc, "NetworkManager", "conf.d", "86box.conf")
+        na.write_system_file(link, "x\n", 0o644)
+        self.assertTrue(na.system_file_exists(link))
+        na.remove_system_file(link)
+        self.assertFalse(os.path.lexists(link))
+        self.assertFalse(na.system_file_exists(link))
+
+
 if __name__ == "__main__":
     unittest.main()

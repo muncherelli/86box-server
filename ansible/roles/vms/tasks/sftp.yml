@@ -22,7 +22,7 @@
 
 - name: Create the folder that holds the SFTP keys
   ansible.builtin.file:
-    path: /etc/ssh/sftp-keys
+    path: /opt/86server/etc/ssh/sftp-keys
     state: directory
     owner: root
     group: root
@@ -31,7 +31,7 @@
 - name: Install the SFTP keys (root-owned, so the accounts cannot change them)
   ansible.builtin.copy:
     content: "{{ item.ssh_key }}\n"
-    dest: "/etc/ssh/sftp-keys/{{ item.name }}"
+    dest: "/opt/86server/etc/ssh/sftp-keys/{{ item.name }}"
     owner: root
     group: root
     mode: "0644"
@@ -59,12 +59,15 @@
 - name: Write the SFTP-only SSH settings
   ansible.builtin.template:
     src: 60-86box-sftp.conf.j2
-    dest: /etc/ssh/sshd_config.d/60-86box-sftp.conf
+    dest: /opt/86server/system/etc/ssh/sshd_config.d/60-86box-sftp.conf
     owner: root
     group: root
     mode: "0644"
     validate: sshd -t -f %s
   notify: Reload sshd
+
+- name: Link the system files into /etc
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
 
 - name: Check the full SSH config
   ansible.builtin.command: sshd -t

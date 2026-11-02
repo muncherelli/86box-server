@@ -1,0 +1,34 @@
+---
+# Every file 86server must place under /etc lives in /opt/86server/system/etc/<same path>.
+# This links each one into /etc, so /etc only holds symlinks back to /opt/86server.
+# Include it after a role writes its system files and before anything starts the services.
+- name: Find the system files kept in /opt/86server
+  ansible.builtin.find:
+    paths: /opt/86server/system/etc
+    recurse: true
+    file_type: file
+  register: b86_system_files
+
+- name: Create the /etc folders they go in
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ b86_system_files.files | map(attribute='path') | map('dirname')
+            | map('regex_replace', '^/opt/86server/system/etc', '/etc') | unique | list }}"
+
+- name: Link them into /etc
+  ansible.builtin.file:
+    src: "{{ item }}"
+    dest: "{{ item | regex_replace('^/opt/86server/system/etc', '/etc') }}"
+    state: link
+    force: true
+  loop: "{{ b86_system_files.files | map(attribute='path') | list }}"
+  loop_control:
+    label: "{{ item | regex_replace('^/opt/86server/system/etc', '/etc') }}"
+  register: b86_links
+
+- name: Let systemd see linked units
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: b86_links.results | selectattr('changed') | map(attribute='item') | select('search', '/systemd/') | list | length > 0

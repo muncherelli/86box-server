@@ -15,45 +15,59 @@
       Got: {{ b86_names }}
     quiet: true
 
-- name: Create the folder for per-site files
+- name: Create Caddy's folders in /opt/86server
   ansible.builtin.file:
-    path: /etc/caddy/sites.d
+    path: "{{ item.path }}"
     state: directory
-    owner: "{{ mgr_user }}"
-    group: root
-    mode: "0755"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    # config: the Caddyfile (Ansible), sites.d (published sites) and panel.d (control panel name), both by the manager
+    - { path: /opt/86server/etc/caddy, owner: root, group: caddy, mode: "0750" }
+    - { path: /opt/86server/etc/caddy/sites.d, owner: "{{ mgr_user }}", group: caddy, mode: "0755" }
+    - { path: /opt/86server/etc/caddy/panel.d, owner: "{{ mgr_user }}", group: caddy, mode: "0755" }
+    # Caddy's own data (its local CA and the certificates it manages)
+    - { path: /opt/86server/data/caddy, owner: caddy, group: caddy, mode: "0700" }
+    # certificates the manager gets with lego; setgid so Caddy's group can read them
+    - { path: /opt/86server/data/certs, owner: "{{ mgr_user }}", group: caddy, mode: "2750" }
 
 - name: Install the snippets used to validate site files on their own
   ansible.builtin.copy:
     src: b86-validate-snippets.caddy
-    dest: /etc/caddy/b86-validate-snippets.caddy
+    dest: /opt/86server/etc/caddy/validate-snippets.caddy
     owner: root
     group: root
     mode: "0644"
 
 - name: Create the Caddy unit drop-in folder
   ansible.builtin.file:
-    path: /etc/systemd/system/caddy.service.d
+    path: /opt/86server/system/etc/systemd/system/caddy.service.d
     state: directory
     mode: "0755"
 
-- name: Put Caddy's admin socket in a folder only caddy and root can reach
+- name: Point Caddy at the config and data in /opt/86server
   ansible.builtin.copy:
     src: caddy-b86.conf
-    dest: /etc/systemd/system/caddy.service.d/b86.conf
+    dest: /opt/86server/system/etc/systemd/system/caddy.service.d/b86.conf
     owner: root
     group: root
     mode: "0644"
-  notify: Reload systemd for caddy
+  notify:
+    - Reload systemd for caddy
+    - Restart caddy
 
 - name: Write the Caddyfile
   ansible.builtin.template:
     src: Caddyfile.j2
-    dest: /etc/caddy/Caddyfile
+    dest: /opt/86server/etc/caddy/Caddyfile
     owner: root
     group: caddy
     mode: "0640"
     validate: caddy validate --adapter caddyfile --config %s
+  environment:
+    XDG_DATA_HOME: /opt/86server/cache/caddy-validate
+    XDG_CONFIG_HOME: /opt/86server/cache/caddy-validate
   no_log: true
   notify: Reload caddy
 
@@ -67,6 +81,9 @@
   when:
     - b86_ufw | default(false)
     - edge_mode != 'tunnel' or (lan_hosts | default([]) | length > 0)
+
+- name: Link the system files into /etc
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
 
 - name: Make systemd see the drop-in
   ansible.builtin.meta: flush_handlers
