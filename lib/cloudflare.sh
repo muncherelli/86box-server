@@ -17,9 +17,13 @@ cf_ask_token() {
   local token
   echo "Create a Cloudflare API token with: $CF_PERMISSIONS"
   echo "(dash.cloudflare.com > My Profile > API Tokens > Create Token > Custom token; see docs/cloudflare.md)"
-  read -rsp "Paste the token (hidden): " token
+  read -rsp "Paste the token (hidden): " token || true
   echo
-  [ -n "$token" ] || return 1
+  if [ -z "$token" ]; then
+    [ -t 0 ] || echo "No token saved: this needs a terminal to type into (run it over SSH)." >&2
+    echo "No token given; nothing saved." >&2
+    return 1
+  fi
   printf '%s\n' "$token" | cf token
 }
 
