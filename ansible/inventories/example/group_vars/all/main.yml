@@ -13,7 +13,7 @@ manager_host: ''                  # main name of this host, served per edge_mode
 lan_hosts: []                     # LAN names (e.g. [box.lan]): plain http with no redirect AND https with Caddy's
                                   # local CA (self-signed). Point them, or a CNAME, at this host in your LAN DNS.
 tunnel_hosts: []                  # names served through a Cloudflare Tunnel (e.g. [box.example.com]): Caddy answers
-                                  # http://<name> for cloudflared. The tunnel runs when vault_cf_tunnel_token is set.
+                                  # http://<name> for cloudflared. The tunnel runs when secret_cf_tunnel_token is set.
 acme_email: admin@example.com     # used in acme mode
 public_ipv4: ''                   # this host's public IPv4 (DNS records in acme/cf-origin mode)
 publish_domains: []               # domains the manager may publish sites under
@@ -26,5 +26,5 @@ group_routes: []                  # example: [[lab, web]]
 nat_dns: ['1.1.1.1']              # DNS handed to guests in nat groups
 port_forward_limits: []           # see the port-forward row on the sheet
 
-# Pinned versions live in the sibling file pins.yml; secrets in vault.yml.
+# Pinned versions live in the sibling file pins.yml; secrets in /opt/86server/secrets.yml (./update.sh secrets-edit).
 # When a later row needs a new variable, add it here.

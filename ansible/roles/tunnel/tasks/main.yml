@@ -1,26 +1,26 @@
 ---
 # Cloudflare Tunnel. cloudflared (installed by the base role) runs as 86server-cloudflared when a token exists:
 # - set up from the web manager's Cloudflare page (it writes /opt/86server/data/manager/cloudflared.env), or
-# - from the vault (vault_cf_tunnel_token -> /opt/86server/etc/cloudflared.env) for a tunnel made by hand.
+# - from the secrets file (secret_cf_tunnel_token -> /opt/86server/etc/cloudflared.env) for a tunnel made by hand.
 - name: Load settings for this Linux distribution
   ansible.builtin.include_vars: "{{ ansible_facts['os_family'] }}.yml"
 
-- name: Write the tunnel token from the vault
+- name: Write the tunnel token from the secrets file
   ansible.builtin.copy:
-    content: "TUNNEL_TOKEN={{ vault_cf_tunnel_token }}\n"
+    content: "TUNNEL_TOKEN={{ secret_cf_tunnel_token }}\n"
     dest: /opt/86server/etc/cloudflared.env
     owner: root
     group: root
     mode: "0600"
   no_log: true
-  when: vault_cf_tunnel_token | default('') | length > 0
+  when: secret_cf_tunnel_token | default('') | length > 0
   notify: Restart cloudflared
 
-- name: Remove the vault tunnel token when the vault has none
+- name: Remove that tunnel token when the secrets file has none
   ansible.builtin.file:
     path: /opt/86server/etc/cloudflared.env
     state: absent
-  when: vault_cf_tunnel_token | default('') | length == 0
+  when: secret_cf_tunnel_token | default('') | length == 0
   notify: Restart cloudflared
 
 - name: Install the tunnel unit

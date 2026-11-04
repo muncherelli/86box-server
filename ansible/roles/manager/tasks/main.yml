@@ -31,7 +31,7 @@
 
 - name: Seed the first admin (the manager deletes the seed after reading it)
   ansible.builtin.copy:
-    content: "{{ {'admin_user': 'admin', 'admin_password': vault_admin_password} | to_json }}"
+    content: "{{ {'admin_user': 'admin', 'admin_password': secret_admin_password} | to_json }}"
     dest: "{{ vm_data_root }}/manager/seed.json"
     owner: "{{ b86_user }}"
     group: "{{ b86_user }}"

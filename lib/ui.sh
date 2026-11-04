@@ -142,6 +142,7 @@ draw() {
 }
 
 cleanup_ui() {
+  remove_secrets_copy
   [ -z "$PROG" ] || rm -f "$PROG"
   if [ "$USE_TTY" -eq 1 ]; then tput cnorm 2>/dev/null || true; fi
 }
@@ -178,7 +179,7 @@ finish_ui() {
 # True when Ansible would have to ask for a password.
 needs_prompt() {
   local a
-  for a in "${BECOME_ARGS[@]}" "${VAULT_ARGS[@]}"; do
+  for a in "${BECOME_ARGS[@]}"; do
     case $a in --ask-*) return 0 ;; esac
   done
   return 1
@@ -188,7 +189,7 @@ needs_prompt() {
 run_verbose() {
   local rc=0
   set +e
-  (cd "$REPO/ansible" && ansible-playbook site.yml "${BECOME_ARGS[@]}" "${VAULT_ARGS[@]}" "$@") 2>&1 | tee -a "$LOG"
+  (cd "$REPO/ansible" && ansible-playbook site.yml "${BECOME_ARGS[@]}" "${SECRETS_ARGS[@]}" "$@") 2>&1 | tee -a "$LOG"
   rc=${PIPESTATUS[0]}
   set -e
   echo
@@ -208,7 +209,7 @@ run_playbook() {
   trap cleanup_ui EXIT
   trap on_interrupt INT
   export B86_PROGRESS_FILE="$PROG"
-  (cd "$REPO/ansible" && exec ansible-playbook site.yml "${BECOME_ARGS[@]}" "${VAULT_ARGS[@]}" "$@" >>"$LOG" 2>&1) &
+  (cd "$REPO/ansible" && exec ansible-playbook site.yml "${BECOME_ARGS[@]}" "${SECRETS_ARGS[@]}" "$@" >>"$LOG" 2>&1) &
   PID=$!
   echo "86server $G_PEND host $(uname -n)"
   echo

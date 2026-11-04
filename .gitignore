@@ -3,6 +3,5 @@ ansible/collections/
 *.retry
 /*.iso
 /*.img
-.vault-pass*
 __pycache__/
 .claude/settings.local.json

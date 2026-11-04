@@ -4,7 +4,7 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REPO
 export ANSIBLE_CONFIG="$REPO/ansible/ansible.cfg"
-# This host's settings (inventory, vault and vault password), install logs and Ansible collections.
+# This host's settings (inventory), install logs and Ansible collections.
 # Kept outside the repo, so a fresh clone (or a different checkout) installs with the same settings.
 INVENTORY_DIR=/opt/86server/inventory
 LOG_DIR=/opt/86server/log
@@ -21,8 +21,8 @@ source "$REPO/lib/ui.sh"
 source "$REPO/lib/preflight.sh"
 # shellcheck source=lib/log.sh
 source "$REPO/lib/log.sh"
-# shellcheck source=lib/vault.sh
-source "$REPO/lib/vault.sh"
+# shellcheck source=lib/secrets.sh
+source "$REPO/lib/secrets.sh"
 # shellcheck source=lib/status.sh
 source "$REPO/lib/status.sh"
 # shellcheck source=lib/dev.sh
@@ -56,13 +56,14 @@ esac
 
 preflight_basic
 ensure_install_dirs
+ensure_secrets
 ensure_local_inventory
 ensure_ansible
 ensure_nano
 export EDITOR=nano
 ensure_collections
-if [ "${ARGS[0]:-}" = vault-edit ]; then
-  vault_edit
+if [ "${ARGS[0]:-}" = secrets-edit ]; then
+  secrets_edit
   exit 0
 fi
 if [ "${ARGS[0]:-}" = admin-password ]; then
@@ -70,8 +71,8 @@ if [ "${ARGS[0]:-}" = admin-password ]; then
   exit 0
 fi
 
+check_secrets
+copy_secrets       # asks for the sudo password if needed, so Ansible can usually skip asking
 set_become_args
-setup_vault_password
-check_vault
 setup_log
 run_playbook "${ARGS[@]}"

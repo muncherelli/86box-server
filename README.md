@@ -16,14 +16,16 @@ Supported: Arch Linux (more distros later, see [docs/adding-a-distro.md](docs/ad
 ```sh
 git clone https://github.com/muncherelli/86server
 cd 86server
-./update.sh            # first run: creates /opt/86server/inventory and stops
+./update.sh            # first run: creates /opt/86server/inventory and /opt/86server/secrets.yml, then stops
 $EDITOR /opt/86server/inventory/group_vars/all/main.yml   # set at least one name, e.g. lan_hosts: [box.lan]
-./update.sh vault-edit # set the admin password and any other secrets
+./update.sh secrets-edit     # optional: other secrets (a random admin password is already set)
 ./update.sh            # installs everything
 ./update.sh admin-password   # shows the web manager's admin login
 ```
 
-`./update.sh` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings and secrets live in `/opt/86server/inventory`, outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
+`./update.sh` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings live in `/opt/86server/inventory` and its secrets in `/opt/86server/secrets.yml`, both outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
+
+Secrets are not encrypted and need no extra password: the file belongs to root with mode 600, so reading or editing it takes sudo. For each run `./update.sh` copies it with sudo into a private, memory-only folder (`$XDG_RUNTIME_DIR`) for Ansible and deletes the copy when the run ends.
 
 To reach the manager from outside, or to give it a real certificate, use the Cloudflare page in the web manager: see [docs/cloudflare.md](docs/cloudflare.md).
 
@@ -34,9 +36,9 @@ To reach the manager from outside, or to give it a real certificate, use the Clo
 | `./update.sh` | Install or update the host (`--verbose` for full Ansible output) |
 | `./update.sh status` | Services, boxes and bridges, without an Ansible run |
 | `./update.sh box list` | Boxes from the terminal; also `box start\|stop\|restart <name>` |
-| `./update.sh vault-edit` | Edit the encrypted secrets file |
+| `./update.sh secrets-edit` | Edit the secrets file (`sudoedit`; root only) |
 | `./update.sh admin-password` | Show the web manager's admin login (warns if it was changed in the web manager) |
-| `./update.sh admin-password reset` | Set a new random admin password, save it in the vault and sign out old admin logins |
+| `./update.sh admin-password reset` | Set a new random admin password, save it in the secrets file and sign out old admin logins |
 | `./update.sh dev` | Copy `manager/` to the host on every change and restart the manager |
 
 ## The 86server account
@@ -65,7 +67,8 @@ write the media library.
 | `/opt/86server/etc` | Generated settings: `manager.json`, network groups, `cloudflared.env`, `ssh/sftp-keys/` |
 | `/opt/86server/etc/caddy` | `Caddyfile`, `sites.d/` (published sites) and `panel.d/` (the control panel name) |
 | `/opt/86server/system/etc` | The real files for systemd units, the Caddy drop-in, polkit, tmpfiles, sshd, sysctl and NetworkManager (see below) |
-| `/opt/86server/inventory` | This host's settings: `hosts.yml`, `group_vars/all/` (`main.yml`, `pins.yml`, encrypted `vault.yml`) and `vault-pass`. Owned by the person who runs `./update.sh`, mode 700 |
+| `/opt/86server/inventory` | This host's settings: `hosts.yml`, `group_vars/all/` (`main.yml`, `pins.yml`). Owned by the person who runs `./update.sh`, mode 700. No secrets |
+| `/opt/86server/secrets.yml` | This host's secrets (admin password, Cloudflare tokens). Plain YAML, `root:root` mode 600: reading or editing it takes sudo |
 | `/opt/86server/log` | `./update.sh` run logs (newest 30) |
 | `/opt/86server/cache/ansible-collections` | Ansible collections the installer downloads |
 | `/opt/86server/cache` | Downloads and caches |

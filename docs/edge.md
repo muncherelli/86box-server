@@ -43,7 +43,7 @@ The easier way is the Cloudflare page in the web manager. You paste an API token
 
 1. In the Cloudflare dashboard, go to Zero Trust > Networks > Tunnels and create a tunnel of type Cloudflared. This makes a remotely-managed tunnel. Copy its token: it is the long string after `--token` in the install command shown there.
 2. In the tunnel, add a public hostname such as `box.example.com`, with service type `HTTP` and URL `localhost:80`.
-3. Run `./update.sh vault-edit` and set `vault_cf_tunnel_token: <token>`. You can also set `vault_cf_tunnel_id` to the tunnel's id; later automation uses it.
+3. Run `./update.sh secrets-edit` and set `secret_cf_tunnel_token: <token>`. You can also set `secret_cf_tunnel_id` to the tunnel's id; later automation uses it.
 4. Add the same name to the inventory:
 
    ```yaml
@@ -52,7 +52,7 @@ The easier way is the Cloudflare page in the web manager. You paste an API token
 
 5. Run `./update.sh`. It installs `cloudflared` and starts `86server-cloudflared.service`, which reads the token from `/opt/86server/etc/cloudflared.env` (root, mode 0600).
 
-Caddy treats requests from `cloudflared` (127.0.0.1) as proxied and takes the visitor's address from `Cf-Connecting-Ip`. Login rate limits therefore count each visitor separately. To turn the manual tunnel off, empty `vault_cf_tunnel_token` and run `./update.sh`. The token file `/opt/86server/etc/cloudflared.env` is removed, and `86server-cloudflared` stays off unless the Cloudflare page has set up a tunnel of its own.
+Caddy treats requests from `cloudflared` (127.0.0.1) as proxied and takes the visitor's address from `Cf-Connecting-Ip`. Login rate limits therefore count each visitor separately. To turn the manual tunnel off, empty `secret_cf_tunnel_token` and run `./update.sh`. The token file `/opt/86server/etc/cloudflared.env` is removed, and `86server-cloudflared` stays off unless the Cloudflare page has set up a tunnel of its own.
 
 Check it:
 

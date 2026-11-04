@@ -11,7 +11,7 @@ ensure_ansible() {
   sudo pacman -S --needed --noconfirm ansible-core python
 }
 
-# nano is the editor used by ./update.sh vault-edit.
+# nano is the editor used by ./update.sh secrets-edit.
 ensure_nano() {
   command -v nano >/dev/null 2>&1 && return 0
   echo "Installing nano ..."
@@ -33,7 +33,7 @@ set_become_args() {
   fi
 }
 
-# The inventory (settings and secrets, mode 700), the install logs and the Ansible collections belong to
+# The inventory (settings, mode 700), the install logs and the Ansible collections belong to
 # the person who runs ./update.sh, so it can write them without sudo.
 ensure_install_dirs() {
   local d
@@ -50,8 +50,7 @@ ensure_local_inventory() {
   local dst="$INVENTORY_DIR"
   [ -f "$dst/hosts.yml" ] && return 0
   cp -r "$src/." "$dst/"
-  mv "$dst/group_vars/all/vault.yml.example" "$dst/group_vars/all/vault.yml"
   echo "Created $dst."
-  echo "Edit it, encrypt vault.yml (./update.sh vault-edit), then run ./update.sh again."
+  echo "Edit it (and secrets with ./update.sh secrets-edit), then run ./update.sh again."
   exit 0
 }
