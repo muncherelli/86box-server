@@ -332,6 +332,7 @@ class SyncTest(Base):
         self.assertNotIn(HOST, config.manager_hosts())
 
     def test_lego_failure_stops_and_hides_token(self):
+        FakeCF().patch(self)
         write_fake_lego(self.lego, self.cert, fail=True)
         self.assertFalse(self.sync(self.state()))
         state, msg = self.step("certificates")
@@ -340,6 +341,17 @@ class SyncTest(Base):
         self.assertNotIn(TOKEN, " ".join(self.lines))
         self.assertFalse(os.path.exists(os.path.join(self.panel_dir, "panel.caddy")))
         self.run.assert_not_called()
+
+    def test_token_without_dns_permission_stops_before_lego(self):
+        cf = FakeCF().patch(self)
+        with mock.patch.object(cloudflare, "find_records",
+                               side_effect=cloudflare.CFError("GET /zones/z1/dns_records: Authentication error")):
+            self.assertFalse(self.sync(self.state()))
+        state, msg = self.step("certificates")
+        self.assertEqual(state, "error")
+        self.assertIn("Zone > DNS > Edit", msg)
+        self.assertEqual(self.lego_calls(), [])
+        self.assertIsNone(cf.tunnel)
 
     def test_caddy_rejects_changes_nothing(self):
         self.validate.return_value = (False, "bad tls line")

@@ -297,6 +297,16 @@ def cert_due(state, zone, now=None):
     return left is None or left <= RENEW_DAYS
 
 
+def check_dns_access(token, zone, zone_id):
+    """Fail early, with a plain message, when the token cannot use DNS in the zone (lego would fail with a long log).
+    Reading records needs the DNS permission; Edit includes Read."""
+    try:
+        cloudflare.find_records(token, zone_id, zone)
+    except cloudflare.CFError as e:
+        raise ValueError("The API token cannot use DNS records in %s (Cloudflare said: %s). Give it Zone > DNS > Edit "
+                         "with %s under Zone Resources, then run again." % (zone, e, zone)) from None
+
+
 def obtain_cert(state, zone, token):
     """Run lego for *.zone and zone, copy the files where Caddy reads them, record expiry. Return a message."""
     os.makedirs(_mgr("lego"), mode=0o700, exist_ok=True)
@@ -371,6 +381,7 @@ def _sync(state, token, replace_dns, report):
             if cert_due(state, zone):
                 if not token:
                     raise ValueError("certificate for %s is due but no Cloudflare API token is saved" % zone)
+                check_dns_access(token, zone, state["zones"][zone]["id"])
                 done.append(obtain_cert(state, zone, token))
             else:
                 done.append("*.%s valid until %s" % (zone, state["zones"][zone]["cert"]["expires"][:10]))

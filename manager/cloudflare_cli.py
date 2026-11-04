@@ -45,6 +45,11 @@ def cmd_token():
         return 1
     secrets_store.put(edge.TOKEN, value, "cli")
     print("Token saved. It can see: %s" % ", ".join(z["name"] for z in zones))
+    for z in zones:
+        try:
+            edge.check_dns_access(value, z["name"], z["id"])
+        except ValueError as e:
+            print("warning: %s" % e, file=sys.stderr)
     return 0
 
 
@@ -67,9 +72,7 @@ def cmd_setup(args):
     except (cloudflare.CFError, ValueError) as e:
         print(str(e), file=sys.stderr)
         return 1
-    ok = edge.sync(state, token, args.replace_dns)
-    _print_status()
-    return 0 if ok else 1
+    return 0 if edge.sync(state, token, args.replace_dns) else 1
 
 
 def cmd_sync():
