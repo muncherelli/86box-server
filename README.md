@@ -74,7 +74,7 @@ write the media library.
 | `/opt/86server/manager` | Web manager code |
 | `/opt/86server/libexec` | Helper scripts used by the services |
 | `/opt/86server/data/boxes` | One folder per box: its `86box.cfg`, disk images (`disks/`), snapshots |
-| `/opt/86server/media` | Media library, one folder per 86Box drive type: `iso/`, `floppy/`, `disk/`, `zip/`, `mo/`, `tape/`, `cassette/`, `cartridge/` (the Media page lists the file types for each) |
+| `/opt/86server/media` | Media library, one folder per 86Box drive type: `iso/`, `floppy/`, `disk/`, `zip/`, `mo/`, `tape/`, `cassette/`, `cartridge/` (the Media page shows the file types on each tab) |
 | `/opt/86server/data/manager` | Manager state: users, sessions, secrets (`secrets.json`: the Cloudflare token), the Cloudflare setup (`edge.json`), audit log |
 | `/opt/86server/data/caddy` | Caddy's data: its local CA and the certificates it manages |
 | `/opt/86server/data/certs` | Let's Encrypt wildcard certificates, one per Cloudflare zone (`<zone>.crt`, `.key`) |

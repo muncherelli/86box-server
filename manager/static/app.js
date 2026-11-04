@@ -18,6 +18,19 @@
     } catch (e) {}
   });
 })();
+// Mark the menu link for the current section.
+(function () {
+  var path = location.pathname.replace(/\/+$/, "");
+  var best = null;
+  document.querySelectorAll(".main-nav a").forEach(function (a) {
+    var href = a.getAttribute("href").replace(/\/+$/, "");
+    var hit = href === "/manage" ? (path === "/manage" || path.indexOf("/manage/boxes") === 0)
+                                 : (path === href || path.indexOf(href + "/") === 0);
+    if (hit && (!best || href.length > best.getAttribute("href").length)) best = a;
+  });
+  if (best) best.setAttribute("aria-current", "page");
+})();
+
 function csrfToken() {
   var m = document.querySelector('meta[name="csrf"]');
   return m ? m.content : "";
@@ -36,7 +49,9 @@ function csrfToken() {
       d.vms.forEach(function (v) {
         var row = table.querySelector('tr[data-vm="' + v.name + '"]');
         if (!row) return;
-        row.querySelector("[data-state]").textContent = v.state;
+        var st = row.querySelector("[data-state]");
+        st.textContent = v.state;
+        st.dataset.state = v.state;
         row.querySelector("[data-nic]").textContent = v.nic;
         row.querySelector("[data-guard]").textContent = v.guard;
       });

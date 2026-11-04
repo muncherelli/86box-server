@@ -112,6 +112,83 @@ class MediaTest(unittest.TestCase):
         self.assertEqual(r[0], 303)
         self.assertEqual(media.list_media("iso"), [])
 
+    def page(self, **query):
+        r = req(method="GET")
+        r.query = {k: [str(v)] for k, v in query.items()}
+        with mock.patch("config.tunnel_on", return_value=False):
+            return media.media_page(r, None)[2].decode()
+
+    def files(self, kind, names):
+        for i, n in enumerate(names):
+            p = os.path.join(self.root, "media", kind, n)
+            open(p, "w").write("x" * (i + 1))
+            os.utime(p, (1000 + i, 1000 + i))
+
+    def test_page_tabs_tags_and_folder(self):
+        self.files("iso", ["a.iso", "b.iso"])
+        self.files("floppy", ["f.img"])
+        out = self.page()
+        self.assertIn('aria-current="page">CD/DVD <span class="count">2</span>', out)
+        self.assertIn('>Floppy <span class="count">1</span>', out)
+        self.assertIn('<span class="tag">.iso</span>', out)
+        self.assertNotIn('<span class="tag">.vfd</span>', out)       # only the open tab's types
+        self.assertNotIn("<th>File types</th>", out)
+        self.assertIn("<code>%s</code>" % os.path.join(self.root, "media/iso"), out)
+        self.assertIn('<th class="col-used">Used by</th>', out)
+        out = self.page(kind="floppy")
+        self.assertIn('<span class="tag">.vfd</span>', out)
+        self.assertIn("f.img", out)
+        self.assertNotIn("a.iso", out)
+        self.assertNotIn('<th class="col-used">Used by</th>', out)
+        self.assertIn('<option value="floppy" selected>', out)       # upload goes to the open tab's kind
+        self.assertIn("CD/DVD images", self.page(kind="../etc"))       # unknown kind falls back
+
+    def test_page_search_sort_and_paging(self):
+        names = ["disk%03d.iso" % i for i in range(120)]
+        self.files("iso", names)
+        out = self.page()
+        self.assertIn("1–50 of 120", out)
+        self.assertIn("disk000.iso", out)
+        self.assertNotIn("disk050.iso", out)
+        out = self.page(page=3)
+        self.assertIn("101–120 of 120", out)
+        self.assertIn("disk119.iso", out)
+        self.assertIn("Page 3 of 3", self.page(page=99))                # clamped
+        self.assertIn("1–100 of 120", self.page(per=100))
+        self.assertIn("1–50 of 120", self.page(per=7))                  # only the offered sizes
+        out = self.page(sort="size")                                    # largest first
+        self.assertLess(out.index("disk119.iso"), out.index("disk118.iso"))
+        out = self.page(sort="modified", dir="asc")
+        self.assertLess(out.index("disk000.iso"), out.index("disk001.iso"))
+        out = self.page(q="DISK11")
+        self.assertIn("1–10 of 10", out)
+        self.assertNotIn("disk010.iso", out)
+        self.assertIn("No files match <b>nope</b>.", self.page(q="nope"))
+        self.assertIn("&lt;x&gt;", self.page(q="<x>"))                  # escaped
+
+    def post(self, kind, body):
+        r = req(body, method="POST")
+        r.body = lambda: body
+        return media.delete_many(r, SimpleNamespace(group=lambda i: (None, kind)[i]))
+
+    def test_delete_many(self):
+        self.files("iso", ["a.iso", "b.iso", "c.iso"])
+        self._vm("../../media/iso/c.iso")
+        listed = lambda: [e["name"] for e in media.list_media("iso")]
+        self.assertEqual(self.post("iso", b"name=a.iso&name=b.iso&confirm=1")[0], 400)   # count must match
+        self.assertEqual(listed(), ["a.iso", "b.iso", "c.iso"])
+        self.assertEqual(self.post("iso", b"confirm=0")[0], 400)
+        r = self.post("iso", b"name=a.iso&name=c.iso&confirm=2&back=%2Fmanage%2Fmedia%3Fpage%3D2")
+        self.assertEqual(r[0], 409)                                     # c.iso is in use
+        self.assertIn("Deleted 1 of 2", r[2].decode())
+        self.assertIn("c.iso is in use by: vm1", r[2].decode())
+        self.assertEqual(listed(), ["b.iso", "c.iso"])
+        r = self.post("iso", b"name=b.iso&confirm=1&back=%2Fmanage%2Fmedia%3Fpage%3D2")
+        self.assertEqual((r[0], r[1]["Location"]), (303, "/manage/media?page=2"))
+        r = self.post("iso", b"name=c.iso&name=..%2Fx.iso&confirm=2&back=https%3A%2F%2Fevil")
+        self.assertIn('href="/manage/media"', r[2].decode())            # back only to the media page
+        self.assertEqual(self.post("nope", b"name=a.iso&confirm=1")[0], 400)
+
     def test_attach_iso_floppy_disk(self):
         self.put("iso", "a.iso")
         self.put("floppy", "f.img", b"floppy")
@@ -144,14 +221,11 @@ class MediaTest(unittest.TestCase):
 
 
 class LocationsTest(unittest.TestCase):
-    def test_page_shows_each_folder(self):
+    def test_page_shows_the_library_folder(self):
         with mock.patch.dict(media.config.CFG, {"media_root": "/srv/x/media", "share_group": "grp"}):
             html = media.locations_html()
-        for kind in ("iso", "floppy", "disk", "zip", "mo", "tape", "cassette", "cartridge"):
-            self.assertIn("/srv/x/media/%s" % kind, html)
         self.assertIn("/srv/x/media<", html)
         self.assertIn("grp", html)
-        self.assertIn(".iso", html)
 
     def test_extensions_follow_86box(self):
         ok = [("iso", "a.ISO"), ("iso", "a.cue"), ("floppy", "a.vfd"), ("floppy", "a.86f"), ("floppy", "a.ima"),

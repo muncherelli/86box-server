@@ -32,9 +32,9 @@ def _list_page(req, msg=""):
         links = '<a href="%s" target="_blank" rel="noopener">Console</a> <a href="/manage/boxes/%s/settings">Settings</a>' % (respond.esc(console_url(n)), q)
         if admin:
             links += ' <a href="/manage/boxes/%s">Edit</a>' % q
-        rows.append('<tr data-vm="%s"><td>%s</td><td data-state>%s</td><td data-nic>%s</td><td data-display>%s</td>'
+        rows.append('<tr data-vm="%s"><td>%s</td><td data-state="%s">%s</td><td data-nic>%s</td><td data-display>%s</td>'
                     '<td data-cpu></td><td data-ram></td><td data-disk></td><td data-guard class="error">%s</td><td>%s %s</td></tr>'
-                    % (q, q, respond.esc(s["state"]), respond.esc(s["nic"]), respond.esc(display),
+                    % (q, q, respond.esc(s["state"]), respond.esc(s["state"]), respond.esc(s["nic"]), respond.esc(display),
                        respond.esc(s["guard"]), buttons, links))
     body = '<p class="error">%s</p>' % respond.esc(msg) if msg else ""
     body += ('<table id="vm-table"><tr><th>Box</th><th>State</th><th>NIC</th><th>Display</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Problems</th><th></th></tr>%s</table>'

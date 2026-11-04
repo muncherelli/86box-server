@@ -102,18 +102,22 @@ def used_by():
     return {k: sorted(v) for k, v in used.items()}
 
 
-def list_media(kind):
+def list_media(kind, users=True):
+    """Files of one kind, sorted by name. users=False skips reading every box's cfg (for counts)."""
     out = []
-    users = used_by() if kind == "iso" else {}
+    users = used_by() if kind == "iso" and users else {}
     try:
-        names = sorted(os.listdir(_dir(kind)))
+        names = sorted(os.listdir(_dir(kind)), key=str.lower)
     except OSError:
         return out
     for name in names:
         if name.startswith(".") or valid_name(kind, name):
             continue
         path = os.path.join(_dir(kind), name)
-        st = os.lstat(path)
+        try:
+            st = os.lstat(path)
+        except OSError:   # deleted while we were listing
+            continue
         if not stat.S_ISREG(st.st_mode):
             continue
         out.append({"name": name, "size": st.st_size, "modified": int(st.st_mtime),
@@ -192,23 +196,59 @@ def upload(req, m):
 
 # ---- delete -------------------------------------------------------------
 
+def _back(value):
+    """Where a delete form returns to: the media page it came from (keeps tab, search and page), nothing else."""
+    return value if value and (value == "/manage/media" or value.startswith("/manage/media?")) else "/manage/media"
+
+
+def _delete_one(req, kind, name, users):
+    """Delete one library file. Returns (error, status) or None."""
+    err = valid_name(kind, name)
+    if err:
+        return err, 400
+    path = os.path.join(_dir(kind), name)
+    if not os.path.lexists(path):
+        return "%s: no such file" % name, 404
+    in_use = users.get(os.path.normpath(path), [])
+    if in_use:
+        return "%s is in use by: %s" % (name, ", ".join(in_use)), 409
+    os.unlink(path)
+    _audit(req, "media.delete", "%s/%s" % (kind, name))
+    return None
+
+
 def delete(req, m):
     kind, name = m.group(1), urllib.parse.unquote(m.group(2))
-    back = "/manage/media"
+    form = req.form()
+    back = _back(form.get("back"))
     err = valid_name(kind, name)
     if err:
         return _done(req, False, err, back)
-    if req.form().get("confirm") != name:
+    if form.get("confirm") != name:
         return _done(req, False, "Type the file name to confirm the delete.", back)
-    path = os.path.join(_dir(kind), name)
-    if not os.path.lexists(path):
-        return _done(req, False, "no such file", back, 404)
-    if kind == "iso":
-        users = used_by().get(os.path.normpath(path), [])
-        if users:
-            return _done(req, False, "In use by: " + ", ".join(users), back, 409)
-    os.unlink(path)
-    _audit(req, "media.delete", "%s/%s" % (kind, name))
+    failed = _delete_one(req, kind, name, used_by() if kind == "iso" else {})
+    if failed:
+        return _done(req, False, failed[0], back, failed[1])
+    return _done(req, True, "", back)
+
+
+def delete_many(req, m):
+    """Delete several files of one kind. confirm must be the number of files, so a stray post deletes nothing."""
+    kind = m.group(1)
+    data = urllib.parse.parse_qs(req.body().decode("utf-8", "replace"), keep_blank_values=True)
+    back = _back((data.get("back") or [""])[0])
+    names = list(dict.fromkeys(n for n in data.get("name", []) if n))
+    if kind not in KINDS:
+        return _done(req, False, "unknown kind", back)
+    if not names:
+        return _done(req, False, "Select at least one file.", back)
+    if (data.get("confirm") or [""])[0] != str(len(names)):
+        return _done(req, False, "Confirm the delete first.", back)
+    users = used_by() if kind == "iso" else {}
+    errors = [e[0] for e in (_delete_one(req, kind, n, users) for n in names) if e]
+    if errors:
+        done = len(names) - len(errors)
+        return _done(req, False, "Deleted %d of %d. Not deleted: %s" % (done, len(names), "; ".join(errors)), back, 409)
     return _done(req, True, "", back)
 
 
@@ -302,41 +342,148 @@ def _csrf(req):
 
 
 def locations_html():
-    """Where each kind of media sits on the server, so files can also be copied in over SFTP or the shell."""
-    rows = "".join(
-        "<tr><td>%s</td><td><code>%s</code></td><td><code>%s</code></td></tr>"
-        % (KINDS[k][0], respond.esc(_dir(k)), respond.esc(" ".join("." + e for e in KINDS[k][1])))
-        for k in KINDS)
-    return ("<h2>Where the files are</h2>"
-            "<p>The media library is <code>%s</code> on this server. Upload here, or copy files straight into "
-            "these folders (SFTP or the shell); they show up on the next page load. Files need to be readable "
-            "by the <code>%s</code> group.</p>"
-            "<table><tr><th>Kind</th><th>Folder</th><th>File types</th></tr>%s</table>"
-            % (respond.esc(config.media_dir()), respond.esc(_group()), rows))
+    """Where the library lives on the server, so files can also be copied in over SFTP or the shell."""
+    return ('<p class="hint">The library is <code>%s</code> on this server, one folder per kind. Upload here, or copy '
+            'files straight into those folders (SFTP or the shell); they show up on the next page load. Files need to '
+            'be readable by the <code>%s</code> group.</p>'
+            % (respond.esc(config.media_dir()), respond.esc(_group())))
+
+
+PER_PAGE = (50, 100, 250)
+TAB_LABELS = {"iso": "CD/DVD", "floppy": "Floppy", "disk": "Hard disk", "zip": "ZIP", "mo": "MO",
+              "tape": "Tape", "cassette": "Cassette", "cartridge": "Cartridge"}
+SORTS = {"name": ("Name", lambda e: e["name"].lower(), False), "size": ("Size", lambda e: e["size"], True),
+         "modified": ("Modified", lambda e: e["modified"], True)}
+
+
+def _ext_tags(kind):
+    return '<span class="tags">%s</span>' % "".join('<span class="tag">.%s</span>' % respond.esc(e)
+                                                     for e in KINDS[kind][1])
+
+
+def _media_url(**params):
+    clean = {k: v for k, v in params.items() if v not in (None, "", 1, "1")}
+    return "/manage/media" + ("?" + urllib.parse.urlencode(clean) if clean else "")
 
 
 def media_page(req, m):
-    parts = [locations_html()]
-    if config.tunnel_on():
-        parts.append("<p>Through the Cloudflare tunnel, uploads over 100 MB fail: use the LAN name or SFTP.</p>")
-    parts.append('<h2>Upload</h2><form id="upload"><select name="kind">%s</select> '
-                 '<input type="file" name="file"> <input type="submit" value="Upload"> '
-                 '<progress id="bar" value="0" max="100" hidden></progress> <span id="msg"></span></form>'
-                 % "".join('<option value="%s">%s</option>' % (k, KINDS[k][0]) for k in KINDS))
-    for kind in KINDS:
-        rows = []
-        for e in list_media(kind):
-            use = ", ".join(e["used_by"])
-            rows.append(
-                "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>"
-                '<form method="post" action="/manage/api/media/%s/%s/delete">%s'
-                '<input name="confirm" placeholder="type the name"> <input type="submit" value="Delete"></form></td></tr>'
-                % (respond.esc(e["name"]), _size(e["size"]), time.strftime("%Y-%m-%d %H:%M", time.gmtime(e["modified"])),
-                   respond.esc(use), kind, urllib.parse.quote(e["name"]), _csrf(req)))
-        parts.append("<h2>%s</h2><p class=\"path\"><code>%s</code></p>"
-                     "<table><tr><th>Name</th><th>Size</th><th>Modified</th><th>Used by</th><th></th></tr>%s</table>"
-                     % (KINDS[kind][0], respond.esc(_dir(kind)),
-                        "".join(rows) or "<tr><td colspan=5>Nothing here yet.</td></tr>"))
+    one = lambda k, d="": (req.query.get(k) or [d])[0]
+    kind = one("kind", "iso")
+    kind = kind if kind in KINDS else "iso"
+    q = one("q").strip()
+    sort = one("sort", "name")
+    sort = sort if sort in SORTS else "name"
+    desc = one("dir") == "desc" if one("dir") in ("asc", "desc") else SORTS[sort][2]
+    try:
+        per = int(one("per", "50"))
+    except ValueError:
+        per = 50
+    per = per if per in PER_PAGE else 50
+    try:
+        page = max(1, int(one("page", "1")))
+    except ValueError:
+        page = 1
+
+    entries = list_media(kind)
+    counts = {k: (len(entries) if k == kind else len(list_media(k, users=False))) for k in KINDS}
+    if q:
+        entries = [e for e in entries if q.lower() in e["name"].lower()]
+    entries.sort(key=SORTS[sort][1], reverse=desc)
+    total = len(entries)
+    pages = max(1, -(-total // per))
+    page = min(page, pages)
+    shown = entries[(page - 1) * per: page * per]
+    state = {"kind": kind, "q": q, "sort": None if sort == "name" else sort,
+             "dir": None if desc == SORTS[sort][2] else ("desc" if desc else "asc"),
+             "per": None if per == 50 else per}
+    here = _media_url(page=page, **state)
+    iso = kind == "iso"
+
+    tabs = "".join('<a href="%s"%s>%s <span class="count">%d</span></a>'
+                   % (respond.esc(_media_url(kind=k)), ' aria-current="page"' if k == kind else "",
+                      respond.esc(TAB_LABELS.get(k, KINDS[k][0])), counts[k]) for k in KINDS)
+
+    def head(key):
+        label, _, default_desc = SORTS[key]
+        if key == sort:
+            nxt, arrow = ("asc" if desc else "desc"), (" ↓" if desc else " ↑")
+        else:
+            nxt, arrow = ("desc" if default_desc else "asc"), ""
+        st = dict(state, sort=None if key == "name" else key, dir=None if (nxt == "desc") == default_desc else nxt)
+        cls = {"name": "", "size": ' class="num"', "modified": ' class="num col-mod"'}[key]
+        return '<th%s><a class="sort" href="%s">%s%s</a></th>' % (cls, respond.esc(_media_url(**st)), label, arrow)
+
+    rows = []
+    for e in shown:
+        name = respond.esc(e["name"])
+        used = ", ".join(e["used_by"])
+        rows.append(
+            '<tr><td class="pick"><input type="checkbox" name="name" value="%s" aria-label="Select %s"%s></td>'
+            '<td class="name">%s</td><td class="num">%s</td><td class="num col-mod">%s</td>%s'
+            '<td class="actions"><button type="button" class="ghost small" data-delete="%s"%s>Delete</button></td></tr>'
+            % (name, name, " disabled" if used else "", name, _size(e["size"]),
+               time.strftime("%Y-%m-%d %H:%M", time.gmtime(e["modified"])),
+               ('<td class="col-used">%s</td>' % (respond.esc(used) or '<span class="hint">-</span>')) if iso else "",
+               name, (' disabled title="In use by %s"' % respond.esc(used)) if used else ""))
+    cols = 6 if iso else 5
+    if not rows:
+        rows.append('<tr><td colspan="%d" class="empty">%s</td></tr>'
+                    % (cols, "No files match <b>%s</b>." % respond.esc(q) if q else "Nothing here yet."))
+
+    pager = ""
+    if total:
+        first, last = (page - 1) * per + 1, min(page * per, total)
+        link = lambda p, label, on: ('<a class="button small" href="%s">%s</a>' % (respond.esc(_media_url(page=p, **state)), label)
+                                     if on else '<span class="button small" aria-disabled="true">%s</span>' % label)
+        per_opts = "".join('<option value="%d"%s>%d per page</option>' % (n, " selected" if n == per else "", n)
+                           for n in PER_PAGE)
+        pager = ('<div class="pager"><span class="hint">%d–%d of %d</span><span class="spacer"></span>'
+                 '<form method="get" action="/manage/media" class="inline">%s<select name="per" data-autosubmit>%s</select></form>'
+                 '%s<span class="hint">Page %d of %d</span>%s</div>'
+                 % (first, last, total,
+                    "".join('<input type="hidden" name="%s" value="%s">' % (k, respond.esc(v))
+                            for k, v in state.items() if v and k != "per"),
+                    per_opts, link(page - 1, "← Prev", page > 1), page, pages, link(page + 1, "Next →", page < pages)))
+
+    hidden = "".join('<input type="hidden" name="%s" value="%s">' % (k, respond.esc(v))
+                     for k, v in state.items() if v and k not in ("q",))
+    parts = ['<nav class="tabs" aria-label="Kind of media">%s</nav>' % tabs]
+    note = ('<p class="hint">Through the Cloudflare tunnel, uploads over 100 MB fail: use the LAN name or SFTP.</p>'
+            if config.tunnel_on() else "")
+    parts.append(
+        '<form id="upload" class="upload"><div class="dropzone" id="drop">'
+        '<span><b>Upload:</b> drop files here or <label class="link">choose files'
+        '<input type="file" name="file" multiple hidden></label></span>'
+        '<span class="hint">into <select name="kind" aria-label="Upload into">%s</select></span></div>'
+        '<ul id="queue" class="queue"></ul></form>%s'
+        % ("".join('<option value="%s"%s>%s</option>' % (k, " selected" if k == kind else "", respond.esc(KINDS[k][0]))
+                   for k in KINDS), note))
+    parts.append(
+        '<section class="card">'
+        '<div class="card-head"><h2>%s</h2>%s</div>'
+        '<p class="path"><code>%s</code></p>'
+        '<form method="get" action="/manage/media" class="toolbar" role="search">%s'
+        '<input type="search" name="q" value="%s" placeholder="Search %d files" aria-label="Search file names">'
+        '<button type="submit">Search</button>%s</form>'
+        '<form method="post" action="/manage/api/media/%s/delete-many" id="bulk">%s'
+        '<input type="hidden" name="back" value="%s"><input type="hidden" name="confirm" value="">'
+        '<div class="table-wrap"><table class="media-table"><thead><tr>'
+        '<th class="pick"><input type="checkbox" id="pick-all" aria-label="Select all on this page"></th>'
+        '%s%s%s%s<th></th></tr></thead><tbody>%s</tbody></table></div>'
+        '<div class="bulkbar" hidden><span id="picked"></span><button type="submit" class="danger small">Delete selected</button></div>'
+        '</form>%s</section>%s'
+        % (respond.esc(KINDS[kind][0]), _ext_tags(kind), respond.esc(_dir(kind)),
+           hidden, respond.esc(q), counts[kind],
+           ' <a href="%s">Clear</a>' % respond.esc(_media_url(**dict(state, q=None))) if q else "",
+           kind, _csrf(req), respond.esc(here),
+           head("name"), head("size"), head("modified"), '<th class="col-used">Used by</th>' if iso else "",
+           "".join(rows), pager, locations_html()))
+
+    parts.append('<form method="post" id="delete-one" hidden>%s<input type="hidden" name="confirm">'
+                 '<input type="hidden" name="back" value="%s"></form>' % (_csrf(req), respond.esc(here)))
+    parts.append('<dialog id="media-confirm"><p id="media-confirm-text"></p><div class="dialog-actions">'
+                 '<button type="button" id="media-confirm-no">Cancel</button> '
+                 '<button type="button" class="danger" id="media-confirm-yes">Delete</button></div></dialog>')
     parts.append('<script src="/manage/static/media.js"></script>')
     return respond.page(req, "Media", "".join(parts))
 
@@ -360,5 +507,6 @@ ROUTES = [
     ("GET", r"/manage/api/media", list_api, "admin"),
     ("PUT", r"/manage/api/media/([^/]+)/(.+)", upload, "admin"),
     ("POST", r"/manage/api/media/([^/]+)/([^/]+)/delete", delete, "admin"),
+    ("POST", r"/manage/api/media/([^/]+)/delete-many", delete_many, "admin"),
     ("POST", r"/manage/api/box/([a-z][a-z0-9-]{1,30})/attach", attach, "admin"),
 ]
