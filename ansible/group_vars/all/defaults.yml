@@ -8,3 +8,5 @@ media_kinds: [iso, floppy, disk, zip, mo, tape, cassette, cartridge]
 b86_user: 86server
 b86_id: 86                        # UID and GID; preflight stops if another account already has it
 vm_data_root: /opt/86server/data
+# Update notice and button: check.json and run.json, written by the clone's owner, read by the manager.
+b86_update_state: /opt/86server/data/update

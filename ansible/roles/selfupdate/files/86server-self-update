@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Run `86server update` when an admin presses Update in the web manager (86server-update.service, started by
+# 86server-update.path). Runs as the person who owns the clone, like a manual update; needs sudo without a
+# password for that account. Writes <state>/run.json (state, start and end time, exit code, the tail of the
+# output) for the manager to show. The update restarts the manager on the way; this unit is not a child of it.
+set -uo pipefail
+state_dir=$1
+repo=$2
+umask 027
+
+run_json() {
+  # run_json <state> <started> [rc] [output-file]
+  python3 - "$state_dir/run.json" "$@" <<'PY'
+import datetime, json, os, sys, tempfile
+path, state, started = sys.argv[1:4]
+rc = int(sys.argv[4]) if len(sys.argv) > 4 else None
+out = ""
+if len(sys.argv) > 5:
+    try:
+        with open(sys.argv[5], errors="replace") as f:
+            out = "".join(f.readlines()[-25:])
+    except OSError:
+        pass
+now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+obj = {"state": state, "started_at": started, "rc": rc, "output": out}
+if state != "running":
+    obj["finished_at"] = now
+try:
+    obj["log"] = os.path.realpath("/opt/86server/log/latest.log")
+except OSError:
+    pass
+fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".run.")
+with os.fdopen(fd, "w") as f:
+    json.dump(obj, f)
+os.chmod(tmp, 0o640)
+os.replace(tmp, path)
+PY
+}
+
+started=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)
+out="$state_dir/run.out"
+run_json running "$started"
+B86_NONINTERACTIVE=1 "$repo/86server" update >"$out" 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then run_json ok "$started" "$rc" "$out"; else run_json failed "$started" "$rc" "$out"; fi
+exit 0

@@ -1,0 +1,62 @@
+---
+# The update notice and the Update button in the web manager. Needs to know the clone and its owner, which only
+# the 86server command passes in (b86_repo, b86_repo_owner, b86_deploy); a bare ansible-playbook run skips this.
+- name: Set up the update notice and button
+  when: b86_repo is defined and b86_repo_owner is defined and b86_repo_owner != 'root'
+  block:
+    - name: Create the update state folder (written by the clone's owner, read by the manager)
+      ansible.builtin.file:
+        path: "{{ b86_update_state }}"
+        state: directory
+        owner: "{{ b86_repo_owner }}"
+        group: "{{ b86_user }}"
+        mode: "2750"
+
+    - name: Install the update helpers
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/opt/86server/libexec/{{ item }}"
+        owner: root
+        group: root
+        mode: "0755"
+      loop: [86server-update-check, 86server-self-update]
+
+    - name: Install the update units
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/opt/86server/system/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - 86server-update-check.service
+        - 86server-update-check.path
+        - 86server-update-check.timer
+        - 86server-update.service
+        - 86server-update.path
+      notify: Reload systemd for updates
+
+    - name: Link the system files into /etc
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/tasks/link-system.yml"
+
+    - name: Make systemd see the units
+      ansible.builtin.meta: flush_handlers
+
+    # Started, never restarted: this run may itself be one the Update button started.
+    - name: Watch the clone and the manager's requests
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop: [86server-update-check.path, 86server-update-check.timer, 86server-update.path]
+
+# Last, so it only names a run that got this far. The manager uses it for the update notice and as the cache key
+# for its static files; writing it also triggers a fresh check (86server-update-check.path).
+- name: Record what was deployed
+  when: b86_deploy is defined
+  ansible.builtin.copy:
+    dest: /opt/86server/etc/deployed.json
+    content: "{{ b86_deploy | combine({'at': now(utc=true, fmt='%Y-%m-%dT%H:%M:%S+00:00')}) | to_json }}\n"
+    owner: root
+    group: root
+    mode: "0644"

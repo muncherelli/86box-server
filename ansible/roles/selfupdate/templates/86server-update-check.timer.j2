@@ -1,0 +1,10 @@
+[Unit]
+Description=Check the 86server clone for undeployed commits now and then (catches what the path unit misses)
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=15min
+Unit=86server-update-check.service
+
+[Install]
+WantedBy=timers.target

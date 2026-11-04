@@ -92,30 +92,5 @@ class ThemeTest(unittest.TestCase):
         self.assertNotIn("#fff;", css.split("body {")[1])  # no hard-coded page colors left after the variables
 
 
-class DevModeTest(unittest.TestCase):
-    def setUp(self):
-        import os
-        import tempfile
-        self.marker = os.path.join(tempfile.mkdtemp(), ".dev")
-        self.old = respond.DEV_MARKER
-        respond.DEV_MARKER = self.marker
-        server.load_routes()
-
-    def tearDown(self):
-        respond.DEV_MARKER = self.old
-
-    def test_dev_id_only_in_dev_mode(self):
-        self.assertEqual(server.dispatch(FakeReq(path="/manage/dev-id"))[0], 404)
-        open(self.marker, "w").close()
-        status, _, body = server.dispatch(FakeReq(path="/manage/dev-id"))
-        self.assertEqual((status, body), (200, server.BOOT_ID.encode()))
-
-    def test_page_has_reload_meta_only_in_dev_mode(self):
-        req = FakeReq()
-        self.assertNotIn(b"dev-reload", respond.page(req, "t", "")[2])
-        open(self.marker, "w").close()
-        self.assertIn(b"dev-reload", respond.page(req, "t", "")[2])
-
-
 if __name__ == "__main__":
     unittest.main()

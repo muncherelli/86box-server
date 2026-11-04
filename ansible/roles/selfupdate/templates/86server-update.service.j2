@@ -1,0 +1,11 @@
+[Unit]
+Description=Install an 86server update asked for in the web manager
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+# Same account as a manual `86server update`, so the inventory and logs keep their owner. It uses sudo for the
+# Ansible run, so no NoNewPrivileges here.
+User={{ b86_repo_owner }}
+ExecStart=/opt/86server/libexec/86server-self-update {{ b86_update_state }} {{ b86_repo }}
+TimeoutStartSec=1h

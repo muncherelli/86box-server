@@ -100,22 +100,6 @@ function csrfToken() {
   setInterval(pollStats, 5000);
 })();
 
-// Dev mode only (86server dev): reload the page after the manager restarts.
-(function () {
-  if (!document.querySelector('meta[name="dev-reload"]')) return;
-  var seen = null;
-  setInterval(function () {
-    fetch("/manage/dev-id", { cache: "no-store" })
-      .then(function (r) { return r.ok ? r.text() : null; })
-      .then(function (id) {
-        if (!id) return;
-        if (seen === null) seen = id;
-        else if (id !== seen) location.reload();
-      })
-      .catch(function () {});
-  }, 1000);
-})();
-
 // Network groups: wait while the root helper applies a change, then show the result.
 (function () {
   if (!document.getElementById("net-apply")) return;
@@ -129,4 +113,60 @@ function csrfToken() {
       })
       .catch(function () {});
   }, 1000);
+})();
+
+// Update notice (admins): the header badge opens a dialog; Install update asks the server to run
+// `86server update`, then waits through the manager's restart and reloads when the update has finished.
+(function () {
+  var badge = document.getElementById("update-badge");
+  var dlg = document.getElementById("update-dialog");
+  if (!badge || !dlg) return;
+  var go = document.getElementById("update-go");
+  var progress = document.getElementById("update-progress");
+  var output = document.getElementById("update-output");
+  var since = null;
+
+  function say(text) { progress.hidden = false; progress.textContent = text; }
+
+  function watch() {
+    var started = Date.now();
+    var timer = setInterval(function () {
+      fetch("/manage/api/update", { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;  // the manager is restarting
+          var run = d.run || {};
+          var mine = !since || (run.started_at && run.started_at >= since.slice(0, 19));
+          if (run.state === "running" || !mine) {
+            say("Installing… " + Math.round((Date.now() - started) / 1000) + " s");
+            return;
+          }
+          clearInterval(timer);
+          if (run.state === "ok") { say("Done. Reloading…"); setTimeout(function () { location.reload(); }, 800); return; }
+          say("The update failed (exit " + run.rc + "). Log: " + (run.log || "86server log"));
+          output.hidden = false;
+          output.textContent = run.output || "";
+          go.disabled = false;
+          go.textContent = "Try again";
+        })
+        .catch(function () { say("Installing… the panel is restarting"); });
+    }, 2000);
+  }
+
+  badge.addEventListener("click", function () { dlg.showModal(); });
+  document.getElementById("update-close").addEventListener("click", function () { dlg.close(); });
+  go.addEventListener("click", function () {
+    go.disabled = true;
+    output.hidden = true;
+    say("Starting…");
+    fetch("/manage/api/update", { method: "POST", headers: { "X-CSRF": csrfToken() } })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.d.ok) { say(res.d.error || "Could not start the update."); go.disabled = false; return; }
+        since = res.d.requested_at;
+        watch();
+      })
+      .catch(function () { say("Could not reach the panel."); go.disabled = false; });
+  });
+  if (dlg.dataset.running) { go.disabled = true; say("An update is running…"); watch(); }
 })();

@@ -53,3 +53,10 @@
   gather_facts: true
   roles:
     - tunnel
+
+# Last: records the deployed commit only after everything above worked.
+- name: Updates
+  hosts: all
+  gather_facts: true
+  roles:
+    - selfupdate

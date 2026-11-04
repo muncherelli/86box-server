@@ -27,8 +27,6 @@ source "$REPO/lib/log.sh"
 source "$REPO/lib/secrets.sh"
 # shellcheck source=lib/status.sh
 source "$REPO/lib/status.sh"
-# shellcheck source=lib/dev.sh
-source "$REPO/lib/dev.sh"
 # shellcheck source=lib/admin.sh
 source "$REPO/lib/admin.sh"
 # shellcheck source=lib/cloudflare.sh
@@ -49,7 +47,6 @@ usage: 86server [command]
   settings                   edit this host's settings (/opt/86server/inventory/group_vars/all/main.yml)
   secrets                    edit this host's secrets (/opt/86server/secrets.yml, with sudoedit)
   log                        show the last update log
-  dev                        copy manager/ to the host on every change and restart the manager
 EOF
 }
 
@@ -68,11 +65,13 @@ export EDITOR="${EDITOR:-nano}"
 
 do_update() {
   prepare
+  lock_update
   check_secrets
   copy_secrets       # asks for the sudo password if needed, so Ansible can usually skip asking
   set_become_args
+  deploy_args
   setup_log
-  run_playbook "$@"
+  run_playbook "${DEPLOY_ARGS[@]}" "$@"
 }
 
 VERBOSE=0
@@ -94,7 +93,6 @@ case "${ARGS[0]:-}" in
   settings) prepare; settings_edit ;;
   secrets) ensure_install_dirs; secrets_edit ;;
   log) show_log ;;
-  dev) run_dev ;;
   help | -h | --help) usage ;;
   *) usage >&2; exit 2 ;;
 esac

@@ -12,6 +12,7 @@ import urllib.parse
 
 import config
 import respond
+import selfupdate
 import store
 import units
 
@@ -484,7 +485,7 @@ def media_page(req, m):
     parts.append('<dialog id="media-confirm"><p id="media-confirm-text"></p><div class="dialog-actions">'
                  '<button type="button" id="media-confirm-no">Cancel</button> '
                  '<button type="button" class="danger" id="media-confirm-yes">Delete</button></div></dialog>')
-    parts.append('<script src="/manage/static/media.js"></script>')
+    parts.append('<script src="/manage/static/media.js?v=' + respond.esc(selfupdate.asset_version()) + '"></script>')
     return respond.page(req, "Media", "".join(parts))
 
 

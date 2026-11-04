@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Compare the clone's HEAD with the commit that was last deployed and write the result for the web manager.
+
+Runs as the person who owns the clone (86server-update-check.service), because git refuses to work in a repo
+owned by someone else and the clone usually sits in a private home folder the manager cannot read. Writes
+<state>/check.json (0640, group 86server through the setgid folder). Never changes the clone: no fetch, no pull.
+"""
+import argparse
+import datetime
+import json
+import os
+import subprocess
+import tempfile
+
+MAX_COMMITS = 10
+
+
+def git(repo, *args, check=True):
+    r = subprocess.run(["git", "-C", repo, "-c", "core.fsmonitor=false", *args],
+                       capture_output=True, text=True, timeout=60)
+    if check and r.returncode != 0:
+        raise RuntimeError((r.stderr or r.stdout).strip() or "git %s failed" % args[0])
+    return r
+
+
+def log(repo, rev_range):
+    out = git(repo, "log", "-n", str(MAX_COMMITS), "--format=%h%x1f%s%x1f%an%x1f%cI", rev_range).stdout
+    return [dict(zip(("short", "subject", "author", "date"), line.split("\x1f"))) for line in out.splitlines() if line]
+
+
+def check(repo, deployed_file):
+    try:
+        with open(deployed_file) as f:
+            dep = json.load(f)
+    except (OSError, ValueError):
+        dep = {}
+    dc = dep.get("commit", "")
+    res = {"deployed": dc, "deployed_at": dep.get("at", "")}
+    head = git(repo, "rev-parse", "HEAD").stdout.strip()
+    res["head"] = head
+    res["branch"] = git(repo, "rev-parse", "--abbrev-ref", "HEAD", check=False).stdout.strip()
+    res["dirty"] = bool(git(repo, "status", "--porcelain", "--untracked-files=no", check=False).stdout.strip())
+    res["available"] = bool(dc) and head != dc
+    if res["available"]:
+        known = git(repo, "cat-file", "-e", dc + "^{commit}", check=False).returncode == 0
+        if known and git(repo, "merge-base", "--is-ancestor", dc, head, check=False).returncode == 0:
+            res["count"] = int(git(repo, "rev-list", "--count", dc + ".." + head).stdout.strip())
+            res["commits"] = log(repo, dc + ".." + head)
+        else:
+            # HEAD moved sideways (reset, rebase, another branch): what is deployed is not in HEAD's history.
+            res["diverged"] = True
+            res["count"] = None
+            res["commits"] = log(repo, head)[:1]
+    return res
+
+
+def write(path, obj):
+    d = os.path.dirname(path)
+    fd, tmp = tempfile.mkstemp(dir=d, prefix=".check.")
+    with os.fdopen(fd, "w") as f:
+        json.dump(obj, f)
+    os.chmod(tmp, 0o640)
+    os.replace(tmp, path)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--repo", required=True)
+    ap.add_argument("--state", required=True)
+    ap.add_argument("--deployed", required=True)
+    a = ap.parse_args()
+    try:
+        res = check(a.repo, a.deployed)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as e:
+        res = {"error": str(e)}
+    res["checked_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    write(os.path.join(a.state, "check.json"), res)
+
+
+if __name__ == "__main__":
+    main()

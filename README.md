@@ -55,7 +55,19 @@ on your LAN without the tunnel: point local DNS for `example.com` and `*.example
 | `86server settings` | Edit this host's settings, then run `86server update` |
 | `86server secrets` | Edit the secrets file (`sudoedit`; root only) |
 | `86server log` | Show the last update log |
-| `86server dev` | Copy `manager/` to the host on every change and restart the manager |
+
+## Updating from the web manager
+
+Change the clone (commit, pull, switch branches), and the web manager notices: admins see **Update available** in
+the header, with the new commits. **Install update** runs `86server update` on the server, as the account that owns
+the clone (it needs sudo without a password, as on most cloud images), and the page reloads when the panel is
+back. Without the button, `86server update` in a terminal does the same. Nothing is pulled for you: the notice
+compares the clone's `HEAD` with the commit the last update installed.
+
+How it works: every update records what it installed in `/opt/86server/etc/deployed.json`. A small unit,
+`86server-update-check`, runs as the clone's owner when the clone's `HEAD` moves (and every 15 minutes) and writes
+`/opt/86server/data/update/check.json`. The button writes a request that `86server-update.path` picks up; the
+update itself runs in `86server-update.service`, outside the manager, which it restarts on the way.
 
 ## The 86server account
 
@@ -78,9 +90,10 @@ write the media library.
 | `/opt/86server/data/boxes` | One folder per box: its `86box.cfg`, disk images (`disks/`), snapshots |
 | `/opt/86server/media` | Media library, one folder per 86Box drive type: `iso/`, `floppy/`, `disk/`, `zip/`, `mo/`, `tape/`, `cassette/`, `cartridge/` (the Media page shows the file types on each tab) |
 | `/opt/86server/data/manager` | Manager state: users, sessions, secrets (`secrets.json`: the Cloudflare token), the Cloudflare setup (`edge.json`), audit log |
+| `/opt/86server/data/update` | Update notice state: `check.json` (commits in the clone not deployed yet) and `run.json` (the last Update button run). Written by the clone's owner, read by the manager |
 | `/opt/86server/data/caddy` | Caddy's data: its local CA and the certificates it manages |
 | `/opt/86server/data/certs` | Let's Encrypt wildcard certificates, one per Cloudflare zone (`<zone>.crt`, `.key`) |
-| `/opt/86server/etc` | Generated settings: `manager.json`, network groups, `ssh/sftp-keys/` |
+| `/opt/86server/etc` | Generated settings: `deployed.json` (the commit the last successful update installed), `manager.json`, network groups, `ssh/sftp-keys/` |
 | `/opt/86server/etc/caddy` | `Caddyfile`, `sites.d/` (published sites) and `panel.d/` (the control panel name) |
 | `/opt/86server/system/etc` | The real files for systemd units, the Caddy drop-in, polkit, tmpfiles, sshd, sysctl and NetworkManager (see below) |
 | `/opt/86server/inventory` | This host's settings: `hosts.yml`, `group_vars/all/` (`main.yml`, `pins.yml`). Owned by the person who runs `86server`, mode 700. No secrets |

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check the 86server clone for commits that are not deployed yet
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+# The clone's owner: git refuses other users' repos, and the clone may sit in a private home folder.
+User={{ b86_repo_owner }}
+ExecStart=/usr/bin/python3 /opt/86server/libexec/86server-update-check --repo {{ b86_repo }} --state {{ b86_update_state }} --deployed /opt/86server/etc/deployed.json
+NoNewPrivileges=yes
+PrivateTmp=yes

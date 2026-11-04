@@ -8,6 +8,7 @@ import config
 import edge
 import respond
 import secrets_store
+import selfupdate
 import store
 import units
 
@@ -139,7 +140,7 @@ def _setup_section(req, error=""):
 
 def _page(req, token_error="", setup_error=""):
     body = (_job_section() + _status_section(req) + _token_section(req, token_error) + _setup_section(req, setup_error)
-            + '<script src="/manage/static/cloudflare.js"></script>')
+            + '<script src="/manage/static/cloudflare.js?v=' + respond.esc(selfupdate.asset_version()) + '"></script>')
     return respond.page(req, "Cloudflare", body)
 
 

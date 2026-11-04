@@ -274,3 +274,22 @@ td.step-failed, td.step-error { color: var(--danger); }
   .media-table td.name { min-width: 9rem; }
   .queue li .hint { grid-column: 1 / -1; }
 }
+
+/* Update notice (admins) in the header, and its dialog. */
+.update-badge { display: inline-flex; align-items: center; gap: .45rem; min-height: 1.9rem; padding: .2rem .7rem;
+  border-radius: 999px; border: 1px solid color-mix(in srgb, var(--warn) 60%, transparent);
+  background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--header-text); font-size: .85rem;
+  white-space: nowrap; cursor: pointer; }
+.update-badge:hover { background: color-mix(in srgb, var(--warn) 30%, transparent); color: var(--header-text); border-color: var(--warn); }
+.update-badge .led { width: .5rem; height: .5rem; border-radius: 50%; background: var(--warn);
+  box-shadow: 0 0 .4rem var(--warn); }
+.update-badge.running .led { animation: b86-blink 1s steps(2, start) infinite; }
+@keyframes b86-blink { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .update-badge.running .led { animation: none; } }
+.update-dialog { max-width: 36rem; width: calc(100% - 2rem); }
+.update-dialog ul.commits { list-style: none; padding: 0; margin: .25rem 0 .75rem; max-height: 14rem; overflow: auto; }
+.update-dialog ul.commits li { padding: .2rem 0; border-bottom: 1px solid var(--border); }
+.update-dialog .actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
+.update-dialog .update-output { max-height: 14rem; overflow: auto; white-space: pre-wrap; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-text); }

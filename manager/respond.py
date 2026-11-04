@@ -6,14 +6,6 @@ import string
 import urllib.parse
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-# 86server dev creates this file; the normal deploy (rsync --delete) removes it.
-DEV_MARKER = os.path.join(_DIR, ".dev")
-
-
-def dev_mode():
-    return os.path.exists(DEV_MARKER)
-
-
 def scheme(req):
     """'https' or 'http' as the visitor sees it. Caddy sets X-B86-Proto; anything else counts as http."""
     return "https" if (req.headers.get("X-B86-Proto") or "").strip().lower() == "https" else "http"
@@ -75,6 +67,7 @@ def page(req, title, body_html, status=200):
         tpl = string.Template(f.read())
     user = req.user["name"] if req.user else ""
     csrf = req.session["csrf"] if req.session else ""
-    dev = '<meta name="dev-reload" content="1">' if dev_mode() else ""
-    out = tpl.substitute(title=esc(title), body=body_html, user=esc(user), csrf=esc(csrf), dev=dev)
+    import selfupdate  # here, not at the top: selfupdate imports this module
+    out = tpl.substitute(title=esc(title), body=body_html, user=esc(user), csrf=esc(csrf),
+                         v=esc(selfupdate.asset_version()), update=selfupdate.badge(req))
     return status, {"Content-Type": "text/html; charset=utf-8"}, out.encode()

@@ -33,6 +33,9 @@ def load():
     cfg.setdefault("validate_snippets", "/opt/86server/etc/caddy/validate-snippets.caddy")
     cfg.setdefault("certs_dir", os.path.join(cfg["data_root"], "certs"))
     cfg.setdefault("lego_bin", "/usr/bin/lego")
+    # Update notice (role selfupdate): what was deployed, and the state the clone's owner writes for us.
+    cfg.setdefault("deployed_file", "/opt/86server/etc/deployed.json")
+    cfg.setdefault("update_state_dir", os.path.join(cfg["data_root"], "update"))
     return cfg
 
 
