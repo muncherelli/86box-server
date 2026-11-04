@@ -20,8 +20,10 @@
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
   loop:
-    # config: the Caddyfile (Ansible), sites.d (published sites) and panel.d (control panel name), both by the manager
-    - { path: /opt/86server/etc/caddy, owner: root, group: caddy, mode: "0750" }
+    # config: the Caddyfile (Ansible), sites.d (published sites) and panel.d (control panel name), both by the manager.
+    # 0751: the manager (not in the caddy group) must pass through to sites.d, panel.d and validate-snippets.caddy;
+    # it cannot list the folder, and the Caddyfile itself stays root:caddy 0640.
+    - { path: /opt/86server/etc/caddy, owner: root, group: caddy, mode: "0751" }
     - { path: /opt/86server/etc/caddy/sites.d, owner: "{{ b86_user }}", group: caddy, mode: "0755" }
     - { path: /opt/86server/etc/caddy/panel.d, owner: "{{ b86_user }}", group: caddy, mode: "0755" }
     # Caddy's own data (its local CA and the certificates it manages)

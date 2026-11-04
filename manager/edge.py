@@ -246,7 +246,11 @@ def request_sync():
 # ---------- certificates (lego) ----------
 
 def _lego_cmd(zone, state):
+    # --dns.propagation.disable-rns: wait for the TXT record on Cloudflare's own nameservers only (what Let's Encrypt
+    # asks), not on this host's resolver. A LAN resolver caches the NXDOMAIN from before the record existed for the
+    # zone's negative TTL (30 minutes on Cloudflare), longer than lego waits, or serves a local copy of the zone.
     return [config.CFG["lego_bin"], "run", "--log.format", "text", "--accept-tos", "--dns", "cloudflare",
+            "--dns.propagation.disable-rns",
             "--domains", "*." + zone, "--domains", zone, "--cert.name", zone, "--path", _mgr("lego"),
             "--server", "letsencrypt-staging" if state.get("staging") else "letsencrypt"] + \
         (["--email", state["email"]] if state.get("email") else [])

@@ -225,6 +225,7 @@ class SyncTest(Base):
         self.assertEqual([args[i + 1] for i, a in enumerate(args) if a == "--domains"], ["*." + ZONE, ZONE])
         self.assertEqual(args[args.index("--cert.name") + 1], ZONE)
         self.assertIn("letsencrypt-staging", args)
+        self.assertIn("--dns.propagation.disable-rns", args)  # a caching LAN resolver must not stall the check
         self.assertNotIn("--email", args)
         self.assertEqual(call["token"], TOKEN)
         self.assertNotIn(TOKEN, " ".join(args))
