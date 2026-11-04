@@ -90,6 +90,30 @@ def _new_page(req, msg="", status_code=200):
     return status_, headers, out
 
 
+def _resolution_field(current):
+    """Display size: a dropdown of Auto, the presets and Custom; Custom shows a plain WxH text box."""
+    custom = current not in ["auto"] + vms.RESOLUTION_PRESETS
+
+    def opt(value, label):
+        sel = " selected" if value == ("custom" if custom else current) else ""
+        return '<option value="%s"%s>%s</option>' % (value, sel, label)
+
+    def group(label, sizes):
+        return '<optgroup label="%s">%s</optgroup>' % (label, "".join(opt(r, r.replace("x", " × ")) for r in sizes))
+
+    options = (opt("auto", "Auto (follow the browser window)") + group("4:3 and classic", vms.RESOLUTION_PRESETS[:8])
+               + group("Widescreen", vms.RESOLUTION_PRESETS[8:]) + opt("custom", "Custom…"))
+    return ('<p><label>Display size <select name="resolution" id="b86res">%s</select></label> '
+            '<input name="resolution_custom" id="b86res-custom" value="%s" placeholder="WxH, e.g. 1280x960" size="16"'
+            ' aria-label="Custom display size"%s>'
+            '<br><small><b>Auto</b> makes the display follow your browser window, live. A fixed size is scaled to fit '
+            'the window and applies the next time the box starts. Custom takes any WxH from 640x400 to 2560x1600. '
+            '86Box stretches whatever the guest shows to fill this display.</small></p>'
+            '<script>(function(){var s=document.getElementById("b86res"),c=document.getElementById("b86res-custom");'
+            's.onchange=function(){c.hidden=s.value!=="custom";if(!c.hidden)c.focus();};})();</script>'
+            % (options, respond.esc(current if custom else ""), "" if custom else " hidden"))
+
+
 def _edit_page(req, name, msg=""):
     data = all_defs().get(name)
     if data is None:
@@ -104,18 +128,14 @@ def _edit_page(req, name, msg=""):
     body = ('<p class="error">%s</p>' % respond.esc(msg)) if msg else ""
     body += ('<form method="post" action="/manage/boxes/%s">%s%s<p>Network groups %s</p><p>Console users %s</p>'
              '<p><label><input type="checkbox" name="autostart" value="1"%s> Start at boot</label></p>'
-             '<p><label>Display size <input name="resolution" value="%s" list="b86res" placeholder="auto" size="10"></label>'
-             '<datalist id="b86res"><option value="auto">%s</datalist>'
-             '<br><small><b>auto</b> makes the display follow your browser window, live. Or pick a preset or type your own '
-             'WxH (640x400 up to 2560x1600): a fixed size is scaled to fit the window and applies the next time the box starts. '
-             '86Box stretches whatever the guest shows to fill this display.</small></p>'
+             '%s'
              '<input type="submit" value="Save"></form>'
              '<h2>Delete</h2><form method="post" action="/manage/boxes/%s/delete">%s'
              '<p>Type the name to confirm: <input name="confirm"> <input type="submit" value="Delete"></p></form>'
              % (q, _csrf(req), cd, _group_checks(data.get("allowed_groups", [])),
                 _checks("user", sorted(vms._auth().console_users()), users, "user"),
-                " checked" if data.get("autostart") else "", respond.esc(data.get("resolution", "auto")),
-                "".join('<option value="%s">' % r for r in vms.RESOLUTION_PRESETS), q, _csrf(req)))
+                " checked" if data.get("autostart") else "", _resolution_field(data.get("resolution", "auto")),
+                q, _csrf(req)))
     for mod, fn in (("snapshots", "html_section"),
                     ("clone", "html_section"), ("importexp", "html_section")):
         body += getattr(importlib.import_module(mod), fn)(req, name)
@@ -156,11 +176,22 @@ def h_edit_get(req, m):
     return _edit_page(req, m.group(1))
 
 
+def _posted_resolution(f):
+    """The dropdown's value, or the custom text box when the dropdown says Custom."""
+    res = (f.get("resolution") or [""])[0]
+    if res != "custom":
+        return res
+    res = (f.get("resolution_custom") or [""])[0].strip()
+    if not res:
+        raise VmError("Type a custom display size as WxH, for example 1280x960.")
+    return res
+
+
 def h_edit_post(req, m):
     name, f = m.group(1), _multi(req)
     try:
         edit_vm(name, f.get("group", []), (f.get("autostart") or [""])[0] == "1", f.get("user", []),
-                resolution=(f.get("resolution") or [""])[0])
+                resolution=_posted_resolution(f))
     except VmError as e:
         return _edit_page(req, name, str(e))
     store.audit(req.user["name"], req.ip, "vm.edit", name)

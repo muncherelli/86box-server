@@ -25,6 +25,7 @@ LOCK = threading.Lock()
 # resize=remote makes the box's display follow the browser window; resize=scale keeps a fixed display size.
 CONSOLE_FMT = "/novnc/vnc.html?path=%%2Fwebsockify%%3Ftoken%%3D%s&autoconnect=1&resize=%s&reconnect=1"
 DEFAULT_GEOMETRY = "1024x768"   # start size of every display; "auto" boxes then follow the browser
+DEFAULT_RESOLUTION = "640x480"  # display size of a new, cloned or imported box
 RES_RE = re.compile(r"([0-9]{3,4})x([0-9]{3,4})")
 RESOLUTION_PRESETS = ["640x400", "640x480", "720x400", "800x600", "1024x768", "1152x864", "1280x1024", "1600x1200",
                       "1280x720", "1366x768", "1440x900", "1600x900", "1680x1050", "1920x1080", "1920x1200", "2560x1440"]
@@ -256,10 +257,10 @@ def _create(name, template, disk_gb, cd, groups, autostart, users):
             os.chmod(disk, 0o660)
             _group(disk)
         os.rename(temp, final)
-        store.write_text(_p("boxdefs", name + ".env"), _env_text(display, "auto"), mode=0o644)
+        store.write_text(_p("boxdefs", name + ".env"), _env_text(display, DEFAULT_RESOLUTION), mode=0o644)
         store.write_json(_p("boxdefs", name + ".json"), {
             "name": name, "display": display, "allowed_groups": sorted(groups), "autostart": bool(autostart),
-            "template": template, "created": _stamp()}, mode=0o644)
+            "template": template, "resolution": DEFAULT_RESOLUTION, "created": _stamp()}, mode=0o644)
         _write_token(name, display)
         if users:
             users_set = True

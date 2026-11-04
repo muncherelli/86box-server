@@ -98,7 +98,8 @@ class VmsTest(unittest.TestCase):
             self.assertTrue(os.path.isdir(self.p("boxes/test2", sub)))
         d = json.loads(rd(self.p("boxdefs/test2.json")))
         self.assertEqual((d["display"], d["allowed_groups"], d["autostart"]), (10, ["lab"], False))
-        self.assertEqual(rd(self.p("boxdefs/test2.env")), "B86_DISPLAY=10\nB86_VNC_PORT=5910\nDISPLAY=:10\nB86_GEOMETRY=1024x768\n")
+        self.assertEqual(d["resolution"], "640x480")
+        self.assertEqual(rd(self.p("boxdefs/test2.env")), "B86_DISPLAY=10\nB86_VNC_PORT=5910\nDISPLAY=:10\nB86_GEOMETRY=640x480\n")
         self.assertEqual(rd(self.p("vnc-tokens/test2")), "test2: 127.0.0.1:5910\n")
         self.assertEqual(stat.S_IMODE(os.stat(self.p("vnc-tokens/test2")).st_mode), 0o600)
         self.assertEqual(self.auth.calls, [("set", "test2", ["bob"])])
@@ -191,7 +192,7 @@ class VmsTest(unittest.TestCase):
 
     def test_resolution_is_saved_and_written_to_the_env_file(self):
         self.make("test2")
-        self.assertIn("B86_GEOMETRY=1024x768\n", rd(self.p("boxdefs/test2.env")))
+        self.assertIn("B86_GEOMETRY=640x480\n", rd(self.p("boxdefs/test2.env")))
         vms.edit_vm("test2", [], False, [], resolution="1280x1024")
         d = json.loads(rd(self.p("boxdefs/test2.json")))
         env = rd(self.p("boxdefs/test2.env"))
@@ -208,6 +209,32 @@ class VmsTest(unittest.TestCase):
         with self.assertRaises(vms.VmError):
             vms.edit_vm("test2", [], False, [], resolution="9999x9999")
         self.assertEqual(rd(self.p("boxdefs/test2.env")), before)      # a refused size changes nothing
+
+    def test_display_size_dropdown_and_custom_box(self):
+        self.make("test2")
+        m = re.match(r"(.*)", "test2")
+        page = lambda: vms_pages._edit_page(Req(ADMIN), "test2")[2].decode()
+        post = lambda body: vms_pages.h_edit_post(Req(ADMIN, body), m)
+        saved = lambda: json.loads(rd(self.p("boxdefs/test2.json")))["resolution"]
+        out = page()
+        self.assertIn('<select name="resolution"', out)
+        self.assertIn('<option value="640x480" selected>', out)
+        self.assertIn('<option value="custom">Custom', out)
+        self.assertRegex(out, r'name="resolution_custom"[^>]* hidden>')
+        self.assertNotIn("datalist", out)
+        self.assertEqual(post(b"resolution=1920x1080&resolution_custom=")[0], 303)
+        self.assertEqual(saved(), "1920x1080")
+        self.assertIn('<option value="1920x1080" selected>', page())
+        self.assertEqual(post(b"resolution=custom&resolution_custom=+1280X960+")[0], 303)
+        self.assertEqual(saved(), "1280x960")
+        out = page()
+        self.assertIn('<option value="custom" selected>', out)
+        self.assertRegex(out, r'name="resolution_custom" id="b86res-custom" value="1280x960"[^>]*"Custom display size">')
+        for bad in (b"resolution=custom&resolution_custom=", b"resolution=custom&resolution_custom=9999x9999"):
+            self.assertIn('class="error"', post(bad)[2].decode())
+            self.assertEqual(saved(), "1280x960")
+        post(b"resolution=auto&resolution_custom=1280x960")      # the hidden box is ignored unless Custom is chosen
+        self.assertEqual(saved(), "auto")
 
     def test_console_url_defaults_to_following_the_browser(self):
         url = vms.console_url("nope")

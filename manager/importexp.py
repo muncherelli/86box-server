@@ -124,11 +124,10 @@ def _import(name, data, groups, autostart, users):
             os.chmod(disk, 0o660)
             vms._group(disk)
         os.rename(temp, final)
-        store.write_text(vms._p("boxdefs", name + ".env"),
-                         "B86_DISPLAY=%d\nB86_VNC_PORT=%d\nDISPLAY=:%d\n" % (display, 5900 + display, display), mode=0o644)
+        store.write_text(vms._p("boxdefs", name + ".env"), vms._env_text(display, vms.DEFAULT_RESOLUTION), mode=0o644)
         store.write_json(vms._p("boxdefs", name + ".json"), {
             "name": name, "display": display, "allowed_groups": sorted(groups), "autostart": bool(autostart),
-            "template": template, "created": vms._stamp()}, mode=0o644)
+            "template": template, "resolution": vms.DEFAULT_RESOLUTION, "created": vms._stamp()}, mode=0o644)
         vms._write_token(name, display)
         if users:
             users_set = True

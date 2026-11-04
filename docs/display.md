@@ -4,10 +4,13 @@ Each box has its own virtual screen (a TigerVNC `Xvnc` display). A small window 
 
 ## Choosing a size
 
-On the box's edit page, **Display size**:
+On the box's edit page, the **Display size** dropdown:
 
-- **auto** (default): the screen follows your browser window, live. Resize the tab and the guest screen resizes with it. Nothing to restart.
-- **A fixed size**: pick a preset or type `WxH` (640x400 up to 2560x1600). The console scales it to fit your window. It applies the next time the box starts.
+- **A preset** (new boxes start at **640x480**): a fixed size. The console scales it to fit your window. It applies the next time the box starts.
+- **Custom…**: shows a text box; type any `WxH` from 640x400 to 2560x1600. Behaves like a preset.
+- **Auto**: the screen follows your browser window, live. Resize the tab and the guest screen resizes with it. Nothing to restart.
+
+A clone keeps its source box's size; an imported box starts at 640x480. Boxes made before 640x480 became the default keep following the browser until you pick a size.
 
 Presets: 640x400, 640x480, 720x400, 800x600, 1024x768, 1152x864, 1280x1024, 1600x1200, 1280x720, 1366x768, 1440x900, 1600x900, 1680x1050, 1920x1080, 1920x1200, 2560x1440.
 

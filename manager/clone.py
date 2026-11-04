@@ -55,11 +55,11 @@ def clone_vm(src, new):
                 new_macs(cfg)
                 vms._write_cfg(cfg, cfg_path)
             os.rename(temp, final)
-            store.write_text(vms._p("boxdefs", new + ".env"),
-                             "B86_DISPLAY=%d\nB86_VNC_PORT=%d\nDISPLAY=:%d\n" % (display, 5900 + display, display), mode=0o644)
+            res = defs[src].get("resolution", "auto")
+            store.write_text(vms._p("boxdefs", new + ".env"), vms._env_text(display, res), mode=0o644)
             store.write_json(vms._p("boxdefs", new + ".json"), {
                 "name": new, "display": display, "allowed_groups": defs[src].get("allowed_groups", []),
-                "autostart": False, "template": defs[src].get("template", ""), "cloned_from": src,
+                "autostart": False, "template": defs[src].get("template", ""), "cloned_from": src, "resolution": res,
                 "created": vms._stamp()}, mode=0o644)
             vms._write_token(new, display)
             if users:
