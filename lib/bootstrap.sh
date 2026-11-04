@@ -6,7 +6,10 @@ ensure_ansible() {
   local id
   # shellcheck disable=SC1091
   id=$(. /etc/os-release && echo "${ID:-unknown}")
-  [ "$id" = arch ] || die "Unsupported distro: $id"
+  case "$id" in
+    arch | archarm) ;;
+    *) die "Unsupported distro: $id" ;;
+  esac
   echo "Installing ansible-core ..."
   sudo pacman -S --needed --noconfirm ansible-core python
 }

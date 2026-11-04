@@ -3,8 +3,15 @@
 pins:
   emu86box:
     tag: v6.0
-    url: https://github.com/86Box/86Box/releases/download/v6.0/86Box-Linux-x86_64-b9001.AppImage
-    sha256: 535d3c329f8c32b601103970c86d80aa80298f345452c3524ea2f433624727a4
+    # One AppImage per CPU architecture (the key is Ansible's architecture fact, as `uname -m` prints it).
+    # aarch64 only has the NDR build (no dynamic recompiler): it works, but the emulated CPU is much slower.
+    builds:
+      x86_64:
+        url: https://github.com/86Box/86Box/releases/download/v6.0/86Box-Linux-x86_64-b9001.AppImage
+        sha256: 535d3c329f8c32b601103970c86d80aa80298f345452c3524ea2f433624727a4
+      aarch64:
+        url: https://github.com/86Box/86Box/releases/download/v6.0/86Box-NDR-Linux-arm64-b9001.AppImage
+        sha256: da1f0c733d7a35059f153398d9978574d38e80019256b336dda9aaca9453a143
   roms:
     tag: v6.0
     url: https://github.com/86Box/roms/archive/refs/tags/v6.0.tar.gz

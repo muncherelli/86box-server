@@ -14,11 +14,27 @@
     - /opt/86server/vendor/86box
     - /opt/86server/vendor/roms
 
+# Older inventories pin a single x86_64 build (url and sha256 directly under emu86box).
+- name: Pick the 86Box build for this CPU architecture
+  ansible.builtin.set_fact:
+    emu86box_build: >-
+      {{ pins.emu86box.builds[ansible_facts['architecture']]
+         if pins.emu86box.builds is defined
+         else (pins.emu86box if ansible_facts['architecture'] == 'x86_64' else none) }}
+
+- name: Stop if no 86Box build is pinned for this architecture
+  ansible.builtin.assert:
+    that: emu86box_build is mapping
+    fail_msg: >-
+      No 86Box build is pinned for {{ ansible_facts['architecture'] }}. Add one under pins.emu86box.builds in
+      /opt/86server/inventory/group_vars/all/pins.yml (see the example in the repo).
+    quiet: true
+
 - name: Download the 86Box AppImage
   ansible.builtin.get_url:
-    url: "{{ pins.emu86box.url }}"
-    dest: "/opt/86server/cache/86Box-{{ pins.emu86box.tag }}.AppImage"
-    checksum: "sha256:{{ pins.emu86box.sha256 }}"
+    url: "{{ emu86box_build.url }}"
+    dest: "/opt/86server/cache/86Box-{{ pins.emu86box.tag }}-{{ ansible_facts['architecture'] }}.AppImage"
+    checksum: "sha256:{{ emu86box_build.sha256 }}"
     mode: "0755"
 
 - name: Check whether this 86Box version is already extracted
@@ -38,7 +54,7 @@
 
     - name: Extract (no FUSE needed)
       ansible.builtin.command:
-        cmd: "/opt/86server/cache/86Box-{{ pins.emu86box.tag }}.AppImage --appimage-extract"
+        cmd: "/opt/86server/cache/86Box-{{ pins.emu86box.tag }}-{{ ansible_facts['architecture'] }}.AppImage --appimage-extract"
         chdir: /opt/86server/vendor/86box/extract-tmp
       changed_when: true
 

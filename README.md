@@ -9,7 +9,8 @@ Run [86Box](https://86box.net) headless on a Linux server and host things on emu
 
 This repo is only the installer. Ansible sets up the host, so the same install can be repeated on any supported machine. Everything 86server installs, writes or keeps lives in `/opt/86server`: the programs, box disks, ISOs, settings, certificates, and the installer's own settings and logs (see [Install layout](#install-layout)).
 
-Supported: Arch Linux (more distros later, see [docs/adding-a-distro.md](docs/adding-a-distro.md)).
+Supported: Arch Linux (more distros later, see [docs/adding-a-distro.md](docs/adding-a-distro.md)), on x86_64 or aarch64.
+On aarch64 86server uses 86Box's NDR build, which has no dynamic recompiler: boxes work but run much slower than on x86_64.
 
 ## Install
 
@@ -88,7 +89,7 @@ write the media library.
 | `/opt/86server/cache` | Downloads and caches |
 | `/opt/86server/sftp` | Chroot for SFTP-only accounts |
 
-Versions are pinned in `ansible/inventories/example/group_vars/all/pins.yml`, which the first run copies into your inventory. Old versions stay on disk next to the new one, so a rollback means pointing `current` back.
+Versions are pinned in `ansible/inventories/example/group_vars/all/pins.yml`, which the first run copies into your inventory. The 86Box AppImage is pinned once per CPU architecture (`pins.emu86box.builds`). Old versions stay on disk next to the new one, so a rollback means pointing `current` back.
 
 ### Files in /etc are symlinks
 
