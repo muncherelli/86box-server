@@ -249,8 +249,15 @@ def request_sync():
 
 # ---------- certificates (lego) ----------
 
+# lego checks that the challenge record is visible before asking Let's Encrypt. It asks public resolvers, not the
+# LAN's: a home router caches "no such name" (for the zone's SOA minimum, often 30 minutes) from a lookup made
+# before the record existed, and a local DNS server may override names in the zone.
+LEGO_RESOLVERS = "1.1.1.1:53,1.0.0.1:53"
+
+
 def _lego_cmd(zone, state):
     return [config.CFG["lego_bin"], "run", "--log.format", "text", "--accept-tos", "--dns", "cloudflare",
+            "--dns.resolvers", LEGO_RESOLVERS,
             "--domains", "*." + zone, "--domains", zone, "--cert.name", zone, "--path", _mgr("lego"),
             "--server", "letsencrypt-staging" if state.get("staging") else "letsencrypt"] + \
         (["--email", state["email"]] if state.get("email") else [])

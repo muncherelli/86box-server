@@ -225,6 +225,7 @@ class SyncTest(Base):
         self.assertEqual([args[i + 1] for i, a in enumerate(args) if a == "--domains"], ["*." + ZONE, ZONE])
         self.assertEqual(args[args.index("--cert.name") + 1], ZONE)
         self.assertIn("letsencrypt-staging", args)
+        self.assertEqual(args[args.index("--dns.resolvers") + 1], "1.1.1.1:53,1.0.0.1:53")
         self.assertNotIn("--email", args)
         self.assertEqual(call["token"], TOKEN)
         self.assertNotIn(TOKEN, " ".join(args))
