@@ -21,19 +21,23 @@ def _list_page(req, msg=""):
     names = visible(req.user)
     admin = req.user["role"] == "admin"
     rows = []
+    defs = all_defs()
     for n in names:
         s = status(n)
         q = respond.esc(n)
+        res = defs.get(n, {}).get("resolution", "auto")
+        display = "Auto" if res == "auto" else res.replace("x", " × ")
         buttons = "".join('<button data-action="%s" data-vm="%s">%s</button> ' % (a, q, a.title())
                           for a in ("start", "stop", "reset"))
         links = '<a href="%s" target="_blank" rel="noopener">Console</a> <a href="/manage/boxes/%s/settings">Settings</a>' % (respond.esc(console_url(n)), q)
         if admin:
             links += ' <a href="/manage/boxes/%s">Edit</a>' % q
-        rows.append('<tr data-vm="%s"><td>%s</td><td data-state>%s</td><td data-nic>%s</td>'
+        rows.append('<tr data-vm="%s"><td>%s</td><td data-state>%s</td><td data-nic>%s</td><td data-display>%s</td>'
                     '<td data-cpu></td><td data-ram></td><td data-disk></td><td data-guard class="error">%s</td><td>%s %s</td></tr>'
-                    % (q, q, respond.esc(s["state"]), respond.esc(s["nic"]), respond.esc(s["guard"]), buttons, links))
+                    % (q, q, respond.esc(s["state"]), respond.esc(s["nic"]), respond.esc(display),
+                       respond.esc(s["guard"]), buttons, links))
     body = '<p class="error">%s</p>' % respond.esc(msg) if msg else ""
-    body += ('<table id="vm-table"><tr><th>Box</th><th>State</th><th>NIC</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Problems</th><th></th></tr>%s</table>'
+    body += ('<table id="vm-table"><tr><th>Box</th><th>State</th><th>NIC</th><th>Display</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Problems</th><th></th></tr>%s</table>'
              % "".join(rows)) if rows else "<p>No boxes yet.</p>"
     body += ('<dialog id="confirm"><p id="confirm-text"></p><button id="confirm-yes">Yes</button> '
              '<button id="confirm-no">Cancel</button></dialog>')

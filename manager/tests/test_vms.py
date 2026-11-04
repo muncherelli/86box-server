@@ -263,6 +263,10 @@ class VmsTest(unittest.TestCase):
         page = vms_pages._list_page(Req(user))[2].decode()
         self.assertIn("aa", page)
         self.assertNotIn('data-vm="bb"', page)
+        self.assertIn("<th>Display</th>", page)
+        self.assertIn("<td data-display>640 × 480</td>", page)
+        vms.edit_vm("aa", [], False, [], resolution="auto")
+        self.assertIn("<td data-display>Auto</td>", vms_pages._list_page(Req(user))[2].decode())
 
     def test_new_vm_form_post(self):
         body = b"name=test9&template=ppro200&disk_gb=&cd=os.iso&group=lab&group=web&user=bob&autostart=1&csrf=tok"
