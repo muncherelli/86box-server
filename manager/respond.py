@@ -24,8 +24,17 @@ def cookie_attrs(req):
     return "Path=/; HttpOnly; Secure; SameSite=Strict" if scheme(req) == "https" else "Path=/; HttpOnly; SameSite=Strict"
 
 
+def _host_name(host):
+    """The name part of a Host header ('a.lan:443' -> 'a.lan', '[::1]:80' -> '::1'), lowercased."""
+    try:
+        return (urllib.parse.urlsplit("//" + host.strip()).hostname or "").lower()
+    except ValueError:
+        return ""
+
+
 def origin_ok(req, hosts):
-    """A browser Origin header must name one of our hosts, over the scheme this request came in on."""
+    """A browser Origin header must be this request's own host (same origin), or one of our listed hosts, over the
+    scheme this request came in on. The panel is the server's default site, so it answers on any name or address."""
     origin = req.headers.get("Origin")
     if not origin:
         return True
@@ -36,7 +45,12 @@ def origin_ok(req, hosts):
         return False
     if parts.scheme != scheme(req) or parts.path or port not in (None, 80, 443):
         return False
-    return (parts.hostname or "") in [h.lower() for h in hosts if h]
+    name = (parts.hostname or "").lower()
+    if not name:
+        return False
+    if name == _host_name(req.headers.get("Host") or ""):
+        return True
+    return name in [h.lower() for h in hosts if h]
 
 
 def text(body, status=200, ctype="text/plain; charset=utf-8"):

@@ -23,9 +23,10 @@ cd 86server
 Or without the menu: `./86server update`. The first run puts the `86server` command on your PATH
 (`/usr/local/bin/86server`, a link to this clone), so after that you just type `86server` from anywhere.
 
-The defaults work as they are: the manager answers on this machine's own name (`http://<hostname>/`, and
-`https://` with Caddy's local CA) with a random admin password (`86server admin-password` shows it). Change the
-settings with `86server settings`, and add other secrets with `86server secrets`.
+The defaults work as they are: the manager is the server's default site, so it answers on its IP address and on
+any name that points at it (`http://<ip or name>/`, and `https://` with Caddy's local CA), with a random admin
+password (`86server admin-password` shows it). Change the settings with `86server settings`, and add other secrets
+with `86server secrets`.
 
 `86server update` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings live in `/opt/86server/inventory` and its secrets in `/opt/86server/secrets.yml`, both outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
 

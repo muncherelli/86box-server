@@ -11,7 +11,8 @@ sftp_only_users: []               # [{name: x, ssh_key: 'ssh-ed25519 ...'}], SFT
 # web manager's Cloudflare page), not here.
 lan_hosts: ["{{ ansible_facts['hostname'] }}"]
                                   # LAN names for the manager: plain http with no redirect AND https with Caddy's
-                                  # local CA (self-signed). The default is this machine's own name; add others
+                                  # local CA (self-signed). The manager also answers on any other name or IP (it is the
+                                  # default site); names listed here get their certificate up front. Add others
                                   # (e.g. box.lan) and point them at this host in your LAN DNS.
 publish_domains: []               # LAN-only domains sites may be published under (Caddy's local CA). Sites in a
                                   # Cloudflare zone need nothing here.

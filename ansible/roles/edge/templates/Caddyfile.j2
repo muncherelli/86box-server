@@ -50,6 +50,16 @@ http://{{ h }}, https://{{ h }} {
 }
 {% endfor %}
 
+# Default site: any other name or address that reaches this server (for example its IP) gets the manager too.
+# Names above, the panel name and published sites match first. https gets a certificate from Caddy's local CA
+# on first use; a visit by IP has no SNI, so the certificate is made for the address the browser connected to.
+http://, https:// {
+	tls internal {
+		on_demand
+	}
+	import b86_manager {http.request.scheme}
+}
+
 # Written by the manager (Cloudflare page or `86server cloudflare`): the control panel's name (panel.d) and
 # published sites (sites.d). Names in a Cloudflare zone use that zone's Let's Encrypt wildcard certificate.
 import /opt/86server/etc/caddy/panel.d/*.caddy
