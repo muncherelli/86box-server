@@ -3,14 +3,12 @@
 Description=86server Cloudflare Tunnel (cloudflared)
 After=network-online.target
 Wants=network-online.target
-# Runs only when a tunnel token exists: from the secrets file (Ansible) or set up in the web manager's Cloudflare page.
-ConditionPathExists=|/opt/86server/etc/cloudflared.env
-ConditionPathExists=|/opt/86server/data/manager/cloudflared.env
+# Runs only once the manager has set up a tunnel (Cloudflare page or `86server cloudflare`).
+ConditionPathExists=/opt/86server/data/manager/cloudflared.env
 
 [Service]
-# TUNNEL_TOKEN comes from these files; the web manager's file wins when both exist.
-EnvironmentFile=-/opt/86server/etc/cloudflared.env
-EnvironmentFile=-/opt/86server/data/manager/cloudflared.env
+# TUNNEL_TOKEN, written by the manager.
+EnvironmentFile=/opt/86server/data/manager/cloudflared.env
 ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel run
 DynamicUser=yes
 NoNewPrivileges=yes

@@ -85,7 +85,7 @@ function csrfToken() {
   setInterval(pollStats, 5000);
 })();
 
-// Dev mode only (./update.sh dev): reload the page after the manager restarts.
+// Dev mode only (86server dev): reload the page after the manager restarts.
 (function () {
   if (!document.querySelector('meta[name="dev-reload"]')) return;
   var seen = null;

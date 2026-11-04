@@ -40,7 +40,6 @@ class OriginTest(unittest.TestCase):
     def setUp(self):
         import config
         self.cfg = dict(config.CFG)
-        config.CFG["manager_host"] = "mgr.example.com"
         config.CFG["manager_hosts"] = ["box.lan", "box.example.com"]
         server.load_routes()
         server.ROUTES.append(("POST", re.compile("/manage/x"), lambda r, m: respond.text("hi"), None))
@@ -54,7 +53,6 @@ class OriginTest(unittest.TestCase):
         return server.dispatch(FakeReq("POST", "/manage/x", origin, proto))[0]
 
     def test_each_host_on_its_own_scheme(self):
-        self.assertEqual(self.status("https://mgr.example.com", "https"), 200)
         self.assertEqual(self.status("http://box.lan", "http"), 200)
         self.assertEqual(self.status("https://box.lan", "https"), 200)
         self.assertEqual(self.status("https://box.example.com", "https"), 200)

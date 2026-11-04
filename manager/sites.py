@@ -1,6 +1,8 @@
 """Published sites: validated site records -> Caddy site files, validate, reload.
 
 A site is a set of forwarding rules (where traffic goes) and filtering rules (what may pass).
+Sites in a Cloudflare zone (edge.py) use the zone's wildcard certificate and get a tunnel route and DNS record;
+sites under publish_domains use Caddy's local CA (LAN only).
 Nothing here is specific to one guest OS; optional presets (like iis4) add extra filters.
 
 sites.json holds the records. render_site() turns one record into Caddy text and
@@ -100,8 +102,10 @@ def check_site(site):
     host = site.get("host", "")
     if not isinstance(host, str) or not re.fullmatch(HOST_RE, host):
         raise ValueError("bad host name")
-    if not any(host == d or host.endswith("." + d) for d in config.CFG["publish_domains"]):
-        raise ValueError("host is not under an approved domain")
+    if not config.zone_for(host) and not any(host == d or host.endswith("." + d)
+                                             for d in config.CFG["publish_domains"]):
+        raise ValueError("host is not in a Cloudflare zone set up for 86server (one level below it) "
+                         "or under publish_domains")
 
     scheme = site.get("scheme", "https")
     if scheme not in SCHEMES:
@@ -158,7 +162,8 @@ def preset_regex(name, items):
     return "|".join(parts)
 
 
-def render_site(site, edge_mode="acme"):
+def render_site(site, cert_zone=""):
+    """cert_zone: the Cloudflare zone whose wildcard certificate covers the host; '' = Caddy's local CA."""
     s = check_site(site)
     r = s["rules"]
     presets = [(n, preset_regex(n, r["profiles"][n])) for n in PRESETS if n in r["profiles"]]
@@ -168,7 +173,9 @@ def render_site(site, edge_mode="acme"):
     if s["scheme"] == "http":
         out = ["# managed by 86server: do not edit", "http://" + s["host"] + " {"]
     else:
-        out = ["# managed by 86server: do not edit", s["host"] + " {", "\timport b86_edge"]
+        certs = config.CFG["certs_dir"]
+        tls = ("tls %s/%s.crt %s/%s.key" % (certs, cert_zone, certs, cert_zone)) if cert_zone else "tls internal"
+        out = ["# managed by 86server: do not edit", s["host"] + " {", "\t" + tls]
     out += ["\trequest_body {", "\t\tmax_size " + r["max_body"], "\t}"]
     if r["block_encoded"]:
         out.append("\t@b86enc expression `" + ENC_EXPR + "`")
@@ -253,7 +260,7 @@ def apply_sites(sites=None):
         sites_dir = config.CFG["sites_dir"]
         work = os.path.join(config.CFG["data_root"], "manager")
         try:
-            files = {s["host"] + ".caddy": render_site(s, config.CFG["edge_mode"])
+            files = {s["host"] + ".caddy": render_site(s, config.zone_for(s["host"]))
                      for s in sites if s.get("enabled", True)}
         except ValueError as e:
             return False, str(e)

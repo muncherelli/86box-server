@@ -1,10 +1,10 @@
 # managed by 86server: do not edit
 [Unit]
-Description=86server: renew the control panel certificate when it is due
+Description=86server: renew the Cloudflare zone certificates that are due
 After=network-online.target
 Wants=network-online.target
-# Nothing to renew until the Cloudflare page has set up a hostname.
-ConditionPathExists=/opt/86server/data/manager/panel.json
+# Nothing to renew until Cloudflare is set up (86server cloudflare or the Cloudflare page).
+ConditionPathExists=/opt/86server/data/manager/edge.json
 
 [Service]
 Type=oneshot

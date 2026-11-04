@@ -1,6 +1,6 @@
 """Terminal fallback for the web manager. Run as the 86server user.
 
-list | start|stop|restart <name> | check-password <user> | set-password <user> | renew-certs
+list | start|stop|restart <name> | check-password <user> | set-password <user> | renew-certs | cloudflare ...
 The password commands read the password from stdin, so it never shows up in the process list.
 """
 import sys
@@ -66,10 +66,13 @@ def main(argv):
     if len(argv) == 2 and argv[0] == "set-password":
         return cmd_set_password(argv[1])
     if argv == ["renew-certs"]:
-        import panel
-        return panel.renew()
+        import edge
+        return edge.renew()
+    if argv[:1] == ["cloudflare"]:
+        import cloudflare_cli
+        return cloudflare_cli.main(argv[1:])
     print("usage: cli.py list | start|stop|restart <name> | check-password <user> | set-password <user>"
-          " | renew-certs",
+          " | renew-certs | cloudflare ...",
           file=sys.stderr)
     return 2
 

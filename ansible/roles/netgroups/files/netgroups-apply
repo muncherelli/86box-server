@@ -315,7 +315,7 @@ def apply_all(ctx, norm, cur, host):
             finally:
                 os.unlink(scratch)
     if dhcp_text is not None and not os.path.exists("/etc/systemd/system/86server-dnsmasq.service"):
-        raise ApplyError("the DHCP unit is not installed; run ./update.sh once")
+        raise ApplyError("the DHCP unit is not installed; run 86server update once")
 
     gone = bridges_to_go(groups, cur["groups"], cur["orphans"])
     # NetworkManager must keep ignoring a bridge until it is really gone, or it takes over the box's port.

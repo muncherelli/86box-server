@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# ./update.sh dev: copy manager/ to the host and restart the manager whenever a file changes.
+# 86server dev: copy manager/ to the host and restart the manager whenever a file changes.
 # Open pages reload themselves (the manager is in dev mode while the .dev marker exists).
 
 DEV_DEST=/opt/86server/manager
@@ -19,12 +19,12 @@ dev_stamp() {
 dev_cleanup() {
   sudo rm -f "$DEV_DEST/.dev"
   echo
-  echo "Dev mode off. The host still runs your last dev copy; ./update.sh deploys the committed state."
+  echo "Dev mode off. The host still runs your last dev copy; 86server update deploys the committed state."
 }
 
 run_dev() {
   command -v rsync >/dev/null 2>&1 || die "rsync is required (sudo pacman -S rsync)"
-  [ -d "$DEV_DEST" ] || die "$DEV_DEST not found. Run ./update.sh once first."
+  [ -d "$DEV_DEST" ] || die "$DEV_DEST not found. Run 86server update once first."
   sudo -v
   trap dev_cleanup EXIT
   trap 'exit 0' INT TERM

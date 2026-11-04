@@ -28,7 +28,9 @@ Big uploads read `req.rfile` directly, exactly `req.length` bytes.
 
 ### Other modules
 
-- `config.CFG`: settings dict (`data_root`, `manager_host`, `emu86box_tag`, ...). Tests set `B86_DATA_ROOT`.
+- `config.CFG`: settings dict (`data_root`, `manager_hosts`, `emu86box_tag`, ...). Tests set `B86_DATA_ROOT`.
+- `config.edge_state()`, `zone_for(host)`, `panel_hostname()`, `tunnel_on()`: the Cloudflare setup, read live from
+  `<data_root>/manager/edge.json`.
 - `config.netgroups()` and `config.netpolicy()`: the network groups and group pairs as the root helper applied them
   (read live from `/opt/86server/etc/netgroups.json` and `netpolicy.json`; never read `CFG["netgroups"]`).
   Tests point `config.NETGROUPS_PATH`, `NETPOLICY_PATH` and `NETAPPLY_RESULT` at a temp folder.
@@ -41,10 +43,12 @@ Big uploads read `req.rfile` directly, exactly `req.length` bytes.
 - `units.run(verb, unit)` and `units.is_active(unit)`: tests patch these; never call systemctl directly.
 - `secrets_store.get/put/delete/info`: secrets in `<data_root>/manager/secrets.json` (0600). Never log or show a value;
   `info()` gives only the date and last 4 characters.
-- `cloudflare.py`: the Cloudflare API client (urllib); `panel.py`: the Cloudflare page's job (Let's Encrypt
-  certificate through lego, `<panel_dir>/panel.caddy`, tunnel, DNS record). Settings it reads from `config.CFG`:
+- `cloudflare.py`: the Cloudflare API client (urllib); `edge.py`: zones with Let's Encrypt wildcard certificates (lego),
+  `<panel_dir>/panel.caddy`, the tunnel and DNS records; `sync()` makes them match `edge.json` and is safe to
+  repeat. `cloudflare_ui.py` (web page) and `cloudflare_cli.py` (`cli.py cloudflare`) only change the state and sync.
+  Settings it reads from `config.CFG`:
   `certs_dir`, `panel_dir`, `lego_bin`, `validate_snippets` (see `config.load()` for defaults). `cli.py renew-certs`
-  renews the certificate when it has under 30 days left.
+  renews certificates with 30 days or fewer left.
 - `sites.caddy_validate(text)`: check Caddy site text against the snippet stubs in `validate_snippets`.
 - `respond.page(req, title, body_html)` wraps a page in `pages/layout.html`. Escape every value with `respond.esc`.
   Forms need `<input type="hidden" name="csrf" value="...">` with `req.session["csrf"]`.

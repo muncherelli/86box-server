@@ -16,36 +16,50 @@ Supported: Arch Linux (more distros later, see [docs/adding-a-distro.md](docs/ad
 ```sh
 git clone https://github.com/muncherelli/86server
 cd 86server
-./update.sh            # first run: creates /opt/86server/inventory and /opt/86server/secrets.yml, then stops
-$EDITOR /opt/86server/inventory/group_vars/all/main.yml   # set at least one name, e.g. lan_hosts: [box.lan]
-./update.sh secrets-edit     # optional: other secrets (a random admin password is already set)
-./update.sh            # installs everything
-./update.sh admin-password   # shows the web manager's admin login
+./86server             # menu: choose 1) Install / update
 ```
 
-`./update.sh` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings live in `/opt/86server/inventory` and its secrets in `/opt/86server/secrets.yml`, both outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
+Or without the menu: `./86server update`. The first run puts the `86server` command on your PATH
+(`/usr/local/bin/86server`, a link to this clone), so after that you just type `86server` from anywhere.
 
-Secrets are not encrypted and need no extra password: the file belongs to root with mode 600, so reading or editing it takes sudo. For each run `./update.sh` copies it with sudo into a private, memory-only folder (`$XDG_RUNTIME_DIR`) for Ansible and deletes the copy when the run ends.
+The defaults work as they are: the manager answers on this machine's own name (`http://<hostname>/`, and
+`https://` with Caddy's local CA) with a random admin password (`86server admin-password` shows it). Change the
+settings with `86server settings`, and add other secrets with `86server secrets`.
 
-To reach the manager from outside, or to give it a real certificate, use the Cloudflare page in the web manager: see [docs/cloudflare.md](docs/cloudflare.md).
+`86server update` installs Ansible and the pinned collections when they are missing, then runs the playbook. Run it again any time: it only changes what differs. This host's settings live in `/opt/86server/inventory` and its secrets in `/opt/86server/secrets.yml`, both outside the repo, so your hostnames and secrets never end up in the repo, and a fresh clone picks up the same settings.
+
+Secrets are not encrypted and need no extra password: the file belongs to root with mode 600, so reading or editing it takes sudo. For each run `86server update` copies it with sudo into a private, memory-only folder (`$XDG_RUNTIME_DIR`) for Ansible and deletes the copy when the run ends.
+
+## Cloudflare: tunnel and real certificates
+
+Give 86server a Cloudflare API token and it puts the control panel and every published site on your own domain:
+a Let's Encrypt wildcard certificate per zone (DNS challenge, so nothing has to reach the server), one Cloudflare
+Tunnel for this server (no open ports) and the DNS records. Because the certificates are real, the same names work
+on your LAN without the tunnel: point local DNS for `example.com` and `*.example.com` at the server. Run
+`86server cloudflare` (or use the Cloudflare page in the web manager); see [docs/cloudflare.md](docs/cloudflare.md).
 
 ## Commands
 
+`86server` with no command shows a menu with the common ones.
+
 | Command | What it does |
 | --- | --- |
-| `./update.sh` | Install or update the host (`--verbose` for full Ansible output) |
-| `./update.sh status` | Services, boxes and bridges, without an Ansible run |
-| `./update.sh box list` | Boxes from the terminal; also `box start\|stop\|restart <name>` |
-| `./update.sh secrets-edit` | Edit the secrets file (`sudoedit`; root only) |
-| `./update.sh admin-password` | Show the web manager's admin login (warns if it was changed in the web manager) |
-| `./update.sh admin-password reset` | Set a new random admin password, save it in the secrets file and sign out old admin logins |
-| `./update.sh dev` | Copy `manager/` to the host on every change and restart the manager |
+| `86server update` | Install or update the host (`--verbose` for full Ansible output) |
+| `86server status` | Services, boxes and bridges, without an Ansible run |
+| `86server box list` | Boxes from the terminal; also `box start\|stop\|restart <name>` |
+| `86server cloudflare` | Guided setup of the Cloudflare token, zones, panel name and tunnel; `86server cloudflare help` for the rest |
+| `86server admin-password` | Show the web manager's admin login (warns if it was changed in the web manager) |
+| `86server admin-password reset` | Set a new random admin password, save it in the secrets file and sign out old admin logins |
+| `86server settings` | Edit this host's settings, then run `86server update` |
+| `86server secrets` | Edit the secrets file (`sudoedit`; root only) |
+| `86server log` | Show the last update log |
+| `86server dev` | Copy `manager/` to the host on every change and restart the manager |
 
 ## The 86server account
 
 Everything runs as one service account, `86server`, with UID and GID 86: the boxes, the web manager,
 the console proxy and the certificate timer. It has no shell and no password. Install as any other
-login user (for example `linuxuser`); `./update.sh` stops if a different account already has the
+login user (for example `linuxuser`); `86server update` stops if a different account already has the
 name `86server` or ID 86. Login users listed in `media_users` join the `86server` group to read and
 write the media library.
 
@@ -61,15 +75,15 @@ write the media library.
 | `/opt/86server/libexec` | Helper scripts used by the services |
 | `/opt/86server/data/boxes` | One folder per box: its `86box.cfg`, disk images (`disks/`), snapshots |
 | `/opt/86server/media` | Media library, one folder per 86Box drive type: `iso/`, `floppy/`, `disk/`, `zip/`, `mo/`, `tape/`, `cassette/`, `cartridge/` (the Media page lists the file types for each) |
-| `/opt/86server/data/manager` | Manager state: users, sessions, secrets (`secrets.json`), audit log |
+| `/opt/86server/data/manager` | Manager state: users, sessions, secrets (`secrets.json`: the Cloudflare token), the Cloudflare setup (`edge.json`), audit log |
 | `/opt/86server/data/caddy` | Caddy's data: its local CA and the certificates it manages |
-| `/opt/86server/data/certs` | Certificates the Cloudflare page gets from Let's Encrypt |
-| `/opt/86server/etc` | Generated settings: `manager.json`, network groups, `cloudflared.env`, `ssh/sftp-keys/` |
+| `/opt/86server/data/certs` | Let's Encrypt wildcard certificates, one per Cloudflare zone (`<zone>.crt`, `.key`) |
+| `/opt/86server/etc` | Generated settings: `manager.json`, network groups, `ssh/sftp-keys/` |
 | `/opt/86server/etc/caddy` | `Caddyfile`, `sites.d/` (published sites) and `panel.d/` (the control panel name) |
 | `/opt/86server/system/etc` | The real files for systemd units, the Caddy drop-in, polkit, tmpfiles, sshd, sysctl and NetworkManager (see below) |
-| `/opt/86server/inventory` | This host's settings: `hosts.yml`, `group_vars/all/` (`main.yml`, `pins.yml`). Owned by the person who runs `./update.sh`, mode 700. No secrets |
-| `/opt/86server/secrets.yml` | This host's secrets (admin password, Cloudflare tokens). Plain YAML, `root:root` mode 600: reading or editing it takes sudo |
-| `/opt/86server/log` | `./update.sh` run logs (newest 30) |
+| `/opt/86server/inventory` | This host's settings: `hosts.yml`, `group_vars/all/` (`main.yml`, `pins.yml`). Owned by the person who runs `86server`, mode 700. No secrets |
+| `/opt/86server/secrets.yml` | This host's secrets (the admin password). Plain YAML, `root:root` mode 600: reading or editing it takes sudo |
+| `/opt/86server/log` | `86server update` run logs (newest 30) |
 | `/opt/86server/cache/ansible-collections` | Ansible collections the installer downloads |
 | `/opt/86server/cache` | Downloads and caches |
 | `/opt/86server/sftp` | Chroot for SFTP-only accounts |
@@ -100,4 +114,4 @@ The one exception is `/run/86server`: a small in-memory folder for runtime statu
 
 86server is licensed under the GNU General Public License v2.0 (SPDX: `GPL-2.0-only`), the same license as 86Box. See [LICENSE](LICENSE).
 
-86server does not bundle 86Box or its ROM set: `./update.sh` downloads the pinned releases from their own projects at install time.
+86server does not bundle 86Box or its ROM set: `86server update` downloads the pinned releases from their own projects at install time.

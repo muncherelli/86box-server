@@ -35,7 +35,6 @@ class AuthTest(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()
         config.CFG["data_root"] = self.dir.name
-        config.CFG["manager_host"] = "mgr.example.com"
         os.makedirs(os.path.join(self.dir.name, "manager"))
         auth.SESSIONS.clear()
         auth.FAILS.clear()

@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# ./update.sh admin-password [reset]: show the web manager's admin password, or set a new random one.
+# 86server admin-password [reset]: show the web manager's admin password, or set a new random one.
 # The password lives in /opt/86server/secrets.yml as secret_admin_password. Ansible only uses it to create
 # the first admin, so after a change in the web manager that copy goes stale: plain admin-password says so.
 
@@ -33,7 +33,7 @@ os.replace(tmp, path)' "$SECRETS_FILE"
 
 admin_password() {
   check_secrets
-  [ -f /opt/86server/manager/cli.py ] || die "86server is not installed yet: run ./update.sh first"
+  [ -f /opt/86server/manager/cli.py ] || die "86server is not installed yet: run 86server update first"
   case "${1:-}" in
     "")
       local pw
@@ -44,7 +44,7 @@ admin_password() {
       if ! printf '%s\n' "$pw" | manager_cli check-password "$ADMIN_USER" >/dev/null 2>&1; then
         echo
         echo "warning: the manager does not accept this password (it was changed in the web manager?)."
-        echo "Set a new one with: ./update.sh admin-password reset"
+        echo "Set a new one with: 86server admin-password reset"
       fi
       ;;
     reset)
@@ -58,7 +58,7 @@ admin_password() {
       echo "(saved in $SECRETS_FILE; existing $ADMIN_USER logins were signed out)"
       ;;
     *)
-      die "usage: ./update.sh admin-password [reset]"
+      die "usage: 86server admin-password [reset]"
       ;;
   esac
 }

@@ -317,8 +317,8 @@ def locations_html():
 
 def media_page(req, m):
     parts = [locations_html()]
-    if config.CFG.get("edge_mode") in ("tunnel", "cf-origin"):
-        parts.append("<p>Files over 100 MB: use SFTP (Cloudflare limits uploads).</p>")
+    if config.tunnel_on():
+        parts.append("<p>Through the Cloudflare tunnel, uploads over 100 MB fail: use the LAN name or SFTP.</p>")
     parts.append('<h2>Upload</h2><form id="upload"><select name="kind">%s</select> '
                  '<input type="file" name="file"> <input type="submit" value="Upload"> '
                  '<progress id="bar" value="0" max="100" hidden></progress> <span id="msg"></span></form>'

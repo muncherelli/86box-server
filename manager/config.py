@@ -22,12 +22,9 @@ def load():
     cfg.setdefault("media_root", "/opt/86server/media")
     cfg.setdefault("emu86box_tag", "")
     cfg.setdefault("share_group", "86server")
-    cfg.setdefault("edge_mode", "acme")
-    cfg.setdefault("manager_host", "localhost")
     cfg.setdefault("manager_hosts", [])
     cfg.setdefault("publish_domains", [])
     cfg.setdefault("port_forward_limits", [])
-    cfg.setdefault("public_ipv4", "")
     if os.environ.get("B86_DATA_ROOT"):
         cfg["data_root"] = os.environ["B86_DATA_ROOT"]
     # Everything 86server owns lives under /opt/86server, Caddy files included (Ansible writes these too).
@@ -45,18 +42,39 @@ def media_dir(*parts):
 
 
 def manager_hosts():
-    """Every name the manager is served under (manager_host, lan_hosts, tunnel_hosts, the Cloudflare panel name)."""
+    """Every name the manager is served under: lan_hosts and the Cloudflare panel name."""
     hosts = list(CFG.get("manager_hosts") or [])
-    extra = [CFG.get("manager_host"), panel_hostname()]
-    hosts += [h for h in extra if h and h not in hosts]
+    panel = panel_hostname()
+    if panel and panel not in hosts:
+        hosts.append(panel)
     return hosts
 
 
+def edge_state():
+    """The Cloudflare setup (manager/edge.json, written by edge.py), read live."""
+    return _read_cached(os.path.join(CFG["data_root"], "manager", "edge.json"), {})
+
+
 def panel_hostname():
-    """The control panel name set up on the Cloudflare page, if any (read live from panel.json)."""
-    path = os.path.join(CFG["data_root"], "manager", "panel.json")
-    panel = _read_cached(path, {})
-    return (panel.get("hostname") or "") if panel.get("active") else ""
+    """The control panel name set up for Cloudflare, if any."""
+    st = edge_state()
+    panel = st.get("panel") or ""
+    return panel if panel and zone_for(panel, st.get("zones") or {}) else ""
+
+
+def tunnel_on():
+    st = edge_state()
+    return bool(st.get("tunnel") and st.get("tunnel_id") and st.get("dns"))
+
+
+def zone_for(host, zones=None):
+    """The Cloudflare zone whose wildcard certificate covers host (the zone itself or one label below), or ''."""
+    if zones is None:
+        zones = edge_state().get("zones") or {}
+    for zone in zones:
+        if host == zone or (host.endswith("." + zone) and "." not in host[:-len(zone) - 1]):
+            return zone
+    return ""
 
 
 def _read_cached(path, default):

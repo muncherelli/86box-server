@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Progress display for ./update.sh. Reads the events written by
+# Progress display for 86server update. Reads the events written by
 # ansible/callback_plugins/progress.py and draws one line per phase.
 
 PHASES=()

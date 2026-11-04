@@ -18,15 +18,15 @@ ensure_secrets() {
 
 # Refuses to run when the secrets file is readable by others or secrets sit in the inventory.
 check_secrets() {
-  sudo test -f "$SECRETS_FILE" || die "Missing $SECRETS_FILE (run ./update.sh once first)"
+  sudo test -f "$SECRETS_FILE" || die "Missing $SECRETS_FILE (run 86server update once first)"
   [ "$(sudo stat -c '%U:%G %a' "$SECRETS_FILE")" = "root:root 600" ] ||
     die "$SECRETS_FILE must be root:root, mode 600: sudo chown root:root $SECRETS_FILE && sudo chmod 600 $SECRETS_FILE"
   local bad
   bad=$(grep -rlE '^\s*(secret|vault)_[a-z0-9_]+:' "$INVENTORY_DIR" --include='*.yml' || true)
-  [ -z "$bad" ] || die "Secrets found in the inventory: $bad. Move them into $SECRETS_FILE (./update.sh secrets-edit), then delete them there."
+  [ -z "$bad" ] || die "Secrets found in the inventory: $bad. Move them into $SECRETS_FILE (86server secrets), then delete them there."
 }
 
-# ./update.sh secrets-edit
+# 86server secrets
 secrets_edit() {
   ensure_secrets
   sudoedit "$SECRETS_FILE"

@@ -6,7 +6,7 @@ import string
 import urllib.parse
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-# ./update.sh dev creates this file; the normal deploy (rsync --delete) removes it.
+# 86server dev creates this file; the normal deploy (rsync --delete) removes it.
 DEV_MARKER = os.path.join(_DIR, ".dev")
 
 

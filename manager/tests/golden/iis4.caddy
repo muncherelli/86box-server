@@ -1,6 +1,6 @@
 # managed by 86server: do not edit
 legacy.example.com {
-	import b86_edge
+	tls internal
 	request_body {
 		max_size 1MB
 	}

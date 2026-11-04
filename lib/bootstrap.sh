@@ -11,7 +11,7 @@ ensure_ansible() {
   sudo pacman -S --needed --noconfirm ansible-core python
 }
 
-# nano is the editor used by ./update.sh secrets-edit.
+# nano is the default editor for 86server settings and secrets.
 ensure_nano() {
   command -v nano >/dev/null 2>&1 && return 0
   echo "Installing nano ..."
@@ -34,7 +34,7 @@ set_become_args() {
 }
 
 # The inventory (settings, mode 700), the install logs and the Ansible collections belong to
-# the person who runs ./update.sh, so it can write them without sudo.
+# the person who runs 86server, so it can write them without sudo.
 ensure_install_dirs() {
   local d
   for d in "$INVENTORY_DIR" "$LOG_DIR" "$COLLECTIONS_DIR"; do
@@ -44,13 +44,24 @@ ensure_install_dirs() {
   done
 }
 
-# First run: copy the example inventory to $INVENTORY_DIR and stop.
+# First run: copy the example settings to $INVENTORY_DIR. They work as they are; change them later.
 ensure_local_inventory() {
   local src="$REPO/ansible/inventories/example"
   local dst="$INVENTORY_DIR"
   [ -f "$dst/hosts.yml" ] && return 0
   cp -r "$src/." "$dst/"
-  echo "Created $dst."
-  echo "Edit it (and secrets with ./update.sh secrets-edit), then run ./update.sh again."
-  exit 0
+  echo "Created $dst with the default settings (change them with: 86server settings)."
+}
+
+settings_edit() {
+  "$EDITOR" "$INVENTORY_DIR/group_vars/all/main.yml"
+  echo "Run 86server update to apply the settings."
+}
+
+# Puts the 86server command on the PATH: /usr/local/bin/86server -> this clone.
+link_command() {
+  local link=/usr/local/bin/86server
+  [ "$(readlink "$link" 2>/dev/null)" = "$REPO/86server" ] && return 0
+  sudo ln -sfn "$REPO/86server" "$link"
+  echo "Linked $link -> $REPO/86server"
 }

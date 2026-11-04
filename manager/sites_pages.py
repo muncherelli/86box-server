@@ -89,7 +89,17 @@ def _list(req, error=""):
                     "on" if s.get("enabled", True) else "off",
                     h, csrf, "Disable" if s.get("enabled", True) else "Enable", h, csrf))
     edit = next((s for s in load_sites() if s["host"] == req.query.get("edit", [""])[0]), {})
-    body = ('<table><tr><th>Host</th><th>Box</th><th>Upstream</th><th>Public side</th><th>State</th><th></th></tr>%s</table>'
+    zones = sorted(config.edge_state().get("zones") or {})
+    where = []
+    if zones:
+        where.append("one level below a Cloudflare zone (%s): real certificate, and through the tunnel when it is on"
+                     % ", ".join("<code>%s</code>" % e(z) for z in zones))
+    if config.CFG["publish_domains"]:
+        where.append("under %s: Caddy's local certificate, LAN only"
+                     % ", ".join("<code>%s</code>" % e(d) for d in config.CFG["publish_domains"]))
+    hint = ("<p>Sites can use names %s.</p>" % "; or ".join(where)) if where else \
+        "<p>Set up a Cloudflare zone on the Cloudflare page (or publish_domains in the settings) to publish sites.</p>"
+    body = hint + ('<table><tr><th>Host</th><th>Box</th><th>Upstream</th><th>Public side</th><th>State</th><th></th></tr>%s</table>'
             '<h2>%s</h2>%s') % (rows, "Edit site" if edit else "Publish a site", _form(req, edit, error))
     return respond.page(req, "Sites", body)
 
@@ -102,6 +112,8 @@ def _commit(req, new_sites, action, host):
         save_sites(old)
         return False, msg
     store.audit(req.user["name"], req.ip, action, host)
+    import edge  # here, not at the top: edge imports sites
+    edge.request_sync()  # tunnel routes and DNS records follow the sites (no-op without Cloudflare)
     return True, msg
 
 

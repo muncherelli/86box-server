@@ -8,7 +8,7 @@ from unittest import mock
 import cloudflare
 import cloudflare_ui
 import config
-import panel
+import edge
 import secrets_store
 import server
 
@@ -54,7 +54,7 @@ class Base(unittest.TestCase):
         self.saved = dict(config.CFG)
         config.CFG.update(data_root=self.root)
         cloudflare_ui._zones_cache.update(at=0.0, last4="", zones=None, error="")
-        panel.JOB.update(kind="", running=False, steps=[], done="", ok=None)
+        edge.JOB.update(kind="", running=False, steps=[], done="", ok=None, again=False)
 
     def tearDown(self):
         config.CFG.clear()
@@ -113,7 +113,7 @@ class PageTest(Base):
         self.assertNotIn(TOKEN, html)
         self.assertIn("9876", html)
         self.assertIn("1 zone(s)", html)
-        self.assertIn('value="z1"', html)
+        self.assertIn('name="zones" value="example.com"', html)
 
     def test_save_token_verifies_first(self):
         with mock.patch.object(cloudflare, "list_zones", side_effect=cloudflare.CFError("GET /zones: Invalid token")):
@@ -130,14 +130,14 @@ class PageTest(Base):
     def test_setup_starts_job_with_form_choices(self):
         secrets_store.put("cf_api_token", TOKEN)
         with mock.patch.object(cloudflare, "list_zones", return_value=ZONES), \
-                mock.patch.object(panel, "start", return_value=True) as start:
+                mock.patch.object(edge, "start", return_value=True) as start:
             status, _, _ = cloudflare_ui.h_setup(
-                Req("POST", body=b"zone=z1&name=box&staging=on&tunnel=on&email="), None)
+                Req("POST", body=b"zones=example.com&zone=example.com&name=box&staging=on&tunnel=on&email="), None)
         self.assertEqual(status, 303)
-        kind, fn, steps, state, token, replace = start.call_args[0]
-        self.assertIs(fn, panel.setup)
-        self.assertEqual(state["hostname"], "box.example.com")
-        self.assertEqual(state["account_id"], "acc")
+        kind, fn, state, token, replace = start.call_args[0]
+        self.assertIs(fn, edge.sync)
+        self.assertEqual(state["panel"], "box.example.com")
+        self.assertEqual(state["zones"], {"example.com": {"id": "z1", "account_id": "acc"}})
         self.assertTrue(state["staging"] and state["tunnel"])
         self.assertEqual(token, TOKEN)
         self.assertFalse(replace)
@@ -146,12 +146,24 @@ class PageTest(Base):
     def test_setup_rejects_unknown_zone_and_bad_name(self):
         secrets_store.put("cf_api_token", TOKEN)
         with mock.patch.object(cloudflare, "list_zones", return_value=ZONES), \
-                mock.patch.object(panel, "start") as start, mock.patch("units.is_active", return_value=False):
-            for body in (b"zone=zz&name=box", b"zone=z1&name=bad_name"):
+                mock.patch.object(edge, "start") as start, mock.patch("units.is_active", return_value=False):
+            for body in (b"zones=zz.net&name=box", b"zone=example.com&name=bad_name"):
                 status, _, page = cloudflare_ui.h_setup(Req("POST", body=body), None)
                 self.assertEqual(status, 200)
                 self.assertTrue(re.search(r'class="error">[^<]+<', page.decode()))
         start.assert_not_called()
+
+    def test_status_section_shows_routes_and_local_dns(self):
+        edge.save({"zones": {"example.com": {"id": "z1", "account_id": "acc",
+                                             "cert": {"expires": "2027-01-01T00:00:00Z"}}},
+                   "panel": "box.example.com", "tunnel": True, "tunnel_id": "t1", "tunnel_name": "86server-x",
+                   "dns": ["box.example.com"]})
+        with mock.patch("units.is_active", return_value=True):
+            html = cloudflare_ui._status_section(Req())
+        self.assertIn("https://box.example.com/", html)
+        self.assertIn("*.example.com</code>", html)
+        self.assertIn("2027-01-01", html)
+        self.assertIn("/manage/cloudflare/off", html)
 
     def test_status_json(self):
         status, headers, body = cloudflare_ui.h_status(Req(path="/manage/api/cloudflare/status"), None)

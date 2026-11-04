@@ -1,27 +1,14 @@
 {% set lan = lan_hosts | default([]) %}
-{% set tun = tunnel_hosts | default([]) %}
 {
 	admin unix//run/caddy/admin.sock
-{% if edge_mode == 'acme' %}
-	email {{ acme_email }}
-{% endif %}
-{% if edge_mode == 'internal' or lan | length > 0 %}
 	# Caddy runs unprivileged and cannot add its local CA to the system store; trust it on clients instead.
 	skip_install_trust
-{% endif %}
-{% if edge_mode == 'tunnel' or tun | length > 0 %}
-	# cloudflared connects from localhost: take the visitor's address from Cloudflare's header.
+	# cloudflared connects from localhost: take the visitor's address from Cloudflare's header. Visitors on the
+	# LAN connect directly, so their own address is used and the header is ignored.
 	servers {
 		trusted_proxies static 127.0.0.1/32 ::1/128
 		client_ip_headers Cf-Connecting-Ip
 	}
-{% endif %}
-}
-
-(b86_edge) {
-{% if edge_mode == 'internal' %}
-	tls internal
-{% endif %}
 }
 
 # The manager, its consoles and the console websocket. Argument: the scheme the visitor uses.
@@ -54,13 +41,6 @@
 		redir * /manage/ 302
 	}
 }
-{% if manager_host | default('') %}
-
-{{ ('http://' ~ manager_host) if edge_mode == 'tunnel' else manager_host }} {
-	import b86_edge
-	import b86_manager {{ 'https' if edge_mode == 'tunnel' else '{http.request.scheme}' }}
-}
-{% endif %}
 {% for h in lan %}
 
 # LAN: plain http (no redirect) and https with Caddy's own local CA.
@@ -69,13 +49,8 @@ http://{{ h }}, https://{{ h }} {
 	import b86_manager {http.request.scheme}
 }
 {% endfor %}
-{% for h in tun %}
 
-# Cloudflare Tunnel: cloudflared sends plain http to localhost:80; the visitor is on https at Cloudflare.
-http://{{ h }} {
-	import b86_manager https
-}
-{% endfor %}
-
+# Written by the manager (Cloudflare page or `86server cloudflare`): the control panel's name (panel.d) and
+# published sites (sites.d). Names in a Cloudflare zone use that zone's Let's Encrypt wildcard certificate.
 import /opt/86server/etc/caddy/panel.d/*.caddy
 import /opt/86server/etc/caddy/sites.d/*.caddy

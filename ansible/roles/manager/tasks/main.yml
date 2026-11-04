@@ -10,7 +10,7 @@
     rsync_opts:
       - "--exclude=tests"
       - "--exclude=__pycache__"
-      - "--exclude=.dev"  # keep ./update.sh dev's marker
+      - "--exclude=.dev"  # keep 86server dev's marker
       - "--chown=root:root"
       - "--chmod=D755,F644"
   notify: Restart the manager

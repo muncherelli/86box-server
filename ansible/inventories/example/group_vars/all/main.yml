@@ -1,24 +1,22 @@
 ---
-# Settings for this host. ./update.sh copies this folder to /opt/86server/inventory on the
-# first run. Edit that copy, never this example. Fixed parts of the layout (the 86server account,
-# uid/gid 86, the folders) are in ansible/group_vars/all/defaults.yml.
+# Settings for this host. The first `86server` run copies this folder to /opt/86server/inventory. Change that
+# copy (86server settings), never this example. Fixed parts of the layout (the 86server account, uid/gid 86,
+# the folders) are in ansible/group_vars/all/defaults.yml.
 
 media_users: []                   # login users who may read/write the media library (they join group 86server)
 sftp_only_users: []               # [{name: x, ssh_key: 'ssh-ed25519 ...'}], SFTP-only accounts
 
-# Web front (Caddy). See docs/edge.md. At least one of manager_host, lan_hosts, tunnel_hosts must be set,
-# and each name may appear only once across the three.
-edge_mode: internal               # acme | tunnel | cf-origin | internal (applies to manager_host and published sites)
-manager_host: ''                  # main name of this host, served per edge_mode; '' = none (e.g. lab-01.example.com)
-lan_hosts: []                     # LAN names (e.g. [box.lan]): plain http with no redirect AND https with Caddy's
-                                  # local CA (self-signed). Point them, or a CNAME, at this host in your LAN DNS.
-tunnel_hosts: []                  # names served through a Cloudflare Tunnel (e.g. [box.example.com]): Caddy answers
-                                  # http://<name> for cloudflared. The tunnel runs when secret_cf_tunnel_token is set.
-acme_email: admin@example.com     # used in acme mode
-public_ipv4: ''                   # this host's public IPv4 (DNS records in acme/cf-origin mode)
-publish_domains: []               # domains the manager may publish sites under
+# Web front (Caddy). See docs/edge.md.
+# Real names, Let's Encrypt certificates and the Cloudflare Tunnel are set up with `86server cloudflare` (or the
+# web manager's Cloudflare page), not here.
+lan_hosts: ["{{ ansible_facts['hostname'] }}"]
+                                  # LAN names for the manager: plain http with no redirect AND https with Caddy's
+                                  # local CA (self-signed). The default is this machine's own name; add others
+                                  # (e.g. box.lan) and point them at this host in your LAN DNS.
+publish_domains: []               # LAN-only domains sites may be published under (Caddy's local CA). Sites in a
+                                  # Cloudflare zone need nothing here.
 
-# Network groups: ONLY THE STARTING POINT. ./update.sh reads these three settings the first time it runs on a
+# Network groups: ONLY THE STARTING POINT. `86server update` reads these settings the first time it runs on a
 # host. After that the groups live on the host and are managed in the web manager (Network groups page);
 # changing these lines later does nothing. Private ranges only (10.x, 172.16-31.x, 192.168.x), /16 to /29.
 netgroups: {}                     # example: lab: {cidr: 10.86.0.0/24, egress: none, dhcp: false}
@@ -26,5 +24,5 @@ group_routes: []                  # example: [[lab, web]]
 nat_dns: ['1.1.1.1']              # DNS handed to guests in nat groups
 port_forward_limits: []           # see the port-forward row on the sheet
 
-# Pinned versions live in the sibling file pins.yml; secrets in /opt/86server/secrets.yml (./update.sh secrets-edit).
+# Pinned versions live in the sibling file pins.yml; secrets in /opt/86server/secrets.yml (86server secrets).
 # When a later row needs a new variable, add it here.

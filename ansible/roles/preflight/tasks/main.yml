@@ -14,7 +14,7 @@
 
 - name: Check that the machine was rebooted after a kernel upgrade
   ansible.builtin.fail:
-    msg: The kernel was upgraded but this machine was not rebooted. Reboot, then run ./update.sh again.
+    msg: The kernel was upgraded but this machine was not rebooted. Reboot, then run 86server update again.
   when: not b86_modules.stat.exists
 
 - name: Read free disk space under /var/lib
@@ -39,13 +39,11 @@
     argv: [ss, -ltnpH, "( sport = :80 or sport = :443 )"]
   register: b86_ports
   changed_when: false
-  when: edge_mode in ['acme', 'cf-origin']
 
 - name: Check that ports 80 and 443 are free for Caddy
   ansible.builtin.fail:
     msg: "Something other than Caddy is using port 80 or 443: {{ b86_ports.stdout }}"
   when:
-    - edge_mode in ['acme', 'cf-origin']
     - b86_ports.stdout | length > 0
     - "'caddy' not in b86_ports.stdout"
 
@@ -69,7 +67,7 @@
     fail_msg: >-
       86server needs an account named {{ b86_user }} with UID and GID {{ b86_id }}, but another account
       already uses that name or ID: {{ b86_hits | reject('match', '^' ~ b86_user ~ ':[^:]*:' ~ b86_id ~ ':') | list }}.
-      Log in as a differently named user (not {{ b86_user }}) and free ID {{ b86_id }}, then run ./update.sh again.
+      Log in as a differently named user (not {{ b86_user }}) and free ID {{ b86_id }}, then run 86server update again.
     quiet: true
 
 - name: Check whether ufw is active

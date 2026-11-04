@@ -78,9 +78,7 @@
       - "{{ b86_user }}"
     stdin: >-
       {{ {'netgroups': netgroups, 'group_routes': group_routes | default([]),
-          'nat_dns': nat_dns | default(['1.1.1.1']),
-          'edge': {'edge_mode': edge_mode, 'cf4_ranges': cf4_ranges | default([]),
-                   'cf6_ranges': cf6_ranges | default([])}} | to_json }}
+          'nat_dns': nat_dns | default(['1.1.1.1'])} | to_json }}
   register: b86_netseed
   changed_when: "'applied' in b86_netseed.stdout"
   when: not b86_netpolicy.stat.exists

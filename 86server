@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# 86server: install, update and run this host. With no arguments it shows a menu; `86server help` lists commands.
+set -euo pipefail
+
+# Resolve the /usr/local/bin/86server link back to the clone.
+REPO="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+export REPO
+export ANSIBLE_CONFIG="$REPO/ansible/ansible.cfg"
+# This host's settings (inventory), install logs and Ansible collections.
+# Kept outside the repo, so a fresh clone (or a different checkout) installs with the same settings.
+INVENTORY_DIR=/opt/86server/inventory
+LOG_DIR=/opt/86server/log
+COLLECTIONS_DIR=/opt/86server/cache/ansible-collections
+export INVENTORY_DIR LOG_DIR COLLECTIONS_DIR
+
+die() { echo "error: $*" >&2; exit 1; }
+
+# shellcheck source=lib/bootstrap.sh
+source "$REPO/lib/bootstrap.sh"
+# shellcheck source=lib/ui.sh
+source "$REPO/lib/ui.sh"
+# shellcheck source=lib/preflight.sh
+source "$REPO/lib/preflight.sh"
+# shellcheck source=lib/log.sh
+source "$REPO/lib/log.sh"
+# shellcheck source=lib/secrets.sh
+source "$REPO/lib/secrets.sh"
+# shellcheck source=lib/status.sh
+source "$REPO/lib/status.sh"
+# shellcheck source=lib/dev.sh
+source "$REPO/lib/dev.sh"
+# shellcheck source=lib/admin.sh
+source "$REPO/lib/admin.sh"
+# shellcheck source=lib/cloudflare.sh
+source "$REPO/lib/cloudflare.sh"
+# shellcheck source=lib/menu.sh
+source "$REPO/lib/menu.sh"
+
+usage() {
+  cat <<'EOF'
+usage: 86server [command]
+
+  (no command)               menu
+  update [ansible args]      install or update this host (--verbose for full Ansible output)
+  status                     services, boxes and bridges
+  box list                   boxes; also: box start|stop|restart <name>
+  cloudflare                 Cloudflare tunnel and certificates (see: 86server cloudflare help)
+  admin-password [reset]     show the web manager's admin login, or set a new random password
+  settings                   edit this host's settings (/opt/86server/inventory/group_vars/all/main.yml)
+  secrets                    edit this host's secrets (/opt/86server/secrets.yml, with sudoedit)
+  log                        show the last update log
+  dev                        copy manager/ to the host on every change and restart the manager
+EOF
+}
+
+# Everything a command that touches the install needs. The first run stops after creating the settings.
+prepare() {
+  preflight_basic
+  ensure_install_dirs
+  link_command
+  ensure_secrets
+  ensure_local_inventory
+  ensure_ansible
+  ensure_nano
+  ensure_collections
+}
+export EDITOR="${EDITOR:-nano}"
+
+do_update() {
+  prepare
+  check_secrets
+  copy_secrets       # asks for the sudo password if needed, so Ansible can usually skip asking
+  set_become_args
+  setup_log
+  run_playbook "$@"
+}
+
+VERBOSE=0
+ARGS=()
+for a in "$@"; do
+  case "$a" in
+    --verbose) VERBOSE=1 ;;
+    *) ARGS+=("$a") ;;
+  esac
+done
+
+case "${ARGS[0]:-}" in
+  "") run_menu ;;
+  update | install) do_update "${ARGS[@]:1}" ;;
+  status) show_status ;;
+  box | vm) box_cli "${ARGS[@]:1}" ;;
+  cloudflare) cloudflare_cmd "${ARGS[@]:1}" ;;
+  admin-password) prepare; admin_password "${ARGS[@]:1}" ;;
+  settings) prepare; settings_edit ;;
+  secrets) ensure_install_dirs; secrets_edit ;;
+  log) show_log ;;
+  dev) run_dev ;;
+  help | -h | --help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

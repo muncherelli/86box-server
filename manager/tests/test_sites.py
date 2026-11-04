@@ -10,7 +10,7 @@ import sites
 import store
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SNIPPETS = "(b86_edge) {\n}\n(b86_auth) {\n}\n"
+SNIPPETS = "(b86_auth) {\n}\n"
 GOLDEN_SITE = {"host": "legacy.example.com", "vm": "nt4-web", "guest_ip": "10.86.1.10", "port": 80}
 
 
@@ -29,7 +29,7 @@ class Base(unittest.TestCase):
         with open(snip, "w") as f:
             f.write(SNIPPETS)
         self.saved = dict(config.CFG)
-        config.CFG.update(data_root=root, sites_dir=self.sites_dir, validate_snippets=snip, edge_mode="acme",
+        config.CFG.update(data_root=root, sites_dir=self.sites_dir, validate_snippets=snip,
                           publish_domains=["example.com"],
                           netgroups={"web": {"bridge": "br-web", "cidr": "10.86.1.0/24"}})
         store.write_json(os.path.join(root, "boxdefs", "nt4-web.json"), {"allowed_groups": ["web"]})
@@ -106,11 +106,25 @@ class RenderTest(Base):
         self.assertIn("\t\turi strip_prefix /public\n", text)
         self.assertIn("\t\treverse_proxy 10.86.1.10:80 {\n\t\t\theader_up Host legacy\n\t\t}\n", text)
 
-    def test_http_has_no_tls_import(self):
+    def test_tls_line(self):
         text = sites.render_site(site(scheme="http"))
         self.assertTrue(text.splitlines()[1].startswith("http://legacy.example.com {"))
-        self.assertNotIn("b86_edge", text)
-        self.assertIn("import b86_edge", sites.render_site(site(scheme="https")))
+        self.assertNotIn("tls", text)
+        self.assertEqual(sites.render_site(site()).splitlines()[2], "\ttls internal")
+        config.CFG["certs_dir"] = "/c"
+        self.assertEqual(sites.render_site(site(), "example.com").splitlines()[2],
+                         "\ttls /c/example.com.crt /c/example.com.key")
+
+    def test_cloudflare_zone_hosts_are_allowed_one_level_down(self):
+        config.CFG["publish_domains"] = []
+        with self.assertRaisesRegex(ValueError, "Cloudflare zone"):
+            sites.check_site(site())
+        store.write_json(os.path.join(config.CFG["data_root"], "manager", "edge.json"),
+                         {"zones": {"example.com": {"id": "z1"}}})
+        sites.check_site(site())
+        sites.check_site(site(host="example.com"))
+        with self.assertRaisesRegex(ValueError, "Cloudflare zone"):
+            sites.check_site(site(host="a.legacy.example.com"))
 
     def test_form(self):
         data = {"host": ["legacy.example.com"], "vm": ["nt4-web"], "guest_ip": ["10.86.1.10"], "port": ["80"],
