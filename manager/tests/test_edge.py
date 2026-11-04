@@ -153,7 +153,7 @@ class Base(unittest.TestCase):
     def step(self, name):
         for line in self.lines:
             parts = line.split(None, 2)
-            if parts[0] == name:
+            if parts[0] == name and not parts[1].startswith("..."):
                 return parts[1], (parts[2] if len(parts) > 2 else "")
         return None, ""
 

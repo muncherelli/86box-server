@@ -166,8 +166,12 @@ class PrintReport:
     def __init__(self, out=print):
         self.out = out
 
+    WAIT = {"certificates": " (Let's Encrypt, about a minute per new certificate)"}
+
     def __call__(self, step, state, msg=""):
-        if state != "running":
+        if state == "running":
+            self.out("%-13s ...%s" % (step, self.WAIT.get(step, "")))
+        else:
             self.out("%-13s %-8s %s" % (step, state, msg))
 
 
