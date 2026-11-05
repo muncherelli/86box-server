@@ -11,7 +11,7 @@ import config
 import respond
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", "importexp", "clone", "settings", "netgroups_ui", "cloudflare_ui", "selfupdate"]
+MODULES = ["auth", "vms", "media", "snapshots", "stats", "sites", "secrets_ui", "importexp", "clone", "settings", "netgroups_ui", "cloudflare_ui", "selfupdate", "media_fetch"]
 STATIC = {"style.css": "text/css", "app.js": "application/javascript",
           "media.js": "application/javascript", "cloudflare.js": "application/javascript"}
 MAX_FORM = 1024 * 1024
@@ -145,6 +145,11 @@ def main():
     load_routes()
     if auth is not None and hasattr(auth, "init"):
         auth.init()
+    try:
+        import media
+        media.cleanup_parts(max_age=0)  # left by uploads or downloads a restart cut off
+    except Exception as e:
+        print("media cleanup: %r" % e, file=sys.stderr, flush=True)
     port = int(os.environ.get("B86_PORT", "8686"))
     ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
 

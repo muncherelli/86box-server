@@ -297,7 +297,7 @@ progress { accent-color: var(--accent); height: .5rem; vertical-align: middle; }
 .pager .spacer { flex: 1; }
 .pager select { min-height: 1.8rem; padding: .15rem .4rem; font-size: .8rem; }
 
-.upload { margin: 0 0 1.5rem; }
+.upload { margin: 0; }
 .dropzone { border-style: dashed; border-width: 2px; border-radius: 6px; padding: .85rem 1rem;
             display: flex; align-items: center; justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap;
             background: var(--surface); transition: border-color .12s, background .12s; box-shadow: none; }
@@ -305,12 +305,24 @@ progress { accent-color: var(--accent); height: .5rem; vertical-align: middle; }
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
 .dropzone p { margin: .25rem 0; }
 .dropzone select { margin-left: .25rem; }
+/* download from a link: one row under the drop zone */
+.fetch { display: flex; flex-wrap: wrap; gap: .5rem .6rem; align-items: center; margin: .75rem 0 0;
+         padding: .7rem 1rem; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px;
+         box-shadow: inset 1px 1px 0 var(--bevel-hi); }
+.fetch .fetch-url { display: flex; align-items: center; gap: .6rem; flex: 1 1 22rem; min-width: 0; }
+.fetch .fetch-url input { flex: 1; min-width: 0; font-family: var(--mono); font-size: .86rem; }
+.fetch input[name=name] { width: 13rem; font-family: var(--mono); font-size: .86rem; }
+.fetch .hint { margin: 0; white-space: nowrap; }
+.fetch-hint { margin: .45rem 0 1.25rem; }
 .link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.queue { list-style: none; padding: 0; margin: .75rem 0 0; display: grid; gap: .35rem; }
+.queue { list-style: none; padding: 0; margin: 0 0 1.25rem; display: grid; gap: .35rem; }
 .queue:empty { display: none; }
-.queue li { display: grid; grid-template-columns: minmax(0, 1fr) 8rem 9rem; gap: .75rem; align-items: center;
+.queue li { display: grid; grid-template-columns: minmax(0, 1fr) 8rem minmax(9rem, auto); gap: .75rem; align-items: center;
             font-size: .86rem; padding: .35rem .5rem; border: 1px solid var(--border); border-radius: var(--radius);
             background: var(--surface); }
+.queue li.has-cancel { grid-template-columns: minmax(0, 1fr) 8rem minmax(9rem, auto) auto; }
+.queue li.has-cancel button { justify-self: end; }
+.queue li .hint { font-family: var(--mono); font-size: .78rem; }
 .queue li .name { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .queue li progress { width: 100%; }
 .queue li.ok .hint { color: var(--ok); }
@@ -389,6 +401,10 @@ main > form[action="/manage/login"] input[type=submit] { width: 100%; margin-top
   .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .media-table td.name { min-width: 9rem; }
   .queue li .hint { grid-column: 1 / -1; }
+  .queue li.has-cancel { grid-template-columns: minmax(0, 1fr) 5rem auto; }
+  .fetch input[name=name] { width: 100%; }
+  .fetch .fetch-url { flex-direction: column; align-items: stretch; gap: .35rem; flex-basis: 100%; }
+  .fetch .hint { white-space: normal; }
   /* one line per row; the table scrolls sideways instead of growing tall */
   #vm-table td, #vm-table td form { white-space: nowrap; flex-wrap: nowrap; }
 }

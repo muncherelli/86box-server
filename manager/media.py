@@ -73,12 +73,13 @@ def valid_name(kind, name):
     return None
 
 
-def cleanup_parts():
-    """Delete upload leftovers (.part) older than 24 hours."""
+def cleanup_parts(max_age=86400):
+    """Delete upload and download leftovers (.part) older than max_age seconds. At manager start max_age is 0:
+    no request can still be writing one then."""
     for kind in KINDS:
         for p in glob.glob(os.path.join(_dir(kind), ".*.part")):
             try:
-                if time.time() - os.lstat(p).st_mtime > 86400:
+                if time.time() - os.lstat(p).st_mtime >= max_age:
                     os.unlink(p)
             except OSError:
                 pass
@@ -456,9 +457,19 @@ def media_page(req, m):
         '<span><b>Upload:</b> drop files here or <label class="link">choose files'
         '<input type="file" name="file" multiple hidden></label></span>'
         '<span class="hint">into <select name="kind" aria-label="Upload into">%s</select></span></div>'
-        '<ul id="queue" class="queue"></ul></form>%s'
+        '</form>'
+        '<form id="fetch" class="fetch"><label class="fetch-url"><b>Download from a link:</b>'
+        '<input type="url" name="url" required placeholder="https://example.com/disk.iso" aria-label="Link to a file"></label>'
+        '<input type="text" name="name" placeholder="file name (optional)" aria-label="Save as (optional)">'
+        '<span class="hint">into <select name="kind" aria-label="Download into">'
+        '<option value="auto">Automatic (by file type)</option>%s</select></span>'
+        '<button type="submit">Download</button></form>'
+        '<p class="hint fetch-hint">The server downloads it straight into the library: nothing goes through your '
+        'browser, so big files and the tunnel limit are no problem. Archives (.zip, .7z) are not unpacked.</p>'
+        '<ul id="queue" class="queue"></ul>%s'
         % ("".join('<option value="%s"%s>%s</option>' % (k, " selected" if k == kind else "", respond.esc(KINDS[k][0]))
-                   for k in KINDS), note))
+                   for k in KINDS),
+           "".join('<option value="%s">%s</option>' % (k, respond.esc(KINDS[k][0])) for k in KINDS), note))
     parts.append(
         '<section class="card">'
         '<div class="card-head"><h2>%s</h2>%s</div>'

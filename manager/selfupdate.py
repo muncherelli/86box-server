@@ -126,6 +126,10 @@ def h_update(req, m):
         return respond.json_resp({"ok": False, "error": "updates from the panel are not set up; run 86server update"}, 409)
     if (st["run"] or {}).get("state") == "running":
         return respond.json_resp({"ok": False, "error": "an update is already running"}, 409)
+    import media_fetch  # the update restarts the manager, which would end a download half way
+    if media_fetch.active():
+        return respond.json_resp({"ok": False, "error": "a download is running in the media library: wait for it "
+                                                        "to finish or cancel it, then update"}, 409)
     at = _now().isoformat(timespec="seconds")
     store.write_text(_request_path(), json.dumps({"at": at, "by": req.user["name"]}) + "\n", mode=0o600)
     return respond.json_resp({"ok": True, "requested_at": at})
