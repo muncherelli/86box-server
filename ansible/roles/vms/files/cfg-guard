@@ -60,12 +60,18 @@ def check(name):
             nn, kind = m.group(1), value.strip()
             if kind in ("", "none"):
                 continue
+            # No card fitted in this slot: 86Box opens no network for it, whatever the type says.
+            card = p.get("Network", "net_%s_card" % nn, fallback="none").strip()
+            if card in ("", "none"):
+                continue
             if kind != "tap":
                 problems.append("NIC %s uses network type %s (only tap is allowed)" % (nn, kind))
                 continue
             bridge = p.get("Network", "net_%s_host_device" % nn, fallback="").strip()
             if bridge not in allowed:
-                problems.append("NIC %s uses bridge '%s' which this box may not use" % (nn, bridge))
+                may = ", ".join(allowed) if allowed else "none: add the box to a network group first"
+                problems.append("NIC %s uses bridge '%s' which this box may not use (allowed: %s)"
+                                % (nn, bridge or "(none picked)", may))
     return problems
 
 
@@ -79,8 +85,10 @@ def main():
     problems = check(name)
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     os.makedirs(OUT, exist_ok=True)
-    with open("%s/%s.json" % (OUT, name), "w") as f:
+    path = "%s/%s.json" % (OUT, name)
+    with open(path, "w") as f:
         json.dump({"ok": not problems, "problems": problems, "checked": now}, f)
+    os.chmod(path, 0o644)  # the web manager (not root) shows these on the box list
     for line in problems:
         print(line, file=sys.stderr)
     if problems and enforce:
@@ -88,4 +96,5 @@ def main():
     sys.exit(1 if problems else 0)
 
 
-main()
+if __name__ == "__main__":
+    main()

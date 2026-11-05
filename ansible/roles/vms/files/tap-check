@@ -41,7 +41,9 @@ def expected_bridges(name):
     if p.has_section("Network"):
         for key, value in p.items("Network"):
             m = re.fullmatch(r"net_(\d\d)_net_type", key)
-            if m and value.strip() == "tap":
+            # A slot with no card opens no network, whatever its type (cfg-guard skips it too).
+            card = p.get("Network", "net_%s_card" % m.group(1), fallback="none").strip() if m else ""
+            if m and value.strip() == "tap" and card not in ("", "none"):
                 bridges.append(p.get("Network", "net_%s_host_device" % m.group(1), fallback="").strip())
     return bridges
 
@@ -99,12 +101,15 @@ def main():
         time.sleep(0.5)
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     os.makedirs(OUT, exist_ok=True)
-    with open("%s/%s.json" % (OUT, name), "w") as f:
+    path = "%s/%s.json" % (OUT, name)
+    with open(path, "w") as f:
         json.dump({"checked": now, "nics": nics}, f)
+    os.chmod(path, 0o644)  # the web manager (not root) shows these on the box list
     bad = [n for n in nics if not n["ok"]]
     for n in bad:
         print("%s: no tap attached to %s" % (name, n["bridge"]), file=sys.stderr)
     sys.exit(1 if bad else 0)
 
 
-main()
+if __name__ == "__main__":
+    main()
